@@ -1,0 +1,46 @@
+import type { ReactNode } from "react"
+import type { Metadata } from "next"
+import { notFound } from "next/navigation"
+import { NextIntlClientProvider, hasLocale } from "next-intl"
+import { getMessages, setRequestLocale } from "next-intl/server"
+import { routing } from "@/i18n/routing"
+import { AuthProvider } from "@/lib/auth-context"
+import { ThemeProvider, themeNoFlashScript } from "@/components/theme-provider"
+import "../globals.css"
+
+export const metadata: Metadata = {
+  title: "سامانه مبحث ۱۹ | Mabhas19",
+  description: "ارزیابی جامع انرژی ساختمان بر اساس مبحث ۱۹ مقررات ملی ساختمان",
+}
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }))
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: {
+  children: ReactNode
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+
+  setRequestLocale(locale)
+  const messages = await getMessages()
+  const dir = locale === "fa" ? "rtl" : "ltr"
+
+  return (
+    <html lang={locale} dir={dir} suppressHydrationWarning>
+      <body className="min-h-screen antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeNoFlashScript }} />
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  )
+}

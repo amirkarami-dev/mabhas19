@@ -1,0 +1,25 @@
+# Mabhas19 Web (Next.js 16) — build context is the repository root.
+# Requires next.config to set `output: "standalone"`.
+FROM node:24-alpine AS deps
+WORKDIR /app
+COPY web/package.json web/package-lock.json* ./
+RUN npm ci
+
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY web/ ./
+ENV NEXT_TELEMETRY_DISABLED=1
+# Public API base is baked at build time for NEXT_PUBLIC_* vars.
+ARG NEXT_PUBLIC_API_BASE=https://api.mabhas19.myceo.ir
+ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+RUN npm run build
+
+FROM node:24-alpine AS final
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
+COPY --from=build /app/public ./public
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+EXPOSE 3000
+CMD ["node", "server.js"]
