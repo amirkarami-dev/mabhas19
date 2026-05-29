@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+artifacts/
+**/.vs/
+**/.vscode/
+**/.idea/
+web/node_modules/
+web/.next/
+web/out/
+**/*.user
+.git/
+.github/
+**/.env
+**/.env.local
+deploy/acme.json

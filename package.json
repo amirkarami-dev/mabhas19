@@ -1,0 +1,10 @@
+{
+  "name": "mabhas19-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "web",
+    "mobile"
+  ]
+}
