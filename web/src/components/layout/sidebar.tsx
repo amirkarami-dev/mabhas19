@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Link, usePathname, useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/components/ui"
@@ -81,9 +81,23 @@ export function Sidebar({
   const tNav = useTranslations("nav")
   const tApp = useTranslations("app")
   const tCommon = useTranslations("common")
+  const locale = useLocale()
+  const fa = locale === "fa"
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const router = useRouter()
+
+  const adminGroupLabel = fa ? "مدیریت سامانه" : "Administration"
+  const adminUsersLabel = fa ? "کاربران و اشتراک‌ها" : "Users & subscriptions"
+  const adminUsersActive =
+    pathname === "/admin/users" || pathname.startsWith("/admin/users/")
+  const adminIcon = (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <circle cx="12" cy="10" r="2.5" />
+      <path d="M8.5 16a3.5 3.5 0 0 1 7 0" />
+    </svg>
+  )
 
   const handleLogout = async () => {
     await logout()
@@ -164,6 +178,39 @@ export function Sidebar({
             </ul>
           </div>
         ))}
+
+        {isAdmin ? (
+          <div>
+            {!collapsed ? (
+              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {adminGroupLabel}
+              </p>
+            ) : (
+              <div className="mx-2 mb-2 border-t border-sidebar-border" />
+            )}
+            <ul className="space-y-1">
+              <li>
+                <Link
+                  href="/admin/users"
+                  onClick={onNavigate}
+                  title={collapsed ? adminUsersLabel : undefined}
+                  className={cn(
+                    "group flex items-center rounded-lg text-sm font-medium transition-colors",
+                    collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
+                    adminUsersActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  )}
+                >
+                  <span className={adminUsersActive ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground"}>
+                    {adminIcon}
+                  </span>
+                  {!collapsed ? adminUsersLabel : null}
+                </Link>
+              </li>
+            </ul>
+          </div>
+        ) : null}
       </nav>
 
       {/* User profile */}

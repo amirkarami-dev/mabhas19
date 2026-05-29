@@ -1,8 +1,11 @@
 ﻿using Mabhas19.Domain.Constants;
+using Mabhas19.Domain.Entities;
+using Mabhas19.Domain.Enums;
 using Mabhas19.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -27,13 +30,15 @@ public class ApplicationDbContextInitialiser
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IConfiguration _configuration;
 
-    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
     {
         _logger = logger;
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
+        _configuration = configuration;
     }
 
     public async Task InitialiseAsync()
@@ -65,24 +70,54 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        // Default roles
-        var administratorRole = new IdentityRole(Roles.Administrator);
-
-        if (_roleManager.Roles.All(r => r.Name != administratorRole.Name))
+        // Ensure all application roles exist.
+        foreach (var roleName in Roles.All)
         {
-            await _roleManager.CreateAsync(administratorRole);
+            if (_roleManager.Roles.All(r => r.Name != roleName))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(roleName));
+            }
         }
 
-        // Default users
-        var administrator = new ApplicationUser { UserName = "administrator@localhost", Email = "administrator@localhost" };
+        // Seed the administrator account (credentials are configurable; defaults below).
+        var adminEmail = _configuration["AdminUser:Email"] ?? "admin@mabhas19.myceo.ir";
+        var adminPassword = _configuration["AdminUser:Password"] ?? "Mabhas19@Admin#2026";
 
-        if (_userManager.Users.All(u => u.UserName != administrator.UserName))
+        var administrator = await _userManager.FindByEmailAsync(adminEmail);
+        if (administrator is null)
         {
-            await _userManager.CreateAsync(administrator, "Administrator1!");
-            if (!string.IsNullOrWhiteSpace(administratorRole.Name))
+            administrator = new ApplicationUser
             {
-                await _userManager.AddToRolesAsync(administrator, new [] { administratorRole.Name });
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+            var created = await _userManager.CreateAsync(administrator, adminPassword);
+            if (!created.Succeeded)
+            {
+                _logger.LogWarning("Could not create admin user: {Errors}",
+                    string.Join("; ", created.Errors.Select(e => e.Description)));
+                return;
             }
+        }
+
+        if (!await _userManager.IsInRoleAsync(administrator, Roles.Administrator))
+        {
+            await _userManager.AddToRoleAsync(administrator, Roles.Administrator);
+        }
+
+        // Give the administrator an unrestricted Enterprise subscription.
+        if (!await _context.Subscriptions.AnyAsync(s => s.UserId == administrator.Id))
+        {
+            _context.Subscriptions.Add(new Subscription
+            {
+                UserId = administrator.Id,
+                Plan = SubscriptionPlan.Enterprise,
+                MaxProjects = 1000,
+                IsActive = true,
+                ValidFrom = DateTimeOffset.UtcNow
+            });
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -10,10 +10,12 @@ import {
 } from "react"
 import { authApi, saveTokens } from "./endpoints"
 import { tokenStore } from "./tokens"
-import type { TokenResponse, UserInfo } from "./types"
+import type { CurrentUser, TokenResponse } from "./types"
 
 interface AuthState {
-  user: UserInfo | null
+  user: CurrentUser | null
+  roles: string[]
+  isAdmin: boolean
   ready: boolean
   isAuthenticated: boolean
   setTokens: (tokens: TokenResponse) => Promise<void>
@@ -24,7 +26,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserInfo | null>(null)
+  const [user, setUser] = useState<CurrentUser | null>(null)
   const [ready, setReady] = useState(false)
 
   const refreshUser = useCallback(async () => {
@@ -73,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        roles: user?.roles ?? [],
+        isAdmin: user?.isAdmin ?? false,
         ready,
         isAuthenticated: Boolean(user) || tokenStore.hasToken(),
         setTokens,

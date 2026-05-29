@@ -1,0 +1,103 @@
+name: mabhas19
+
+# Production deployment that ATTACHES to the server's existing Traefik (v2.11) instead of
+# running its own. The external network "traefik" and the cert resolver "myresolver"
+# (ArvanCloud DNS challenge) are provided by /srv/traefik.
+#   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env up -d --build
+
+services:
+  postgres:
+    image: docker.arvancloud.ir/postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  minio:
+    image: docker.arvancloud.ir/minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # S3 API (presigned report URLs are issued against this host)
+      - "traefik.http.routers.m19s3.rule=Host(`${MINIO_DOMAIN}`)"
+      - "traefik.http.routers.m19s3.entrypoints=websecure"
+      - "traefik.http.routers.m19s3.tls.certresolver=myresolver"
+      - "traefik.http.routers.m19s3.service=m19s3"
+      - "traefik.http.services.m19s3.loadbalancer.server.port=9000"
+    networks: [internal, traefik]
+
+  api:
+    image: mabhas19-api:deploy
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Mabhas19Db: "Server=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};"
+      # MinIO is reached via its public host so presigned signatures are valid for browsers.
+      Minio__Endpoint: ${MINIO_DOMAIN}
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__Bucket: ${MINIO_BUCKET}
+      Minio__UseSSL: "true"
+      AdminUser__Email: ${ADMIN_EMAIL}
+      AdminUser__Password: ${ADMIN_PASSWORD}
+      Sms__Provider: ${SMS_PROVIDER}
+      Sms__ApiKey: ${SMS_API_KEY}
+      Sms__Sender: ${SMS_SENDER}
+      Otp__LogCode: "false"
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      ExternalImport__NezamMohandesi__BaseUrl: ${NEZAM_BASE_URL}
+      ExternalImport__NezamMohandesi__ApiKey: ${NEZAM_API_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.m19api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.m19api.entrypoints=websecure"
+      - "traefik.http.routers.m19api.tls.certresolver=myresolver"
+      - "traefik.http.services.m19api.loadbalancer.server.port=8080"
+    networks: [internal, traefik]
+
+  web:
+    image: mabhas19-web:deploy
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.m19web.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.routers.m19web.entrypoints=websecure"
+      - "traefik.http.routers.m19web.tls.certresolver=myresolver"
+      - "traefik.http.services.m19web.loadbalancer.server.port=3000"
+    networks: [traefik]
+
+volumes:
+  pgdata:
+  miniodata:
+
+networks:
+  traefik:
+    external: true
+  internal:
+    driver: bridge

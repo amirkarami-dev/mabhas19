@@ -5,9 +5,47 @@ export interface TokenResponse {
   tokenType: string
 }
 
-export interface UserInfo {
+// Current authenticated user, returned by GET /api/Users/me.
+export interface CurrentUser {
+  id: string
   email: string
+  phoneNumber?: string | null
+  roles: string[]
+  isAdmin: boolean
+}
+
+// Kept for backward-compat. UserInfo now carries role/identity info too.
+export interface UserInfo extends CurrentUser {
   isEmailConfirmed?: boolean
+}
+
+// ---- Admin ----
+export interface AdminUser {
+  id: string
+  email: string
+  phoneNumber?: string | null
+  isAdmin: boolean
+  roles: string[]
+  plan: string
+  maxProjects: number
+  usedProjects: number
+  isActive: boolean
+  validTo?: string | null
+}
+
+export type SubscriptionPlan = "Free" | "Pro" | "Enterprise"
+
+export interface UpdateUserSubscriptionInput {
+  plan: SubscriptionPlan | string
+  maxProjects: number
+  isActive: boolean
+  validTo?: string | null
+}
+
+export interface CreateUserInput {
+  email: string
+  password: string
+  isAdmin: boolean
 }
 
 export interface Subscription {

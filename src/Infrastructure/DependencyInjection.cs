@@ -91,6 +91,7 @@ public static class DependencyInjection
 
         // Subscriptions, auth helpers.
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         services.AddHttpClient<ISmsSender, SmsSender>();

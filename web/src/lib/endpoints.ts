@@ -1,12 +1,15 @@
 import { apiFetch } from "./api"
 import { tokenStore } from "./tokens"
 import type {
+  AdminUser,
   Assessment,
   CreateProjectInput,
+  CreateUserInput,
+  CurrentUser,
   Project,
   Subscription,
   TokenResponse,
-  UserInfo,
+  UpdateUserSubscriptionInput,
 } from "./types"
 
 // ---- Auth ----
@@ -27,7 +30,7 @@ export const authApi = {
 
   logout: () => apiFetch("/api/Users/logout", { method: "POST" }),
 
-  me: () => apiFetch<UserInfo>("/api/Users/manage/info"),
+  me: () => apiFetch<CurrentUser>("/api/Users/me"),
 
   requestOtp: (phoneNumber: string) =>
     apiFetch("/api/Auth/otp/request", {
@@ -58,6 +61,34 @@ export function saveTokens(tokens: TokenResponse) {
 // ---- Subscriptions ----
 export const subscriptionApi = {
   me: () => apiFetch<Subscription>("/api/Subscriptions/me"),
+}
+
+// ---- Admin (requires Administrator role) ----
+export const adminApi = {
+  listUsers: () => apiFetch<AdminUser[]>("/api/Admin/users"),
+
+  getUser: (id: string) => apiFetch<AdminUser>(`/api/Admin/users/${id}`),
+
+  createUser: (input: CreateUserInput) =>
+    apiFetch<{ id: string }>("/api/Admin/users", {
+      method: "POST",
+      body: input,
+    }),
+
+  updateSubscription: (id: string, input: UpdateUserSubscriptionInput) =>
+    apiFetch(`/api/Admin/users/${id}/subscription`, {
+      method: "PUT",
+      body: input,
+    }),
+
+  setRole: (id: string, isAdmin: boolean) =>
+    apiFetch(`/api/Admin/users/${id}/role`, {
+      method: "PUT",
+      body: { isAdmin },
+    }),
+
+  removeUser: (id: string) =>
+    apiFetch(`/api/Admin/users/${id}`, { method: "DELETE" }),
 }
 
 // ---- Projects ----
