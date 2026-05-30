@@ -4,9 +4,14 @@ artifacts/
 **/.vs/
 **/.vscode/
 **/.idea/
-web/node_modules/
+**/node_modules/
 web/.next/
 web/out/
+mobile/android/
+mobile/ios/
+mobile/.expo/
+mobile/dist*/
+**/*.tsbuildinfo
 **/*.user
 .git/
 .github/
