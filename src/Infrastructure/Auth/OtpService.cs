@@ -41,7 +41,7 @@ public class OtpService : IOtpService
             _logger.LogInformation("OTP for {Phone} is {Code}", phoneNumber, code);
         }
 
-        await _sms.SendAsync(phoneNumber, $"کد ورود شما به مبحث ۱۹: {code}", ct);
+        await _sms.SendAsync(phoneNumber, code, ct);
     }
 
     public async Task<bool> VerifyAsync(string phoneNumber, string code, CancellationToken ct = default)

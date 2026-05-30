@@ -1,4 +1,5 @@
-using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Mabhas19.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,8 +7,12 @@ using Microsoft.Extensions.Options;
 namespace Mabhas19.Infrastructure.Auth;
 
 /// <summary>
-/// Sends SMS via Kavenegar (a common Iranian provider) when configured, otherwise logs
-/// the message (development). Swap in another provider by extending <see cref="SendAsync"/>.
+/// Delivers OTP codes through the kurdnezambargh SMS relay service
+/// (https://sms.kurdnezambargh.ir), mirroring the vahedbargh-web integration.
+/// The relay's static IP is whitelisted upstream (msgway template + Bale); it is
+/// called as <c>POST {ServiceUrl}/send</c> with a Bearer token and a
+/// <c>{ phone, code }</c> JSON body. When no token is configured the code is only
+/// logged (development).
 /// </summary>
 public class SmsSender : ISmsSender
 {
@@ -22,33 +27,34 @@ public class SmsSender : ISmsSender
         _logger = logger;
     }
 
-    public async Task SendAsync(string phoneNumber, string message, CancellationToken ct = default)
+    public async Task SendAsync(string phoneNumber, string code, CancellationToken ct = default)
     {
-        if (string.Equals(_options.Provider, "kavenegar", StringComparison.OrdinalIgnoreCase)
-            && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.Token))
         {
-            var url = $"https://api.kavenegar.com/v1/{_options.ApiKey}/sms/send.json"
-                + $"?receptor={WebUtility.UrlEncode(phoneNumber)}"
-                + $"&message={WebUtility.UrlEncode(message)}"
-                + (string.IsNullOrWhiteSpace(_options.Sender) ? "" : $"&sender={WebUtility.UrlEncode(_options.Sender)}");
-
-            try
-            {
-                var response = await _http.GetAsync(url, ct);
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("SMS send failed ({Status}) for {Phone}", response.StatusCode, phoneNumber);
-                }
-                return;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "SMS send error for {Phone}", phoneNumber);
-                return;
-            }
+            _logger.LogInformation("[SMS:log] to {Phone}: {Code}", phoneNumber, code);
+            return;
         }
 
-        _logger.LogInformation("[SMS:log] to {Phone}: {Message}", phoneNumber, message);
-        await Task.CompletedTask;
+        try
+        {
+            var url = $"{_options.ServiceUrl.TrimEnd('/')}/send";
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(new { phone = phoneNumber, code })
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.Token);
+
+            var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("SMS relay returned {Status} for {Phone}: {Body}",
+                    response.StatusCode, phoneNumber, body);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SMS relay error for {Phone}", phoneNumber);
+        }
     }
 }
