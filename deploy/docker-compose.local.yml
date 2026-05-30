@@ -53,7 +53,7 @@ services:
       Minio__Bucket: mabhas19
       Minio__UseSSL: "false"
       Minio__PublicEndpoint: "http://localhost:9000"
-      Sms__Provider: log
+      Sms__Token: ""
       Otp__LogCode: "true"
     ports:
       - "5000:8080"

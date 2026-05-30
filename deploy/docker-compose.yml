@@ -91,9 +91,8 @@ services:
       Minio__Bucket: ${MINIO_BUCKET}
       Minio__UseSSL: "false"
       Minio__PublicEndpoint: "https://${MINIO_DOMAIN}"
-      Sms__Provider: ${SMS_PROVIDER}
-      Sms__ApiKey: ${SMS_API_KEY}
-      Sms__Sender: ${SMS_SENDER}
+      Sms__ServiceUrl: ${SMS_SERVICE_URL}
+      Sms__Token: ${SMS_TOKEN}
       Otp__LogCode: "false"
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
       ExternalImport__NezamMohandesi__BaseUrl: ${NEZAM_BASE_URL}
