@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using Mabhas19.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,8 +8,9 @@ using Microsoft.Extensions.Options;
 namespace Mabhas19.Infrastructure.Auth;
 
 /// <summary>
-/// Sends SMS via Kavenegar (a common Iranian provider) when configured, otherwise logs
-/// the message (development). Swap in another provider by extending <see cref="SendAsync"/>.
+/// Sends SMS via an external OTP relay microservice or Kavenegar (a common Iranian provider)
+/// when configured, otherwise logs the message (development). Swap in another provider by
+/// extending <see cref="SendAsync"/>.
 /// </summary>
 public class SmsSender : ISmsSender
 {
@@ -24,6 +27,39 @@ public class SmsSender : ISmsSender
 
     public async Task SendAsync(string phoneNumber, string message, CancellationToken ct = default)
     {
+        if (string.Equals(_options.Provider, "relay", StringComparison.OrdinalIgnoreCase))
+        {
+            var match = Regex.Match(message, @"\d{4,8}");
+            if (!match.Success)
+            {
+                _logger.LogWarning("OTP relay: no code found in message for {Phone}", phoneNumber);
+                return;
+            }
+
+            var url = $"{_options.RelayBaseUrl.TrimEnd('/')}/send";
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = JsonContent.Create(new { phone = phoneNumber, code = match.Value }),
+                };
+                request.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.RelayToken);
+
+                using var response = await _http.SendAsync(request, ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("OTP relay send failed ({Status}) for {Phone}", response.StatusCode, phoneNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OTP relay send error for {Phone}", phoneNumber);
+            }
+
+            return;
+        }
+
         if (string.Equals(_options.Provider, "kavenegar", StringComparison.OrdinalIgnoreCase)
             && !string.IsNullOrWhiteSpace(_options.ApiKey))
         {
