@@ -61,9 +61,10 @@ services:
       Minio__UseSSL: "true"
       AdminUser__Email: ${ADMIN_EMAIL}
       AdminUser__Password: ${ADMIN_PASSWORD}
-      Sms__Provider: ${SMS_PROVIDER}
-      Sms__ApiKey: ${SMS_API_KEY}
-      Sms__Sender: ${SMS_SENDER}
+      # OTP via the external relay (whitelisted-IP microservice); token from .env.
+      Sms__Provider: "relay"
+      Sms__RelayBaseUrl: "https://sms.kurdnezambargh.ir"
+      Sms__RelayToken: ${SMS_RELAY_TOKEN}
       Otp__LogCode: "false"
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
       ExternalImport__NezamMohandesi__BaseUrl: ${NEZAM_BASE_URL}

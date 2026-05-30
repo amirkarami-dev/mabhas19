@@ -1,6 +1,5 @@
 // Minimal fa-IR (default, RTL) / en-US dictionary + a tiny translation hook.
 // Persian is the primary language; English is a fallback for non-Persian devices.
-import { getLocales } from "expo-localization"
 
 export type Locale = "fa" | "en"
 
@@ -104,7 +103,7 @@ const dict = {
 
 export type TranslationKey = keyof (typeof dict)["fa"]
 
-export const locale: Locale = getLocales()[0]?.languageCode === "en" ? "en" : "fa"
+export const locale: Locale = "fa"
 export const isRTL = locale === "fa"
 
 export function t(key: TranslationKey): string {
