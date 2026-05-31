@@ -1,18 +1,18 @@
 name: mabhas19-dev
 
-# Local development dependencies only (Postgres + MinIO). The API/web run on your host.
+# Local development dependencies only (SQL Server + MinIO). The API/web run on your host.
 # Matches src/Web/appsettings.json defaults.  Start:  docker compose -f deploy/docker-compose.dev.yml up -d
 services:
-  postgres:
-    image: postgres:17
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: Mabhas19Db
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Mabhas19_Sql#2026"
+      MSSQL_PID: "Developer"
     ports:
-      - "5432:5432"
+      - "1433:1433"
     volumes:
-      - pgdata_dev:/var/lib/postgresql/data
+      - mssqldata_dev:/var/opt/mssql
 
   minio:
     image: minio/minio:latest
@@ -27,5 +27,5 @@ services:
       - miniodata_dev:/data
 
 volumes:
-  pgdata_dev:
+  mssqldata_dev:
   miniodata_dev:

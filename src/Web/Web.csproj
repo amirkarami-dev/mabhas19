@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>Mabhas19.Web</RootNamespace>
     <AssemblyName>Mabhas19.Web</AssemblyName>
+    <UserSecretsId>5c54cc02-0b34-4671-826b-1534fa16facf</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

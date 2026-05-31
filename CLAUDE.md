@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Mabhas19 (مبحث ۱۹) — a full‑stack web app for Iran's National Building Code **Section 19, Appendix 5 (5th ed.)** building‑energy assessment. .NET 10 Clean Architecture backend + Next.js 16 frontend, PostgreSQL, MinIO (S3), Persian/RTL.
+Mabhas19 (مبحث ۱۹) — a full‑stack web app for Iran's National Building Code **Section 19, Appendix 5 (5th ed.)** building‑energy assessment. .NET 10 Clean Architecture backend + Next.js 16 frontend, SQL Server, MinIO (S3), Persian/RTL.
 
 ## Commands
 
 ### Backend (.NET 10, solution `Mabhas19.slnx`)
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d   # Postgres (admin/password) + MinIO (minioadmin) — needed to run the API
+docker compose -f deploy/docker-compose.dev.yml up -d   # SQL Server (sa) + MinIO (minioadmin) — needed to run the API
 dotnet build Mabhas19.slnx                              # build all
 dotnet run --project src/Web                            # API on http://localhost:5000  (Scalar docs at /scalar)
 dotnet test                                             # all tests
@@ -39,11 +39,11 @@ npm run lint
 ### Backend layering (`src/`, from the Jason Taylor Clean Architecture template + .NET Aspire)
 - **Domain** — entities (`Project`, `Assessment`, `Subscription`, `AssessmentReport`) and the Section 19 calculators in `Domain/Services`: `BuildingGroupCalculator` and `ClimateData`. **These are faithful ports of the legacy JS calculator — keep them numerically identical; they're covered by unit tests.**
 - **Application** — CQRS use cases (MediatR), FluentValidation validators, AutoMapper profiles (defined as nested `Mapping : Profile` classes inside DTOs). Service contracts live in `Application/Common/Interfaces`.
-- **Infrastructure** — EF Core + **Npgsql/PostgreSQL**, ASP.NET Identity, and the implementations: `MinioFileStorage` (IFileStorage), `QuestPdfReportGenerator` (IReportGenerator), `SubscriptionService`, `UserAdminService`, `OtpService`/`SmsSender`, `GoogleTokenValidator`, `NezamMohandesiProjectProvider`.
+- **Infrastructure** — EF Core + **Microsoft SQL Server**, ASP.NET Identity, and the implementations: `MinioFileStorage` (IFileStorage), `QuestPdfReportGenerator` (IReportGenerator), `SubscriptionService`, `UserAdminService`, `OtpService`/`SmsSender`, `GoogleTokenValidator`, `NezamMohandesiProjectProvider`.
 - **Web** — Minimal‑API endpoints. Each `IEndpointGroup` class is auto‑mapped at **`/api/{ClassName}`**. Identity API is mounted via `MapIdentityApi` under `/api/Users/*` (bearer tokens). The DI extension lives in `Infrastructure/DependencyInjection.cs` → `AddMabhas19Services`.
 
 ### Key architectural decision: where scoring lives
-The interactive **6‑checklist scoring engine runs in the FRONTEND** (`web/src/features/assessment`, ported verbatim from a legacy React app). The **backend is the system of record**: `Assessment.InputJson`/`ResultJson` are stored as PostgreSQL **`jsonb`** plus denormalised `TotalScore`/`MaxScore`, and the PDF is generated from the stored result. So changes to assessment scoring/inputs go in `web/src/features/assessment/*`, **not** the backend.
+The interactive **6‑checklist scoring engine runs in the FRONTEND** (`web/src/features/assessment`, ported verbatim from a legacy React app). The **backend is the system of record**: `Assessment.InputJson`/`ResultJson` are stored as SQL Server **`nvarchar(max)`** plus denormalised `TotalScore`/`MaxScore`, and the PDF is generated from the stored result. So changes to assessment scoring/inputs go in `web/src/features/assessment/*`, **not** the backend.
 
 ### Auth & roles
 - Three sign‑in methods: username/password (Identity API), **mobile OTP** (`/api/Auth/otp/*`), **Google ID‑token** (`/api/Auth/google`). The OTP/Google flows in `Web/Endpoints/Auth.cs` issue Identity bearer tokens by setting `signInManager.AuthenticationScheme = IdentityConstants.BearerScheme` then `SignInAsync`.
@@ -66,7 +66,7 @@ The interactive **6‑checklist scoring engine runs in the FRONTEND** (`web/src/
 
 ## Deployment (`deploy/`)
 
-- `docker-compose.dev.yml` — local Postgres + MinIO only. `docker-compose.local.yml` — full stack in containers. `docker-compose.server.yml` — production, **attaches to the server's existing Traefik** (external network `traefik`, cert resolver `myresolver` = ArvanCloud DNS challenge) instead of running its own.
+- `docker-compose.dev.yml` — local SQL Server + MinIO only. `docker-compose.local.yml` — full stack in containers. `docker-compose.server.yml` — production, **attaches to the server's existing Traefik** (external network `traefik`, cert resolver `myresolver` = ArvanCloud DNS challenge) instead of running its own.
 - **Live**: `mabhas19.myceo.ir` (web), `api.mabhas19.myceo.ir`, `s3.mabhas19.myceo.ir`, on server `10.249.52.216` under `/srv/mabhas19`.
 - The server is in Iran: **Docker Hub's blob CDN and `mcr.microsoft.com` are blocked**. So: build the `api`/`web` images locally (where `mcr` works), `docker save | gzip` → transfer → `docker load`; pull `postgres`/`minio` via the **`docker.arvancloud.ir`** mirror (referenced directly in `docker-compose.server.yml`). **Do not restart the shared Docker daemon** — it runs other production stacks (mailcow, supabase).
 - SSH uses PuTTY `plink`/`pscp -pw` (no `sshpass` available). In production MinIO is reached via its public host (`Minio__Endpoint=s3.mabhas19.myceo.ir`, `UseSSL=true`) so presigned report URLs are valid for browsers.

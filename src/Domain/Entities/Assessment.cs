@@ -4,7 +4,7 @@ namespace Mabhas19.Domain.Entities;
 
 /// <summary>
 /// The Section 19 energy assessment for a project. The detailed inputs and per-tool
-/// results are persisted as JSON (PostgreSQL jsonb); summary scores are denormalised
+/// results are persisted as JSON (SQL Server nvarchar(max)); summary scores are denormalised
 /// for querying and reporting.
 /// </summary>
 public class Assessment : BaseAuditableEntity

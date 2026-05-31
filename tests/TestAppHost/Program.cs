@@ -8,7 +8,7 @@ public class Program
     {
         var builder = DistributedApplication.CreateBuilder(args);
 
-        builder.AddPostgres(Services.DatabaseServer)
+        builder.AddSqlServer(Services.DatabaseServer)
             .AddDatabase(Services.Database);
 
         builder.Build().Run();
