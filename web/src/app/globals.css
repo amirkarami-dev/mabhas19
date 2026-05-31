@@ -250,3 +250,37 @@
 .dark .border-slate-300 {
   border-color: var(--border);
 }
+
+/* Light tinted backgrounds (50/100 pills, soft alerts) → token-based dark tints
+ * so they don't render as bright light blocks on a dark surface. */
+.dark .bg-brand-50 {
+  background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+}
+.dark .bg-emerald-100 {
+  background-color: color-mix(in oklch, var(--success) 18%, transparent);
+}
+.dark .bg-red-50,
+.dark .bg-red-100 {
+  background-color: color-mix(in oklch, var(--destructive) 15%, transparent);
+}
+.dark .bg-amber-50 {
+  background-color: color-mix(in oklch, var(--warning) 15%, transparent);
+}
+
+/* Status text + borders → semantic tokens (light enough for a dark surface). */
+.dark .text-red-700,
+.dark .text-red-600 {
+  color: var(--destructive);
+}
+.dark .text-emerald-800,
+.dark .text-emerald-700,
+.dark .text-emerald-600 {
+  color: var(--success);
+}
+.dark .text-amber-900,
+.dark .text-amber-700 {
+  color: var(--warning);
+}
+.dark .border-amber-200 {
+  border-color: color-mix(in oklch, var(--warning) 35%, transparent);
+}
