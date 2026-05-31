@@ -32,9 +32,9 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.13.13" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
-    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="13.2.0" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.2.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
     <PackageVersion Include="Minio" Version="6.0.5" />
     <PackageVersion Include="QuestPDF" Version="2024.12.3" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.68.0" />

@@ -8,8 +8,8 @@ public class AssessmentConfiguration : IEntityTypeConfiguration<Assessment>
 {
     public void Configure(EntityTypeBuilder<Assessment> builder)
     {
-        builder.Property(a => a.InputJson).HasColumnType("jsonb").IsRequired();
-        builder.Property(a => a.ResultJson).HasColumnType("jsonb").IsRequired();
+        builder.Property(a => a.InputJson).HasColumnType("nvarchar(max)").IsRequired();
+        builder.Property(a => a.ResultJson).HasColumnType("nvarchar(max)").IsRequired();
         builder.Property(a => a.Status).HasConversion<int>();
 
         builder.HasIndex(a => a.ProjectId).IsUnique();

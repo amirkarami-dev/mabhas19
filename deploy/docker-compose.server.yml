@@ -6,20 +6,22 @@ name: mabhas19
 #   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env up -d --build
 
 services:
-  postgres:
-    image: docker.arvancloud.ir/postgres:17
+  sqlserver:
+    # Image is loaded on the server from /home/admin1/Apps/sqlserver.tar (mcr is blocked).
+    image: mcr.microsoft.com/mssql/server:2019-latest
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: "Express"   # free for production (10 GB/db cap is ample here)
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mssqldata:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' 2>/dev/null) || (/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' 2>/dev/null) || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 45s
     networks: [internal]
 
   minio:
@@ -46,13 +48,13 @@ services:
     image: mabhas19-api:deploy
     restart: unless-stopped
     depends_on:
-      postgres:
+      sqlserver:
         condition: service_healthy
       minio:
         condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Mabhas19Db: "Server=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};"
+      ConnectionStrings__Mabhas19Db: "Server=sqlserver,1433;Database=Mabhas19Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
       # MinIO is reached via its public host so presigned signatures are valid for browsers.
       Minio__Endpoint: ${MINIO_DOMAIN}
       Minio__AccessKey: ${MINIO_ROOT_USER}
@@ -94,7 +96,8 @@ services:
     networks: [traefik]
 
 volumes:
-  pgdata:
+  pgdata:      # retained: previous PostgreSQL data (not deleted, in case migration is needed later)
+  mssqldata:
   miniodata:
 
 networks:
