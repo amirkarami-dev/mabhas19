@@ -19,12 +19,26 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ]
 
-// 3. Pin react / react-native to the app's copy so hoisted packages can't pull
-//    a second React version from the workspace root.
+// 3. Pin react / react-native to the app's copy (fallback resolution).
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules ?? {}),
   react: path.resolve(projectRoot, "node_modules/react"),
   "react-native": path.resolve(projectRoot, "node_modules/react-native"),
+}
+
+// 4. Force a SINGLE copy of react / react-native for EVERY import in the bundle.
+//    extraNodeModules alone doesn't dedupe when a hoisted package resolves its own
+//    react from the workspace root — that yields two Reacts and a null hook
+//    dispatcher ("Cannot read property 'useEffect' of null"). Redirecting the
+//    resolution origin to the app dir guarantees mobile/node_modules/react wins.
+const forcedRoots = ["react", "react-native"]
+const defaultResolveRequest = config.resolver.resolveRequest
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const pkg = moduleName.split("/")[0]
+  const ctx = forcedRoots.includes(pkg)
+    ? { ...context, originModulePath: path.join(projectRoot, "index.js") }
+    : context
+  return (defaultResolveRequest ?? ctx.resolveRequest)(ctx, moduleName, platform)
 }
 
 module.exports = config
