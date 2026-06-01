@@ -28,5 +28,10 @@ yarn-error.*
 # macOS
 .DS_Store
 
-# Env
+# Build outputs
+*.apk
+*.aab
+*.zip
+
+# Env (keep committed .env for the EXPO_NO_METRO_WORKSPACE_ROOT build flag)
 .env*.local
