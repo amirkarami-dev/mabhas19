@@ -1,14 +1,16 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { View } from "react-native"
 import { useRouter } from "expo-router"
 import { AppText, Button, Card, Field, Screen } from "@/components/ui"
 import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/endpoints"
-import { ApiError } from "@/lib/api"
 import { t } from "@/i18n"
 import { colors, spacing } from "@/theme"
 
 type Mode = "password" | "otp"
+
+// OTP code length — must match the backend Otp:CodeLength.
+const OTP_LENGTH = 5
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -23,14 +25,18 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Tracks the code we already auto-submitted, so we don't fire verify twice
+  // for the same value (e.g. after a failed attempt).
+  const submittedRef = useRef<string | null>(null)
+
   const onPasswordLogin = async () => {
     setBusy(true)
     setError(null)
     try {
       await loginWithPassword(email.trim(), password)
       router.replace("/(app)/projects")
-    } catch (err) {
-      setError(err instanceof ApiError ? t("loginFailed") : t("loginFailed"))
+    } catch {
+      setError(t("loginFailed"))
     } finally {
       setBusy(false)
     }
@@ -42,6 +48,8 @@ export default function LoginScreen() {
     try {
       await authApi.requestOtp(phone.trim())
       setOtpSent(true)
+      setCode("")
+      submittedRef.current = null
     } catch {
       setError(t("loginFailed"))
     } finally {
@@ -61,6 +69,18 @@ export default function LoginScreen() {
       setBusy(false)
     }
   }
+
+  // Auto-verify as soon as the full code is entered — no button press needed.
+  useEffect(() => {
+    if (otpSent && code.length === OTP_LENGTH && !busy && submittedRef.current !== code) {
+      submittedRef.current = code
+      void onVerifyOtp()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, otpSent, busy])
+
+  const onCodeChange = (value: string) =>
+    setCode(value.replace(/\D/g, "").slice(0, OTP_LENGTH))
 
   return (
     <Screen>
@@ -117,10 +137,18 @@ export default function LoginScreen() {
                   label={t("otpCode")}
                   keyboardType="number-pad"
                   value={code}
-                  onChangeText={setCode}
+                  onChangeText={onCodeChange}
+                  maxLength={OTP_LENGTH}
+                  autoFocus
                   textAlign="left"
                 />
-                <Button title={t("verify")} onPress={onVerifyOtp} loading={busy} />
+                {/* Code auto-verifies when complete; this is a manual fallback. */}
+                <Button
+                  title={busy ? t("signingIn") : t("verify")}
+                  onPress={onVerifyOtp}
+                  loading={busy}
+                  disabled={code.length !== OTP_LENGTH}
+                />
               </>
             ) : (
               <Button title={t("sendOtp")} onPress={onSendOtp} loading={busy} />
