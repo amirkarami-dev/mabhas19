@@ -4,8 +4,7 @@ namespace Mabhas19.Web.Infrastructure;
 /// Defines a group of related Minimal API endpoints.
 /// Implementations are automatically discovered and registered as a route group with a matching
 /// OpenAPI tag. By default the route prefix is <c>/api/{ClassName}</c>; override
-/// <see cref="RoutePrefix"/> to use a custom path, including nested resource paths such as
-/// <c>/api/TodoLists/{todoListId}/TodoItems</c>.
+/// <see cref="RoutePrefix"/> to use a custom path, including nested or versioned resource paths.
 /// </summary>
 public interface IEndpointGroup
 {
