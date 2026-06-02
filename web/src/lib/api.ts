@@ -1,8 +1,8 @@
+import { env } from "./env"
 import { tokenStore } from "./tokens"
 import type { TokenResponse } from "./types"
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"
+export const API_BASE = env.apiBase
 
 export class ApiError extends Error {
   status: number
