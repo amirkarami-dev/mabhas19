@@ -18,6 +18,7 @@ export function Navbar() {
     { href: "#how", label: fa ? "نحوه کار" : "How it works" },
     { href: "#pricing", label: fa ? "تعرفه‌ها" : "Pricing" },
     { href: "#faq", label: fa ? "سوالات متداول" : "FAQ" },
+    { href: "/help.html", label: fa ? "راهنما" : "Help" },
   ]
 
   return (

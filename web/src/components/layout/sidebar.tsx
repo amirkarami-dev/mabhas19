@@ -211,6 +211,38 @@ export function Sidebar({
             </ul>
           </div>
         ) : null}
+
+        {/* Help — static page at /help.html (outside locale routing → plain anchor, new tab) */}
+        <div>
+          {!collapsed ? (
+            <div className="mx-3 mb-2 border-t border-sidebar-border" />
+          ) : (
+            <div className="mx-2 mb-2 border-t border-sidebar-border" />
+          )}
+          <ul className="space-y-1">
+            <li>
+              <a
+                href="/help.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                title={collapsed ? (fa ? "راهنما" : "Help") : undefined}
+                className={cn(
+                  "group flex items-center rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+                )}
+              >
+                <span className="text-muted-foreground group-hover:text-sidebar-foreground">
+                  <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                </span>
+                {!collapsed ? (fa ? "راهنما" : "Help") : null}
+              </a>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       {/* User profile */}
