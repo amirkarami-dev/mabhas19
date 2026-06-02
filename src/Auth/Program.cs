@@ -1,4 +1,7 @@
 using Mabhas19.Auth.Data;
+using Mabhas19.Auth.External;
+using Mabhas19.Auth.Otp;
+using Mabhas19.Auth.Sms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +16,22 @@ builder.Services.AddDbContext<AuthDbContext>(o =>
 builder.Services.AddIdentity<AuthUser, IdentityRole>()
     .AddEntityFrameworkStores<AuthDbContext>()
     .AddDefaultTokenProviders();
+
+// Identity cookie paths — defaults already match, but made explicit for clarity.
+builder.Services.ConfigureApplicationCookie(o =>
+{
+    o.LoginPath = "/Account/Login";
+    o.LogoutPath = "/Account/Logout";
+});
+
+// OTP / SMS / Google services
+builder.Services.AddDistributedMemoryCache();
+builder.Services.Configure<OtpOptions>(builder.Configuration.GetSection(OtpOptions.SectionName));
+builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection(SmsOptions.SectionName));
+builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddHttpClient<ISmsSender, SmsSender>();
+builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
