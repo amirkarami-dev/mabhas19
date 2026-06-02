@@ -1,4 +1,5 @@
 import { env } from "./env"
+import { beginLoading, endLoading } from "./loading"
 import { tokenStore } from "./tokens"
 import type { TokenResponse } from "./types"
 
@@ -58,7 +59,7 @@ async function refreshOnce(): Promise<boolean> {
   return refreshPromise
 }
 
-export async function apiFetch<T = unknown>(
+async function apiFetchInner<T = unknown>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
@@ -82,7 +83,7 @@ export async function apiFetch<T = unknown>(
   if (res.status === 401 && !skipAuth && !_retried) {
     const ok = await refreshOnce()
     if (ok) {
-      return apiFetch<T>(path, { ...options, _retried: true })
+      return apiFetchInner<T>(path, { ...options, _retried: true })
     }
   }
 
@@ -101,4 +102,18 @@ export async function apiFetch<T = unknown>(
   const text = await res.text()
   if (!text) return undefined as T
   return JSON.parse(text) as T
+}
+
+// Public wrapper: drives the global top loading bar for the whole request
+// (including the one-shot 401 refresh + retry, which calls the inner fn).
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  beginLoading()
+  try {
+    return await apiFetchInner<T>(path, options)
+  } finally {
+    endLoading()
+  }
 }

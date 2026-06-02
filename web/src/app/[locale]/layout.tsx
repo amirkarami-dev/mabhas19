@@ -6,6 +6,7 @@ import { getMessages, setRequestLocale } from "next-intl/server"
 import { routing } from "@/i18n/routing"
 import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider, themeNoFlashScript } from "@/components/theme-provider"
+import { TopLoadingBar } from "@/components/top-loading-bar"
 import "../globals.css"
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default async function LocaleLayout({
         <script dangerouslySetInnerHTML={{ __html: themeNoFlashScript }} />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
+            <TopLoadingBar />
             <AuthProvider>{children}</AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
