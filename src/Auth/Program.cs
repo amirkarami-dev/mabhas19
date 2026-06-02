@@ -33,6 +33,8 @@ builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddHttpClient<ISmsSender, SmsSender>();
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
+builder.Services.AddScoped<AuthDbInitialiser>();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -80,6 +82,9 @@ builder.Services.AddOpenIddict()
     .AddValidation(o => { o.UseLocalServer(); o.UseAspNetCore(); });
 
 var app = builder.Build();
+
+await app.InitialiseAuthAsync();
+
 app.MapDefaultEndpoints();
 app.MapGet("/", () => "Mabhas19 Auth");
 app.UseRouting();
