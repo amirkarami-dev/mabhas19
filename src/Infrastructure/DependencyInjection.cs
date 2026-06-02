@@ -1,5 +1,4 @@
 ﻿using Mabhas19.Application.Common.Interfaces;
-using Mabhas19.Infrastructure.Auth;
 using Mabhas19.Infrastructure.Data;
 using Mabhas19.Infrastructure.Data.Interceptors;
 using Mabhas19.Infrastructure.External;
@@ -7,6 +6,7 @@ using Mabhas19.Infrastructure.Identity;
 using Mabhas19.Infrastructure.Reporting;
 using Mabhas19.Infrastructure.Storage;
 using Mabhas19.Infrastructure.Subscriptions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -40,16 +40,22 @@ public static class DependencyInjection
 
         builder.Services.AddScoped<ApplicationDbContextInitialiser>();
 
-        builder.Services.AddAuthentication()
-            .AddBearerToken(IdentityConstants.BearerScheme);
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.Authority = builder.Configuration["Auth:Authority"];
+                options.Audience = "mabhas19.api";
+                options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.RoleClaimType = "role";
+            });
 
         builder.Services.AddAuthorizationBuilder();
 
         builder.Services
             .AddIdentityCore<ApplicationUser>()
             .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddApiEndpoints();
+            .AddEntityFrameworkStores<ApplicationDbContext>();
 
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
@@ -64,13 +70,7 @@ public static class DependencyInjection
 
         // Options
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
-        services.Configure<OtpOptions>(config.GetSection(OtpOptions.SectionName));
-        services.Configure<SmsOptions>(config.GetSection(SmsOptions.SectionName));
-        services.Configure<GoogleAuthOptions>(config.GetSection(GoogleAuthOptions.SectionName));
         services.Configure<NezamMohandesiOptions>(config.GetSection(NezamMohandesiOptions.SectionName));
-
-        // OTP needs a cache store.
-        services.AddDistributedMemoryCache();
 
         // Object storage (MinIO / S3).
         services.AddSingleton<IMinioClient>(sp =>
@@ -89,12 +89,9 @@ public static class DependencyInjection
         ReportFonts.Register(builder.Environment.ContentRootPath);
         services.AddScoped<IReportGenerator, QuestPdfReportGenerator>();
 
-        // Subscriptions, auth helpers.
+        // Subscriptions, admin helpers.
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
-        services.AddScoped<IOtpService, OtpService>();
-        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
-        services.AddHttpClient<ISmsSender, SmsSender>();
 
         // External project import providers.
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();

@@ -51,6 +51,9 @@ app.UseCors();
 
 app.UseRateLimiter();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseFileServer();
 
 app.MapOpenApi();

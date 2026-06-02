@@ -13,7 +13,8 @@ public class CurrentUser : IUser
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public string? Id => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-    public List<string>? Roles => _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(x => x.Value).ToList();
+    public string? Id => _httpContextAccessor.HttpContext?.User?.FindFirstValue("sub")
+                         ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    public List<string>? Roles => _httpContextAccessor.HttpContext?.User?.FindAll("role").Select(x => x.Value).ToList();
 
 }
