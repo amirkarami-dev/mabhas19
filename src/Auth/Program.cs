@@ -115,3 +115,13 @@ app.MapGet("/", () => "Mabhas19 Auth");
 
 app.Run();
 public partial class Program;
+
+namespace Mabhas19.Auth
+{
+    /// <summary>
+    /// Marker type used by <c>WebApplicationFactory&lt;AuthApiMarker&gt;</c> to target this
+    /// assembly unambiguously when both <c>Mabhas19.Auth</c> and <c>Mabhas19.Web</c> define
+    /// a top-level <c>public partial class Program</c>.
+    /// </summary>
+    public sealed class AuthApiMarker;
+}
