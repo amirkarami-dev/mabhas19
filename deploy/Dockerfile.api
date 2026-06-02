@@ -9,8 +9,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Native deps for QuestPDF (SkiaSharp) + a Persian-capable font (Vazirmatn) for PDF reports.
+# curl is used by the container HEALTHCHECK below.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends fontconfig libfontconfig1 \
+ && apt-get install -y --no-install-recommends fontconfig libfontconfig1 curl \
  && rm -rf /var/lib/apt/lists/*
 RUN apt-get update \
  && (apt-get install -y --no-install-recommends fonts-vazirmatn || true) \
@@ -25,4 +26,10 @@ COPY deploy/fonts/ /app/Fonts/
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_RUNNING_IN_CONTAINER=true
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -fsS http://localhost:8080/alive || exit 1
+
+# Run as the non-root user provided by the aspnet base image.
+USER $APP_UID
 ENTRYPOINT ["dotnet", "Mabhas19.Web.dll"]

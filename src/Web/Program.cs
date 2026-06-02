@@ -25,6 +25,17 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
+// Baseline security response headers (TLS terminates at the proxy, so HSTS is advertised here).
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "no-referrer";
+    headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    await next();
+});
+
 // Apply database migrations (and seed) on startup for every environment.
 await app.InitialiseDatabaseAsync();
 
@@ -35,10 +46,10 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors(static builder =>
-    builder.AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowAnyOrigin());
+// CORS policy is configured from "Cors:AllowedOrigins" in AddWebServices.
+app.UseCors();
+
+app.UseRateLimiter();
 
 app.UseFileServer();
 

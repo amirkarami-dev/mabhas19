@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using AutoMapper;
 using Mabhas19.Application.Common.Interfaces;
-using Mabhas19.Application.TodoLists.Queries.GetTodos;
+using Mabhas19.Application.Projects;
 using Mabhas19.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -34,8 +34,7 @@ public class MappingTests
     }
 
     [Test]
-    [TestCase(typeof(TodoList), typeof(TodoListDto))]
-    [TestCase(typeof(TodoItem), typeof(TodoItemDto))]
+    [TestCase(typeof(Project), typeof(ProjectDto))]
     public void ShouldSupportMappingFromSourceToDestination(Type source, Type destination)
     {
         var instance = GetInstanceOf(source);
