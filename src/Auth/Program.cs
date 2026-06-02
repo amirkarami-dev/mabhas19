@@ -14,8 +14,59 @@ builder.Services.AddIdentity<AuthUser, IdentityRole>()
     .AddEntityFrameworkStores<AuthDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+builder.Services.AddOpenIddict()
+    .AddCore(o => o.UseEntityFrameworkCore().UseDbContext<AuthDbContext>())
+    .AddServer(o =>
+    {
+        o.SetAuthorizationEndpointUris("connect/authorize")
+         .SetTokenEndpointUris("connect/token")
+         .SetUserInfoEndpointUris("connect/userinfo")
+         .SetEndSessionEndpointUris("connect/logout");
+
+        o.AllowAuthorizationCodeFlow().RequireProofKeyForCodeExchange()
+         .AllowRefreshTokenFlow();
+
+        o.RegisterScopes("openid", "profile", "email", "roles", "offline_access", "mabhas19.api", "plan.api");
+
+        o.SetAccessTokenLifetime(TimeSpan.FromMinutes(30));
+        o.SetRefreshTokenLifetime(TimeSpan.FromDays(14));
+
+        // CRITICAL: signed (NOT encrypted) JWT access tokens, so resource servers can
+        // validate via JWKS with standard AddJwtBearer — no OpenIddict client required.
+        o.DisableAccessTokenEncryption();
+
+        if (builder.Environment.IsDevelopment())
+        {
+            o.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+        }
+        else
+        {
+            // Use the Stream overload to avoid the obsolete X509Certificate2(string, string)
+            // constructor that is an error under TreatWarningsAsErrors in .NET 10.
+            var certPath = builder.Configuration["OpenIddict:SigningCertificatePath"]!;
+            var certPwd = builder.Configuration["OpenIddict:SigningCertificatePassword"];
+            o.AddSigningCertificate(File.OpenRead(certPath), certPwd);
+            o.AddEncryptionCertificate(File.OpenRead(certPath), certPwd);
+        }
+
+        o.UseAspNetCore()
+         .EnableAuthorizationEndpointPassthrough()
+         .EnableTokenEndpointPassthrough()
+         .EnableUserInfoEndpointPassthrough()
+         .EnableEndSessionEndpointPassthrough();
+    })
+    .AddValidation(o => { o.UseLocalServer(); o.UseAspNetCore(); });
+
 var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapGet("/", () => "Mabhas19 Auth");
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.MapRazorPages();
 app.Run();
 public partial class Program;
