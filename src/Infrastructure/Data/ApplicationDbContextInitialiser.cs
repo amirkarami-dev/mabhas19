@@ -79,9 +79,16 @@ public class ApplicationDbContextInitialiser
             }
         }
 
-        // Seed the administrator account (credentials are configurable; defaults below).
-        var adminEmail = _configuration["AdminUser:Email"] ?? "admin@mabhas19.myceo.ir";
-        var adminPassword = _configuration["AdminUser:Password"] ?? "Mabhas19@Admin#2026";
+        // Seed the administrator account from configuration. No credentials are baked into
+        // source — if they aren't supplied (env vars in production, appsettings.Development
+        // locally) we skip seeding rather than ship a known default password.
+        var adminEmail = _configuration["AdminUser:Email"];
+        var adminPassword = _configuration["AdminUser:Password"];
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            _logger.LogWarning("AdminUser:Email/Password not configured; skipping administrator seeding.");
+            return;
+        }
 
         var administrator = await _userManager.FindByEmailAsync(adminEmail);
         if (administrator is null)
