@@ -38,7 +38,9 @@ One login across every `*.myceo.ir` service. A user authenticates once at a cent
 - **`src/Web` (mabhas19 API)** becomes a pure **resource server**: it validates the IdP's JWTs and reads identity from claims. It keeps `Mabhas19Db` (Projects/Assessments/Subscriptions).
 - **`Mabhas19Db.AspNetUsers`** becomes the migration *source*, then sits unused (not dropped in this pass — see §7).
 
-## 4. 🔒 TOKEN CONTRACT (frozen end of Phase 1 — every client depends on this)
+## 4. 🔒 TOKEN CONTRACT — **FROZEN 2026-06-03** (Phase 1 complete & verified; every client depends on this)
+
+> Phase 1 (A+B) is implemented, integration-verified (40/40 tests green; IdP discovery/JWKS/seeding confirmed at runtime), and this contract is now **frozen**. Phase 2 (web/mobile) and Phase 3 (infra/migration) build against it unchanged.
 
 **Issuer (`iss`)**
 - prod: `https://auth.myceo.ir`
