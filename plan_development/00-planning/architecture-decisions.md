@@ -83,7 +83,7 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 ---
 
 ## ADR-006 — Bearer-token auth with three sign-in methods on one Identity scheme
-**Status:** Accepted
+**Status:** Superseded by ADR-013 (central OIDC SSO) for multi-service deployments
 
 **Context.** Users sign in by password, **mobile OTP**, or **Google ID-token**. We want one consistent session model across web and mobile and don't want to hand-roll JWT issuance.
 
@@ -183,3 +183,20 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 - (+) Single source of truth for versions; strict build catches issues early; clean repo (no scattered `bin/obj`).
 - (−) Every new package needs an entry in `Directory.Packages.props` (intentional friction).
 - (−) Demoted advisories must be revisited when upstream fixes land (documented in the props file).
+
+---
+
+## ADR-013 — Central OIDC Identity Provider for cross-service SSO
+**Status:** Accepted (supersedes ADR-006 for multi-service deployments)
+
+**Context.** The product grows from one app into a portal of services under `*.myceo.ir` (e.g. `mabhas19`, `plan`, …). Users must log in once and move between services without re-authenticating. ADR-006's `MapIdentityApi` bearer tokens are app-local (DataProtection-encrypted, validatable only by the issuing app) and stored per-origin in `localStorage`, so they cannot be shared across services — they don't support SSO.
+
+**Decision.** Stand up a dedicated **OpenIddict** OIDC Identity Provider as its own app (`src/Auth`, `auth.myceo.ir`) with its **own database** (`Mabhas19AuthDb`); migrate existing users into it **preserving their IDs**. It owns all login methods (password/OTP/Google) and issues **signed JWT access tokens** (encryption disabled, JWKS-published). Every service becomes an **OIDC client**: `mabhas19` web via **Auth.js** (httpOnly cookie), mobile via **expo-auth-session** (PKCE), and the `mabhas19` API becomes a **resource server** validating JWTs via stock `AddJwtBearer`. The token shape is a **frozen contract** (see `01-development/sso-oidc.md` §4). Built and integrated wave-by-wave (IdP+API → clients → infra) to prevent contract drift; production cutover is a separate gated step.
+
+**Consequences.**
+- (+) True SSO across all `*.myceo.ir` services; new services join by registering a client — no per-service auth code.
+- (+) Single source of truth for identity; httpOnly cookies remove the web localStorage XSS exposure.
+- (+) Standard, federable JWTs that any service validates independently via JWKS.
+- (−) A new app, database, container, and Traefik route to build/operate; login UI moves out of the polished Next.js page into the IdP.
+- (−) One-time user migration (IDs/password-hashes preserved) and a careful production cutover.
+- (−) Admin user-management must move to the IdP (flagged follow-up); the IdP's signing key must be persisted (not ephemeral).
