@@ -46,6 +46,11 @@ public static class DependencyInjection
                 options.Authority = builder.Configuration["Auth:Authority"];
                 options.Audience = "mabhas19.api";
                 options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+                // Disable inbound claim-type remapping so JWT claim names (e.g. "role",
+                // "sub", "name") are preserved as-is in the ClaimsIdentity.  Without this
+                // the default MapInboundClaims=true would remap "role" to the WS-Federation
+                // URI, breaking RoleClaimType="role" and CurrentUser.Roles lookups.
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters.NameClaimType = "name";
                 options.TokenValidationParameters.RoleClaimType = "role";
             });
