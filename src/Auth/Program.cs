@@ -2,11 +2,21 @@ using Mabhas19.Auth.Data;
 using Mabhas19.Auth.External;
 using Mabhas19.Auth.Otp;
 using Mabhas19.Auth.Sms;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
+
+// Honour X-Forwarded-* from the reverse proxy (Traefik) so OpenIddict sees the original
+// HTTPS scheme/host and serves correct issuer metadata (TLS terminates at the proxy in prod).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddDbContext<AuthDbContext>(o =>
 {
@@ -73,24 +83,35 @@ builder.Services.AddOpenIddict()
             o.AddEncryptionCertificate(File.OpenRead(certPath), certPwd);
         }
 
-        o.UseAspNetCore()
-         .EnableAuthorizationEndpointPassthrough()
-         .EnableTokenEndpointPassthrough()
-         .EnableUserInfoEndpointPassthrough()
-         .EnableEndSessionEndpointPassthrough();
+        var aspnet = o.UseAspNetCore()
+            .EnableAuthorizationEndpointPassthrough()
+            .EnableTokenEndpointPassthrough()
+            .EnableUserInfoEndpointPassthrough()
+            .EnableEndSessionEndpointPassthrough();
+
+        // In dev there is no TLS (prod terminates TLS at Traefik and forwards X-Forwarded-Proto),
+        // so allow plain HTTP to the OpenIddict endpoints only when developing.
+        if (builder.Environment.IsDevelopment())
+        {
+            aspnet.DisableTransportSecurityRequirement();
+        }
     })
     .AddValidation(o => { o.UseLocalServer(); o.UseAspNetCore(); });
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 await app.InitialiseAuthAsync();
 
-app.MapDefaultEndpoints();
-app.MapGet("/", () => "Mabhas19 Auth");
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapDefaultEndpoints();
 app.MapControllers();
 app.MapRazorPages();
+app.MapGet("/", () => "Mabhas19 Auth");
+
 app.Run();
 public partial class Program;
