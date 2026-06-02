@@ -1,0 +1,122 @@
+# Production deployment that ATTACHES to the server's EXISTING Traefik instead of running its own.
+# Copy to deploy/docker-compose.server.yml and replace every <PLACEHOLDER>.
+#
+# Replace:
+#   <PROJECT_NAME>     — lowercase project slug (compose project name + image names), e.g. myapp
+#   <PROJECT_NAME>Db   — EF Core database name + connection-string key, e.g. MyAppDb
+#   <ROUTER_PREFIX>    — short, unique Traefik router/service id prefix, e.g. myapp (-> myappapi, myappweb, myapps3)
+#   <CERT_RESOLVER>    — the cert resolver provided by the existing Traefik (e.g. myresolver = ArvanCloud DNS challenge)
+#   <REGISTRY_MIRROR>  — registry mirror reachable from the (network-restricted) server, e.g. docker.arvancloud.ir
+#
+# Secrets/hosts come from deploy/.env (NEVER commit it). Variables referenced as ${...} below:
+#   MSSQL_SA_PASSWORD, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET,
+#   WEB_DOMAIN, API_DOMAIN, S3_DOMAIN (= <WEB_DOMAIN>/<API_DOMAIN>/<S3_DOMAIN>),
+#   ADMIN_EMAIL, ADMIN_PASSWORD, and any provider keys (SMS relay, Google client id, external import).
+#
+# The external network "traefik" and the cert resolver "<CERT_RESOLVER>" are provided by the
+# server's Traefik stack (e.g. /srv/traefik) — this file only attaches to them.
+#
+#   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env up -d api web
+#
+# The `api`/`web` images are NOT built on the server (mcr.microsoft.com + Docker Hub blob CDN are
+# blocked there). Build them locally, `docker save | gzip` -> transfer -> `docker load`, then bring
+# up ONLY the changed services. The sqlserver/minio base images are pulled via <REGISTRY_MIRROR>.
+
+services:
+  sqlserver:
+    # Image is loaded on the server from a transferred tar, or pulled via the mirror (mcr is blocked).
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: "Express"   # free for production (10 GB/db cap)
+    volumes:
+      - mssqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' 2>/dev/null) || (/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' 2>/dev/null) || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    networks: [internal]
+
+  minio:
+    image: <REGISTRY_MIRROR>/minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # S3 API (presigned report URLs are issued against this host)
+      - "traefik.http.routers.<ROUTER_PREFIX>s3.rule=Host(`${S3_DOMAIN}`)"
+      - "traefik.http.routers.<ROUTER_PREFIX>s3.entrypoints=websecure"
+      - "traefik.http.routers.<ROUTER_PREFIX>s3.tls.certresolver=<CERT_RESOLVER>"
+      - "traefik.http.routers.<ROUTER_PREFIX>s3.service=<ROUTER_PREFIX>s3"
+      - "traefik.http.services.<ROUTER_PREFIX>s3.loadbalancer.server.port=9000"
+    networks: [internal, traefik]
+
+  api:
+    image: <PROJECT_NAME>-api:deploy
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__<PROJECT_NAME>Db: "Server=sqlserver,1433;Database=<PROJECT_NAME>Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # MinIO is reached via its PUBLIC host so presigned signatures are valid for browsers.
+      Minio__Endpoint: ${S3_DOMAIN}
+      Minio__AccessKey: ${MINIO_ROOT_USER}
+      Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
+      Minio__Bucket: ${MINIO_BUCKET}
+      Minio__UseSSL: "true"
+      AdminUser__Email: ${ADMIN_EMAIL}
+      AdminUser__Password: ${ADMIN_PASSWORD}
+      # Provider config below is OPTIONAL — keep only what your project ships, or remove.
+      Sms__Provider: "relay"
+      Sms__RelayBaseUrl: ${SMS_RELAY_BASE_URL}
+      Sms__RelayToken: ${SMS_RELAY_TOKEN}
+      Otp__LogCode: "false"
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.<ROUTER_PREFIX>api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.<ROUTER_PREFIX>api.entrypoints=websecure"
+      - "traefik.http.routers.<ROUTER_PREFIX>api.tls.certresolver=<CERT_RESOLVER>"
+      - "traefik.http.services.<ROUTER_PREFIX>api.loadbalancer.server.port=8080"
+    networks: [internal, traefik]
+
+  web:
+    image: <PROJECT_NAME>-web:deploy
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      # NEXT_PUBLIC_API_BASE is baked at BUILD time; this runtime value is a fallback only.
+      NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.<ROUTER_PREFIX>web.rule=Host(`${WEB_DOMAIN}`)"
+      - "traefik.http.routers.<ROUTER_PREFIX>web.entrypoints=websecure"
+      - "traefik.http.routers.<ROUTER_PREFIX>web.tls.certresolver=<CERT_RESOLVER>"
+      - "traefik.http.services.<ROUTER_PREFIX>web.loadbalancer.server.port=3000"
+    networks: [traefik]
+
+volumes:
+  mssqldata:
+  miniodata:
+
+networks:
+  traefik:
+    external: true
+  internal:
+    driver: bridge

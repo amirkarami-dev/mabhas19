@@ -1,0 +1,185 @@
+# Architecture Decisions (ADRs) — Reference (Mabhas19) blueprint
+
+These ADRs capture the load-bearing choices distilled from the reference project. A new project
+built from this blueprint inherits them by default. To deviate, copy the ADR, set **Status: Superseded
+by ADR-XXX**, and write the new one — don't silently diverge.
+
+Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Consequences** (good + bad, and what it costs you).
+
+---
+
+## ADR-001 — Clean Architecture layering (Domain / Application / Infrastructure / Web)
+**Status:** Accepted
+
+**Context.** The domain (a regulated building-code calculation) must stay correct and testable for years, independent of frameworks, DB, or delivery mechanism. The team is small and needs a layout that scales without becoming a ball of mud.
+
+**Decision.** Use the Jason Taylor Clean Architecture template (+ .NET Aspire). Dependencies point inward: `Web → Application → Domain` and `Infrastructure → Application/Domain`. Domain has no framework references. Service contracts live in `Application/Common/Interfaces`; their implementations live in `Infrastructure` and are wired in `Infrastructure/DependencyInjection.cs` (`Add<App>Services`).
+
+**Consequences.**
+- (+) Domain is pure and unit-testable; swapping DB/storage touches only Infrastructure.
+- (+) Clear home for every kind of code → low onboarding cost.
+- (−) More projects/indirection than a single API project; small features cross several layers.
+- (−) Template ships extras (telemetry, sample code) you must prune.
+
+---
+
+## ADR-002 — CQRS use cases via MediatR + FluentValidation pipeline
+**Status:** Accepted (with a licensing caveat)
+
+**Context.** We want each use case isolated, with cross-cutting concerns (validation, logging) applied uniformly, and thin endpoints.
+
+**Decision.** Model every use case as a MediatR command/query handler. Validation runs as a pipeline behaviour using FluentValidation; mapping uses AutoMapper profiles declared as nested `Mapping : Profile` classes inside the DTOs. Endpoints just send the request.
+
+**Consequences.**
+- (+) Endpoints stay tiny; behaviours give consistent validation/error shaping.
+- (+) Each handler is independently testable.
+- (−) Indirection — a request hops through the mediator before reaching logic.
+- (−) **MediatR v14 requires a commercial license for production** (dev-only warning today). Must license or replace before go-live — a real release blocker, tracked in the charter constraints.
+
+---
+
+## ADR-003 — The interactive scoring engine runs in the FRONTEND
+**Status:** Accepted
+
+**Context.** The assessment is an interactive, multi-checklist form where the score updates as the user types. Round-tripping every keystroke to the server is slow and chatty. The original logic already existed as a legacy React/JS calculator.
+
+**Decision.** Run the scoring engine **client-side**. The backend is the **system of record only**: it stores the raw **input JSON**, the computed **result JSON**, and denormalised **scores** — it does not run the interactive scoring. The PDF is rendered from the *stored* result.
+
+**Consequences.**
+- (+) Instant feedback; no server load per keystroke; offline-capable computation on mobile.
+- (+) Faithful reuse of the proven legacy algorithm.
+- (−) The authoritative computation lives outside the backend, so the server trusts client-submitted results. Acceptable here (not a security boundary — the score is the user's own assessment), but **must be reconsidered** for any flow where the score gates money or access.
+- (−) Backend cannot recompute; if the algorithm changes, historical stored results are frozen as-was (often desirable for audit).
+
+---
+
+## ADR-004 — A shared TS package is the single source of truth for the engine
+**Status:** Accepted
+
+**Context.** Two clients (web + mobile) must compute identical scores. Copy-pasting the engine guarantees drift.
+
+**Decision.** Extract the engine into a pure-TypeScript workspace package `@<scope>/<core>` (ref: `@mabhas19/assessment-core`), **shipped as source** (no build step). Web compiles it via `transpilePackages`; mobile via Metro from the monorepo root. Backend `Domain/Services` mirrors it as a faithful port, and both sides are locked by parity unit tests.
+
+**Consequences.**
+- (+) One place to change the algorithm; both clients update together.
+- (+) No publish/build/versioning ceremony — it's just TS in the repo.
+- (−) Consumers must be configured to transpile raw TS (Next `transpilePackages`, Metro resolver tweaks).
+- (−) Two ports exist (TS engine + backend Domain mirror); they must be kept in sync by tests, not by sharing code across the language boundary.
+
+---
+
+## ADR-005 — Store assessment input/result as TEXT columns, not jsonb / native JSON
+**Status:** Accepted
+
+**Context.** Inputs/results are large, evolving JSON blobs the backend never queries *into*; it only stores and returns them whole. The project also migrated DB providers (Postgres → SQL Server).
+
+**Decision.** Persist `InputJson`/`ResultJson` as a plain **large-text column** (`nvarchar(max)` on SQL Server; `text` on Postgres) plus denormalised scalar columns (`TotalScore`/`MaxScore`) for listing/sorting.
+
+**Consequences.**
+- (+) Provider-portable — the same mapping survived the Postgres→SQL Server migration unchanged.
+- (+) Simple; no JSON-operator coupling to one database.
+- (−) Cannot query inside the JSON in SQL (acceptable — we never need to). If you later need server-side JSON queries, revisit.
+
+---
+
+## ADR-006 — Bearer-token auth with three sign-in methods on one Identity scheme
+**Status:** Accepted
+
+**Context.** Users sign in by password, **mobile OTP**, or **Google ID-token**. We want one consistent session model across web and mobile and don't want to hand-roll JWT issuance.
+
+**Decision.** Use ASP.NET Identity with `MapIdentityApi` (bearer tokens) under `/api/Users/*`. OTP (`/api/Auth/otp/*`) and Google (`/api/Auth/google`) flows **issue the same Identity bearer tokens** by setting `signInManager.AuthenticationScheme = IdentityConstants.BearerScheme` then `SignInAsync`. Clients store tokens (web: localStorage with auto-refresh in the API layer; mobile: secure store) and refresh transparently.
+
+**Consequences.**
+- (+) One token model for every sign-in path and both clients.
+- (+) Leverages Identity's user store, hashing, refresh.
+- (−) Bearer-in-localStorage on web has an XSS exposure surface (mitigated by CSP/headers; mobile uses secure store).
+- (−) Custom OTP/Google flows must carefully reuse the bearer scheme; easy to get subtly wrong.
+
+---
+
+## ADR-007 — Roles + server-side quota; client checks are cosmetic
+**Status:** Accepted
+
+**Context.** Two roles (`Administrator`, `User`) and a per-user project cap (Free = 5). Authorization must not be bypassable from the client.
+
+**Decision.** Seed roles + an admin user on startup (idempotent, from config). Gate admin endpoints with `RequireRole(Administrator)`. Enforce quota **server-side** in the service layer (`EnsureCanCreateProjectAsync`), throwing a validation error surfaced under a `Subscription` field. The client merely *hides* admin UI (via `useAuth().isAdmin`) and shows the quota message.
+
+**Consequences.**
+- (+) Security decisions live on the server; the UI can't grant access it shouldn't.
+- (+) Quota errors are typed field errors, not 500s — clean UX.
+- (−) Some logic is duplicated for UX (client hides what the server also forbids).
+- (−) "Subscription" exists as enforcement only — **no billing**; adding real payments is a later, separate effort.
+
+---
+
+## ADR-008 — Server-rendered PDF (QuestPDF) stored in S3/MinIO, served via presigned URLs
+**Status:** Accepted
+
+**Context.** Users need an official, printable report in an RTL/Persian script. Client-side PDF struggles with embedded fonts and consistency.
+
+**Decision.** Generate the PDF on the server with **QuestPDF** from the *stored* result (ADR-003), upload it to **MinIO (S3)** behind an `IFileStorage` abstraction, and return a **presigned URL** generated against the **public storage host** so browsers can open it directly.
+
+**Consequences.**
+- (+) Consistent, font-correct PDFs; storage decoupled via the abstraction (swap MinIO↔S3 freely).
+- (+) Large files don't stream through the API on download.
+- (−) Presigned URLs must target a publicly reachable host (prod uses `s3.<domain>` with SSL), or browser links break.
+- (−) QuestPDF community-license terms apply at scale — check before commercial go-live.
+
+---
+
+## ADR-009 — npm-workspaces monorepo (web + mobile + shared package)
+**Status:** Accepted
+
+**Context.** Web, mobile, and the shared engine must live and version together with minimal tooling for a small team.
+
+**Decision.** Use **npm workspaces** (`packages/*`, `web`, `mobile`). The shared package is linked with `"*"`. No Turborepo/Nx/pnpm — plain npm.
+
+**Consequences.**
+- (+) Zero extra tooling; one install; trivial local linking of the shared package.
+- (+) Atomic commits across engine + both clients.
+- (−) No built-in task graph/caching (fine at this size; revisit if builds slow down).
+- (−) Hoisting can surprise React Native — Metro needs explicit monorepo-root resolution.
+
+---
+
+## ADR-010 — Deploy behind the host's EXISTING Traefik, in a restricted network
+**Status:** Accepted
+
+**Context.** The production server already runs Traefik for other stacks (mailcow, supabase) and is in Iran, where `mcr.microsoft.com` and Docker Hub's blob CDN are **blocked**. We must not disturb the existing stacks.
+
+**Decision.** The production compose **attaches to the existing `traefik` external network** (cert resolver `myresolver`, ArvanCloud DNS-01) rather than starting its own proxy. App images are **built locally**, exported with `docker save | gzip`, transferred via PuTTY `pscp -pw`, and `docker load`-ed on the host. Backing images (`postgres`/`minio`) are pulled via the **`docker.arvancloud.ir`** mirror. The shared Docker daemon is **never restarted**.
+
+**Consequences.**
+- (+) One proxy/cert setup for the whole host; no port conflicts; other stacks untouched.
+- (+) Reproducible deploys despite blocked registries.
+- (−) Manual image-transfer step (slower than `docker pull`); needs the `save/load` discipline.
+- (−) Tight coupling to that host's Traefik labels/network names; portability to a fresh host needs the proxy recreated (see "swap reverse proxy" in `tech-stack.md`).
+
+---
+
+## ADR-011 — Expo with the React Native New Architecture
+**Status:** Accepted
+
+**Context.** We want a maintainable RN app aligned with RN's future, buildable to an APK without a heavy local toolchain.
+
+**Decision.** Use **Expo SDK 54** with **`newArchEnabled: true`**, expo-router (typed routes), and EAS for the release build. Tokens go in `expo-secure-store`; config (`extra.apiBase`) points at the prod API.
+
+**Consequences.**
+- (+) Future-proof (Fabric/TurboModules); EAS produces an APK without local Android SDK pain.
+- (+) Shares routing mental model and the scoring package with web.
+- (−) Some older RN libraries are incompatible with the New Architecture — vet dependencies.
+- (−) Native debugging is harder than on the legacy bridge.
+
+---
+
+## ADR-012 — Central package management + artifacts output + strict build
+**Status:** Accepted
+
+**Context.** Version drift across many .NET projects is a common rot source; we want one place to bump versions and a build that fails on real problems.
+
+**Decision.** Turn on **central package management** (`Directory.Packages.props`, no versions in `.csproj`). Set `TreatWarningsAsErrors=true`, demoting only specific, understood NuGet-audit advisories via `WarningsNotAsErrors=NU1608;NU1902;NU1903`. Redirect build output to `./artifacts` via `ArtifactsPath`.
+
+**Consequences.**
+- (+) Single source of truth for versions; strict build catches issues early; clean repo (no scattered `bin/obj`).
+- (−) Every new package needs an entry in `Directory.Packages.props` (intentional friction).
+- (−) Demoted advisories must be revisited when upstream fixes land (documented in the props file).
