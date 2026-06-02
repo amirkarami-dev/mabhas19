@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Mabhas19.slnx
+
+      - name: Build (warnings are errors)
+        run: dotnet build Mabhas19.slnx --configuration Release --no-restore
+
+      # Functional tests provision SQL Server through .NET Aspire (Docker is available on
+      # GitHub-hosted runners), so the whole suite — unit + functional — runs here.
+      - name: Test
+        run: dotnet test Mabhas19.slnx --configuration Release --no-build --verbosity normal
+
+      - name: List vulnerable packages (informational)
+        if: always()
+        run: dotnet list Mabhas19.slnx package --vulnerable --include-transitive
+
+  frontend:
+    name: Frontend (web + assessment-core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install (workspaces)
+        run: npm ci
+
+      - name: Typecheck assessment-core
+        run: npm run typecheck --workspace @mabhas19/assessment-core
+
+      - name: Test assessment-core
+        run: npm test --workspace @mabhas19/assessment-core
+
+      # Non-blocking for now: there are pre-existing react-hooks/set-state-in-effect violations
+      # in the client-side data-fetching/derived-state code, slated for the data-layer
+      # modernization. The build/typecheck/tests below still gate the pipeline hard.
+      - name: Lint web
+        run: npm run lint --workspace web
+        continue-on-error: true
+
+      - name: Build web
+        run: npm run build --workspace web
+        env:
+          NEXT_PUBLIC_API_BASE: https://api.mabhas19.myceo.ir
+          NEXT_TELEMETRY_DISABLED: "1"
