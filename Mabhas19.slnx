@@ -11,6 +11,7 @@
     <Project Path="src/AppHost/AppHost.csproj" DefaultStartup="true" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
     <Project Path="src/Application/Application.csproj" />
+    <Project Path="src/Auth/Auth.csproj" />
     <Project Path="src/Domain/Domain.csproj" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/Shared/Shared.csproj" />

@@ -38,6 +38,8 @@
     <PackageVersion Include="Minio" Version="6.0.5" />
     <PackageVersion Include="QuestPDF" Version="2024.12.3" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.68.0" />
+    <PackageVersion Include="OpenIddict.AspNetCore" Version="7.5.0" />
+    <PackageVersion Include="OpenIddict.EntityFrameworkCore" Version="7.5.0" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.2.0" />
