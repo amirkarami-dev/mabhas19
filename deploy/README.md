@@ -41,6 +41,10 @@ If Traefik is already running on the server:
 
 ## Deploy
 
+> The generic flow below (rsync the repo + build on the server) only works on a server that can reach
+> `mcr.microsoft.com` / Docker Hub. **The live `myceo.ir` server cannot** — use the
+> **Production deploy (image transfer)** section further down instead.
+
 ```bash
 # 1) Copy the repo to the server (from your machine)
 rsync -az --exclude bin --exclude obj --exclude node_modules --exclude .next \
@@ -59,8 +63,50 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 docker compose -f deploy/docker-compose.yml logs -f api
 ```
 
-The API applies EF Core migrations and seeds a default admin (`administrator@localhost` / `Administrator1!`)
-on first start. **Change that password immediately in production.**
+The API applies EF Core migrations on start and seeds an administrator from `AdminUser:Email` /
+`AdminUser:Password` (set via `deploy/.env`). If those are not configured, admin seeding is skipped —
+**no default password is baked into the image.**
+
+## Production deploy (live server — local build + image transfer)
+
+The live server (`10.249.52.216`, `/srv/mabhas19`) runs **SQL Server + MinIO** behind an **existing shared
+Traefik** (external network `traefik`, cert resolver `myresolver`) and **cannot reach `mcr.microsoft.com` /
+Docker Hub's blob CDN**. So the `api`/`web` images are **built locally and shipped** via `docker save`/`load`
+rather than built on the server. The box also hosts other production stacks (mailcow, supabase) —
+**never restart the shared Docker daemon**; only `compose up -d` the `api`/`web` services.
+
+Uses `docker-compose.server.yml` with secrets from `deploy/.env`. SSH is via PuTTY `plink`/`pscp` (no `sshpass`).
+
+```powershell
+# 1) Build the images locally (where mcr/Docker Hub are reachable; the API build needs apt access for its PDF deps)
+docker build -f deploy/Dockerfile.api -t mabhas19-api:deploy .
+docker build -f deploy/Dockerfile.web -t mabhas19-web:deploy .
+
+# 2) Save + gzip
+docker save mabhas19-api:deploy | gzip > mabhas19-api-deploy.tar.gz
+docker save mabhas19-web:deploy | gzip > mabhas19-web-deploy.tar.gz
+
+# 3) Transfer to the server
+pscp -pw "<SERVER_PWD>" mabhas19-api-deploy.tar.gz admin1@10.249.52.216:/srv/mabhas19/
+pscp -pw "<SERVER_PWD>" mabhas19-web-deploy.tar.gz admin1@10.249.52.216:/srv/mabhas19/
+
+# 4) Load + (re)start ONLY api/web — SQL/MinIO and the shared daemon are left untouched
+plink -pw "<SERVER_PWD>" admin1@10.249.52.216 "cd /srv/mabhas19 && \
+  gunzip -c mabhas19-api-deploy.tar.gz | docker load && \
+  gunzip -c mabhas19-web-deploy.tar.gz | docker load && \
+  docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env up -d api web"
+
+# 5) Verify (watch for the EF migration applying; then hit the live endpoints)
+plink -pw "<SERVER_PWD>" admin1@10.249.52.216 "cd /srv/mabhas19 && \
+  docker compose -f deploy/docker-compose.server.yml ps && \
+  docker compose -f deploy/docker-compose.server.yml logs --tail=50 api"
+curl.exe -fsS https://api.mabhas19.myceo.ir/alive
+```
+
+- **Config is baked into the image** at build time (`appsettings.json` — e.g. CORS allowlist defaults to
+  `https://mabhas19.myceo.ir`); runtime **secrets** come from `deploy/.env` via `docker-compose.server.yml`,
+  so an image-only deploy needs **no `git pull` on the server**.
+- Base images for SQL Server / MinIO are pulled on the server through the `docker.arvancloud.ir` mirror.
 
 ## Local development
 
