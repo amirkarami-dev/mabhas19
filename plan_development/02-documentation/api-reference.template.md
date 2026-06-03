@@ -8,8 +8,8 @@
 
 - **Base path:** `/api/`. Port **5000** in development, **8080** in containers, behind the reverse proxy in production (`https://<API_DOMAIN>`).
 - **Endpoint groups auto-map** to `/api/{ClassName}`: each `IEndpointGroup` class in `src/Web/Endpoints` becomes a route group named after the class. So a `Projects` class -> `/api/Projects`.
-- **Identity API** (username/password) is mounted via `MapIdentityApi<ApplicationUser>()` under **`/api/Users/*`** with **bearer tokens**.
-- **Auth column:** **No** = anonymous; **Yes** = requires `Authorization: Bearer <accessToken>`; **Admin** = requires the `Administrator` role (`/api/Admin/*`).
+- **Authentication is OAuth2 / OIDC via an external IdP** (OpenIddict at `https://<AUTH_DOMAIN>`). The API is a **resource server**: it **validates** the IdP's signed JWTs via `AddJwtBearer` (authority = the IdP, audience = `<PROJECT>.api`, JWKS-verified) and **does NOT issue tokens**. There are **no username/password, OTP, or Google endpoints on the API** — all login methods live in the IdP. Clients obtain tokens from the IdP and present them as `Authorization: Bearer <jwt>`.
+- **Auth column:** **No** = anonymous; **Yes** = requires a valid OIDC JWT (`Authorization: Bearer <jwt>`); **Admin** = requires the `Administrator` role (`/api/Admin/*`).
 - **Interactive docs (Scalar):** `http://localhost:5000/scalar` in dev, `https://<API_DOMAIN>/scalar` in prod.
 - **Errors:** RFC 7807 problem-details. `400` validation (FluentValidation; field-keyed `errors`), `401` no/expired token, `403` `ForbiddenAccessException`, `404` `Guard.Against.NotFound`.
 
@@ -19,14 +19,7 @@
 
 | Group | Method | Path | Purpose | Auth |
 |-------|--------|------|---------|------|
-| Auth | POST | `/api/Auth/otp/request` | Request an OTP code via SMS | No |
-| Auth | POST | `/api/Auth/otp/verify` | Verify OTP, create user if new, issue token | No |
-| Auth | POST | `/api/Auth/google` | Sign in with a Google ID-token | No |
-| Users | POST | `/api/Users/register` | Register with email/password | No |
-| Users | POST | `/api/Users/login` | Login with email/password (returns tokens) | No |
-| Users | POST | `/api/Users/refresh` | Refresh the bearer token | No |
-| Users | GET | `/api/Users/me` | Current user + roles (`CurrentUserDto`) | Yes |
-| Users | POST | `/api/Users/logout` | Clear auth | Yes |
+| Users | GET | `/api/Users/me` | Current user's claims (`CurrentUserDto`) | Yes |
 | Projects | GET | `/api/Projects` | List the current user's projects | Yes |
 | Projects | GET | `/api/Projects/{id}` | Fetch one project | Yes |
 | Projects | POST | `/api/Projects` | Create a project (checks subscription quota) | Yes |
@@ -46,27 +39,17 @@
 
 ---
 
-## Auth
+## Authentication (external IdP — no API endpoints)
+
+Authentication is **OAuth2 / OIDC via the external IdP** (OpenIddict at `https://<AUTH_DOMAIN>`). All login methods (password, OTP, Google, …) live in the IdP, which is the sole token issuer. The API has **no** sign-in, registration, refresh, or logout endpoints; it only **validates** the IdP's signed JWTs (`AddJwtBearer`, JWKS-verified) and reads claims. Clients get a token from the IdP and send `Authorization: Bearer <jwt>`.
+
+## Users
 
 | Method | Path | Purpose | Auth |
 |--------|------|---------|------|
-| POST | `/api/Auth/otp/request` | Request an OTP code via SMS. Body `{ phoneNumber }`. | No |
-| POST | `/api/Auth/otp/verify` | Verify the OTP; create the user if new; issue tokens. Body `{ phoneNumber, code }`. | No |
-| POST | `/api/Auth/google` | Sign in with a Google ID-token. Body `{ idToken }`. | No |
+| GET | `/api/Users/me` | Current user's claims, read from the validated OIDC JWT. | Yes |
 
-All three end with the API issuing an Identity **bearer token** (`{ accessToken, refreshToken, expiresIn }`). The OTP/Google flows set `signInManager.AuthenticationScheme = IdentityConstants.BearerScheme` before `SignInAsync`.
-
-## Users (Identity API + custom)
-
-| Method | Path | Purpose | Auth |
-|--------|------|---------|------|
-| POST | `/api/Users/register` | Register with email/password. | No |
-| POST | `/api/Users/login` | Login; returns `{ accessToken, refreshToken }`. | No |
-| POST | `/api/Users/refresh` | Exchange a refresh token for new tokens. | No |
-| GET | `/api/Users/me` | Current user + roles. | Yes |
-| POST | `/api/Users/logout` | Clear auth. | Yes |
-
-`CurrentUserDto`: `{ id, email, phoneNumber, roles: string[], isAdmin: boolean }`.
+`CurrentUserDto`: `{ id (the `sub` claim), email, phoneNumber, roles: string[] (the `role` claim), isAdmin: boolean (derived) }`.
 
 ## Projects
 
@@ -106,9 +89,9 @@ All three end with the API issuing an Identity **bearer token** (`{ accessToken,
 ## Adapting this to your project
 
 1. **Rename the domain group.** `Projects` is the reference project's main resource. If yours is `<MainResource>`, the class `<MainResource>` in `src/Web/Endpoints` auto-maps to `/api/<MainResource>` — change the group name and its row paths accordingly.
-2. **Keep the cross-cutting groups as-is** unless you change the feature: `Auth` (the three sign-ins), `Users` (Identity API), `Subscriptions` (quota), `Admin` (user/quota management). These are part of the blueprint.
+2. **Keep the cross-cutting groups as-is** unless you change the feature: `Users` (just `GET /me`, reading OIDC claims — sign-in lives in the external IdP, not the API), `Subscriptions` (quota), `Admin` (user/quota management). These are part of the blueprint.
 3. **Nested resources** (like `/api/Projects/{id}/assessment` and `/.../report`) hang off the parent group — name them after your sub-resource and its action.
-4. **Auth column rule of thumb:** anonymous = the sign-in endpoints only; everything user-scoped = **Yes**; everything under `/api/Admin/*` = **Admin**.
+4. **Auth column rule of thumb:** the API has no anonymous endpoints (sign-in is the IdP's job); everything user-scoped = **Yes** (valid OIDC JWT); everything under `/api/Admin/*` = **Admin**.
 5. **Add a request/response shape** in prose under each group where the body matters (see `CurrentUserDto` above). Don't duplicate the full Scalar schema — link to `/scalar`.
 
 > *Worked example values above (`/api/Projects`, `CurrentUserDto`, Free-quota validation, presigned report URL) are the reference project **Mabhas19**.*

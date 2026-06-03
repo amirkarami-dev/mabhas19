@@ -1,5 +1,7 @@
 # SMS & OTP
 
+> **Under central OIDC SSO (ADR-013) the OTP login now lives in the IdP (`src/Auth`), reached via the OIDC flow — NOT `/api/Auth/otp/*` on the resource API. This describes the OTP mechanism (SMS code request/verify), which is unchanged; only the host app moved.**
+
 `<PLACEHOLDER>` supports passwordless mobile sign-in via a one-time SMS code (OTP). The OTP
 lifecycle (generate, store, throttle, verify) lives in `OtpService`, and delivery is
 abstracted behind `ISmsSender` with a relay / Kavenegar / log provider. Codes are stored in

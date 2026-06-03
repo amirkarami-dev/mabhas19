@@ -22,7 +22,7 @@ The interactive domain logic (scoring/calculation) runs in the **frontend**, in 
 | Backend | .NET 10, C# — Clean Architecture (Domain / Application / Infrastructure / Web) + .NET Aspire |
 | Backend patterns | MediatR (CQRS), FluentValidation, AutoMapper |
 | Database | Microsoft SQL Server via EF Core 10 (`<PLACEHOLDER>Db`) |
-| Auth | ASP.NET Identity + bearer tokens; sign-in via password, mobile OTP, Google ID-token |
+| Auth | OIDC SSO via a central IdP (OpenIddict); web Auth.js v5 generic OIDC (Auth Code + PKCE); mobile expo-auth-session; API validates IdP JWTs |
 | Object storage | MinIO (S3-compatible) — stores generated PDF reports |
 | PDF | QuestPDF (community license) |
 | Web | Next.js 16 (App Router, `output: "standalone"`), React 19, Tailwind CSS v4 |
@@ -100,9 +100,17 @@ Create `web/.env.local`:
 
 ```
 NEXT_PUBLIC_API_BASE=http://localhost:5000
+# Auth.js v5 generic OIDC provider (central IdP):
+AUTH_<PROJECT>_ISSUER=https://<AUTH_DOMAIN>
+AUTH_<PROJECT>_ID=<oidc-client-id>
+AUTH_<PROJECT>_SECRET=<oidc-client-secret>
+AUTH_URL=https://<WEB_DOMAIN>     # https; the app's own public base URL
+AUTH_TRUST_HOST=true              # required behind a reverse proxy
 ```
 
-`NEXT_PUBLIC_API_BASE` is **baked at build time**. Keep `output: "standalone"` in `next.config.ts` for the Docker image.
+`NEXT_PUBLIC_API_BASE` is **baked at build time**. The `AUTH_*` vars configure the Auth.js generic OIDC provider that points at the central IdP. Keep `output: "standalone"` in `next.config.ts` for the Docker image.
+
+> **Deployment caution:** behind a reverse proxy, do **not** wrap `next-intl` in Auth.js's `auth()` middleware helper. With `AUTH_TRUST_HOST` + `AUTH_URL` set, `auth()` rebases next-intl's default-locale rewrite (e.g. `/`→`/<PRIMARY_LOCALE>`) to an absolute URL the standalone server then proxies (`EAI_AGAIN`), breaking the default-locale site. Use a plain session-cookie-presence check in middleware and resolve roles server-side (in an RSC via `auth()`), not in middleware.
 
 ### 4. Mobile (Expo)
 

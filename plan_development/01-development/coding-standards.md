@@ -85,6 +85,9 @@ do **not** build `IResult` error bodies by hand inside handlers.
 | Not authenticated (401) | `throw new UnauthorizedAccessException()` | 401 |
 | Input/business-rule failure (400) | app `ValidationException` (see below) | 400 ValidationProblemDetails |
 
+For SSO deployments the Web API is a resource server validating OIDC JWT claims (no
+bearer-token issuance / `MapIdentityApi`) — see `sso-oidc.md`.
+
 `Guard.Against.NotFound` throws `NotFoundException`; the handler maps it to 404:
 
 ```csharp

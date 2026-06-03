@@ -20,10 +20,11 @@ Use the `architect` agent. We are building `<APP_NAME>` on the reference bluepri
 
 1. Fill the charter + requirements for `<APP_NAME>`: <one-paragraph description of the domain and
    the interactive calculation/scoring it performs>.
-2. Append ADRs for every material decision (Clean-Architecture layering, CQRS/MediatR, EF provider
-   = SQL Server, the three auth methods + Administrator/User roles, the subscription quota
-   Free = <N>, scoring-in-the-frontend with the backend as system of record, npm-workspaces
-   monorepo + shared TS package, Expo + the APK fixes, the Traefik image-transfer deploy).
+2. Append ADRs for every material decision (Clean-Architecture layering, CQRS/MediatR pinned to free
+   12.5.0, EF provider = SQL Server, central OIDC SSO [OpenIddict IdP owns password/OTP/Google; the
+   API is a JWT resource server; web Auth.js v5; mobile expo-auth-session] + Administrator/User roles,
+   the subscription quota Free = <N>, scoring-in-the-frontend with the backend as system of record,
+   npm-workspaces monorepo + shared TS package, Expo + the APK fixes, the Traefik image-transfer deploy).
 3. Refresh `roadmap-and-phases.md` with concrete names and make every Exit gate machine-checkable.
 4. State the dependency-ordered build sequence and the owner agent per phase.
 
@@ -50,7 +51,10 @@ Use the `scaffold-clean-architecture` skill for the solution; copy `Directory.Bu
 3. Infrastructure: EF Core 10 + SQL Server; `ApplicationDbContext` (+ JSON as `nvarchar(max)`);
    `ApplicationDbContextInitialiser` (migrate-on-startup); first migration with `dotnet ef`.
 4. Web: `IEndpointGroup` classes with `add-endpoint-group` (auto-mapped at `/api/{ClassName}`),
-   Scalar at `/scalar`, health checks. Bring up backing services with the dev compose.
+   Scalar at `/scalar`, health checks. The API is a **JWT resource server** — wire stock
+   `AddJwtBearer` (authority = the OIDC IdP, audience = `<API_AUDIENCE>`, `RoleClaimType=role`,
+   `NameClaimType=name`); do **NOT** add `MapIdentityApi` or any `/api/Auth/*` (OTP/Google) endpoints —
+   login lives in the IdP, not the API. Bring up backing services with the dev compose.
 
 Gate (Phase 1 in `06-migration/checklist.md`): `dotnet build <PROJECT_NAME>.slnx` green under
 warnings-as-errors; domain parity tests pass; `dotnet run --project src/Web` applies migrations and
@@ -102,20 +106,33 @@ restores; frontend<->backend parity tests pass.
 
 ```
 Use the `backend-builder` agent for the API, then `frontend-builder` for the UI. Implement auth for
-`<APP_NAME>`. Read `01-development/auth-and-roles.md`.
+`<APP_NAME>` as **central OIDC SSO**. Read `01-development/auth-and-roles.md` and `sso-oidc.md`.
 
-Backend (use `add-endpoint-group` / `add-cqrs-usecase`):
-- Confirm Identity API under `/api/Users/*`; add OTP (`/api/Auth/otp/request|verify`) and Google
-  (`/api/Auth/google`) endpoints that issue Identity bearer tokens via the bearer scheme.
-- Seed `Administrator`/`User` roles + admin user on startup. `GET /api/Users/me` -> `{ roles, isAdmin }`.
+Auth lives in a dedicated **OpenIddict OIDC IdP** (its own app/db) that owns ALL login methods
+(password / OTP / Google) and issues **signed JWT access tokens** (30-min lifetime; **no
+auto-refresh** — expiry forces a re-auth redirect). The IdP seeds `Administrator`/`User` roles + the
+admin user. The token shape is a frozen contract (see `sso-oidc.md`).
+
+Backend (the API is a **JWT resource server only**):
+- Wire stock `AddJwtBearer` (authority = the IdP, audience = `<API_AUDIENCE>`, `RoleClaimType=role`,
+  `NameClaimType=name`). Do **NOT** add `MapIdentityApi` or any `/api/Auth/*` (OTP/Google) endpoints —
+  login is the IdP's job.
+- `GET /api/Users/me` reads the **JWT claims** -> `{ id, email, phoneNumber, roles, isAdmin }`.
 - `/api/Admin/*` gated with `RequireRole(Administrator)` (list users, change role/plan).
 
-Frontend:
-- Real `auth-context.tsx` (`useAuth` -> `user`/`isAdmin`); token storage + AUTO-REFRESH in `api.ts`;
-  login/register for all three methods; `<RequireAuth>` guard; `admin/users` shown only when `isAdmin`.
+Frontend (server-side auth boundary):
+- Web is an **Auth.js v5** generic OIDC client (Authorization Code + PKCE, httpOnly session cookie);
+  the `jwt` callback lifts `role`/`email`/`name` into the session (`isAdmin` derived). **No manual
+  token refresh.**
+- Resolve identity **server-side**: the `(dashboard)` layout (Server Component) calls `auth()` and
+  seeds `<AuthProvider initialUser>`. **Do NOT add a client `<RequireAuth>`.** `middleware.ts` does a
+  cheap session-cookie presence gate (`next-intl` owns the response). Gate `/admin` with a Server
+  Component layout (`(dashboard)/admin/layout.tsx` via `auth()`).
 
-Gate (Phase 4): sign in via password/OTP/Google -> bearer; session survives refresh; non-admin gets
-403 + no admin UI; admin can change a plan/role; `dotnet test` + `npm run build` pass.
+Gate (Phase 4): password/OTP/Google through the IdP each land authenticated and the API accepts the
+IdP-issued JWT; identity is server-resolved (no `<RequireAuth>`); non-admin gets 403 + no admin UI
+(server-layout gate); `GET /api/Users/me` -> `{ id, email, phoneNumber, roles, isAdmin }` from claims;
+`dotnet test` (mocks the OIDC JWT scheme) + `npm run build` pass.
 ```
 
 ---
@@ -254,6 +271,12 @@ blueprint and the Phase <N> gate in `06-migration/checklist.md`:
   (strict build; no `jsonb`/`KnownNetworks`/un-aliased `ValidationException`; nested
   `Mapping : Profile`; `IEndpointGroup` at `/api/{ClassName}`; scoring in the frontend; deploy
   doesn't restart the shared daemon).
+- For auth (Phase 4) specifically, verify: `middleware.ts` does **NOT** wrap `next-intl` in Auth.js's
+  `auth()` helper (behind Traefik that rebases the `/`->`/fa` rewrite to an absolute URL the standalone
+  server proxies -> `EAI_AGAIN`, breaking the default-locale site); the `/admin` gate is **server-side**
+  (`(dashboard)/admin/layout.tsx` via `auth()`), not a client `<RequireAuth>`; the API has **no**
+  password/OTP/Google (`/api/Auth/*`) endpoints (login lives in the IdP); and **MediatR is 12.5.0**
+  (free, Apache-2.0), not a 13/14 commercial-license version.
 Report findings with file:line evidence and a clear MERGE / CHANGES-REQUESTED verdict. Do not fix
 code — report only.
 ```
@@ -279,7 +302,9 @@ calculation/scoring lives today>.
    text columns).
 
 Preserve the invariants: domain-parity-first; scoring in the frontend/shared package with the
-backend as system of record; three auth methods + roles + the quota; strict build; the APK fixes as
-their own phase; the image-transfer/Traefik deploy that never restarts the shared daemon. Output the
-domain mapping, ADRs, phase plan, and the migration's first gate (the parity tests).
+backend as system of record; **central OIDC SSO** (OpenIddict IdP owns password/OTP/Google; the API is
+a JWT resource server with **no** `/api/Auth/*`; web Auth.js v5 — no manual refresh, no `<RequireAuth>`,
+server-seeded `AuthProvider`) + roles + the quota; strict build; the APK fixes as their own phase; the
+image-transfer/Traefik deploy that never restarts the shared daemon. Output the domain mapping, ADRs,
+phase plan, and the migration's first gate (the parity tests).
 ```

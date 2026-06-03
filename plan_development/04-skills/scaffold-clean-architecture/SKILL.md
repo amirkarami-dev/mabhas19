@@ -71,7 +71,7 @@ Versions live centrally; project `.csproj` files reference packages **without** 
     <PackageVersion Include="Ardalis.GuardClauses" Version="5.0.0" />
     <PackageVersion Include="AutoMapper" Version="16.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageVersion Include="MediatR" Version="14.1.0" />
+    <PackageVersion Include="MediatR" Version="12.5.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.5" />
@@ -93,9 +93,8 @@ In each `.csproj`, add references with no version, e.g. in `src/Application/Appl
 </ItemGroup>
 ```
 
-> **MediatR v14 needs a commercial license for production** (it logs a dev-only warning at startup).
-> Silence the log via `appsettings.json` `Logging:LogLevel:"LuckyPennySoftware.MediatR.License": "None"`;
-> license or replace before going live.
+> **MediatR 13.0+ needs a commercial license; pin to 12.5.0 (Apache-2.0, last free) — ADR-002.**
+> (MediatR.Contracts stays 2.0.1.)
 
 ### 4. (Optional) Add .NET Aspire orchestration
 

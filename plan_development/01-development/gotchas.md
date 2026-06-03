@@ -60,11 +60,13 @@ A mismatched global `dotnet-ef` throws version errors on `migrations add`.
   automatically on API startup (`ApplicationDbContextInitialiser.MigrateAsync`), so you
   rarely run `database update` by hand locally.
 
-### 7. MediatR v14 needs a commercial license for production
-MediatR v14 logs a dev-only license warning and **requires a commercial license in
-production**.
-- **Fix**: license it (or replace it) before going live. The startup warning is silenced in
-  dev but that does not cover production use.
+### 7. MediatR 13+ needs a commercial license — we pin to free 12.5.0
+MediatR 13.0+ (LuckyPennySoftware) **requires a commercial license in production**. This repo
+pins **MediatR 12.5.0** (Apache-2.0, the last free version) in `Directory.Packages.props`, so
+no license is needed (ADR-002). AutoMapper uses the same vendor model, but its license is
+**accepted as a non-blocker** here (ADR-018) — it stays on 16.x.
+- **Fix**: keep MediatR pinned to 12.5.0. To upgrade, buy a v14+ license or migrate to
+  `Mediator` (martinothamar, MIT, source-generated).
 
 ### 8. `Guard.Against.NotFound` for 404, `ForbiddenAccessException` for 403
 Don't hand-roll error responses in handlers. Use `Guard.Against.NotFound(id, entity)`
@@ -131,11 +133,22 @@ rebuild, not just a restart. `next.config.ts` must keep `output: "standalone"` f
 Docker image and `transpilePackages: ["@<PLACEHOLDER>/assessment-core"]` for the shared
 engine.
 
+### 19. Do NOT wrap next-intl in Auth.js's `auth()` middleware
+The server-side auth boundary (ADR-017) gates protected routes in `middleware.ts`. **Do not**
+compose it as `export default auth((req) => intlMiddleware(req))`: behind Traefik
+(`AUTH_TRUST_HOST` + `AUTH_URL`) the `auth()` wrapper rebases next-intl's `/`→`/fa` rewrite to an
+**absolute** URL, which the standalone server then tries to **proxy** → `EAI_AGAIN`, breaking the
+default-locale site. (This shipped to prod once and broke `/`; it was caught and rolled back.)
+- **Fix**: let `next-intl` own the response. Gate protected routes with a cheap **session-cookie
+  presence** check (a `req.cookies` entry whose name includes `session-token`) + a locale-aware
+  redirect; do role/identity decryption **server-side** (RSC `auth()` in `(dashboard)/layout.tsx`
+  and `(dashboard)/admin/layout.tsx`), never in the Edge middleware.
+
 ---
 
 ## Shared / monorepo
 
-### 19. The shared package ships as TS source (no build)
+### 20. The shared package ships as TS source (no build)
 `@<PLACEHOLDER>/assessment-core`'s `main`/`types` point at `src/index.ts`. Consumers compile
 it: web via `transpilePackages`, mobile via Metro `watchFolders` + `nodeModulesPaths`.
 There's no build artifact to import and no rebuild step after editing it.

@@ -72,13 +72,14 @@ export const tokenStore = {
 }
 ```
 
-`AuthProvider` calls `tokenStore.load()` once on mount, then `refreshUser()` if a token
-exists. `expo-secure-store` is registered as a plugin in `app.json`.
+`AuthProvider` loads tokens from `expo-secure-store` once on mount; `expo-secure-store` is
+registered as a plugin in `app.json`.
 
-The `src/lib/api.ts` `apiFetch` mirrors the web one (bearer + one-shot 401 refresh against
-`/api/Users/refresh`, typed `ApiError`) but awaits the async `tokenStore`. The auth flows
-(`loginWithPassword`, `loginWithOtp`, `loginWithGoogle`) live in `src/lib/auth-context.tsx`
-and are documented in `auth-and-roles.md`.
+Sign-in is **OIDC via expo-auth-session** (Authorization Code + PKCE) against the central IdP
+(`auth.myceo.ir`) — see `sso-oidc.md`. `src/lib/api.ts` `apiFetch` sends `Authorization: Bearer
+<jwt>` to the API (typed `ApiError`); the access token is renewed against the **IdP's token
+endpoint** (refresh_token), **not** `/api/Users/refresh`. The OIDC sign-in lives in
+`src/lib/oidc.ts` + `src/lib/auth-context.tsx`.
 
 ---
 

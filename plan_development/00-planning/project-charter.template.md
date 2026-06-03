@@ -55,7 +55,7 @@
 - **Domain logic is a faithful port** of `<reference source>` and must stay numerically identical (locked by tests).
 - **Deployment environment:** `<single host / cloud / on-prem>`; `<network restrictions, e.g. registry/CDN blocked → image-transfer pipeline>`.
 - **Data residency / language:** `<e.g. primary language is RTL; data stays in-region>`.
-- **Licensing:** `<flag any component needing a commercial license before go-live — e.g. MediatR v14>`.
+- **Licensing:** `<track any component whose license is a decision — e.g. MediatR is pinned to the free 12.5.0 (Apache-2.0; 13.0+ is commercial) per ADR-002, and AutoMapper's license is a tracked, accepted decision (ADR-018)>`.
 - **Timeline / budget:** `<dates or "best effort">`.
 
 ## 7. Stakeholders
@@ -108,7 +108,7 @@ A web app that lets building professionals run Iran's National Building Code **S
 
 ## 5. Success criteria
 - [x] Scoring output is numerically identical to the legacy calculator (locked by unit tests on the shared package + Domain).
-- [x] All three sign-in methods issue a bearer token and survive refresh (auto-refresh in the web API layer).
+- [x] Sign-in via the central OIDC IdP works (Authorization Code + PKCE); the session survives a refresh.
 - [x] A user can create a project → complete an assessment → save → download its PDF.
 - [x] Creating a 6th project on Free is blocked with a `Subscription`-field validation message.
 - [x] Admin can list users and change a user's plan/quota under `/api/Admin/*`.
@@ -120,7 +120,7 @@ A web app that lets building professionals run Iran's National Building Code **S
 - Stack fixed to the blueprint (.NET 10 Clean Architecture + SQL Server + Next.js 16 + Expo SDK 54).
 - `Domain/Services` calculators and `@mabhas19/assessment-core` are faithful ports — numerically locked by tests.
 - Server is in Iran: **`mcr.microsoft.com` and Docker Hub's blob CDN are blocked** → app images are built locally and transferred via `docker save`/`load` + `pscp`; `postgres`/`minio` pulled from the `docker.arvancloud.ir` mirror. Do not restart the shared Docker daemon.
-- **MediatR v14** needs a commercial license before production (dev-only warning today).
+- **MediatR** is pinned to the free **12.5.0** (Apache-2.0; 13.0+ is commercial) per ADR-002; **AutoMapper**'s license is a tracked, accepted decision (ADR-018).
 - Primary language is Persian (RTL); data stays on the in-region server.
 
 ## 7. Stakeholders

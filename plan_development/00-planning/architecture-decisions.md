@@ -196,7 +196,7 @@ MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not rece
 ---
 
 ## ADR-013 — Central OIDC Identity Provider for cross-service SSO
-**Status:** Accepted (supersedes ADR-006 for multi-service deployments)
+**Status:** Accepted — **deployed to production 2026-06** (supersedes ADR-006). The web client's auth boundary is refined by **ADR-017**.
 
 **Context.** The product grows from one app into a portal of services under `*.myceo.ir` (e.g. `mabhas19`, `plan`, …). Users must log in once and move between services without re-authenticating. ADR-006's `MapIdentityApi` bearer tokens are app-local (DataProtection-encrypted, validatable only by the issuing app) and stored per-origin in `localStorage`, so they cannot be shared across services — they don't support SSO.
 
@@ -209,3 +209,86 @@ MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not rece
 - (−) A new app, database, container, and Traefik route to build/operate; login UI moves out of the polished Next.js page into the IdP.
 - (−) One-time user migration (IDs/password-hashes preserved) and a careful production cutover.
 - (−) Admin user-management must move to the IdP (flagged follow-up); the IdP's signing key must be persisted (not ephemeral).
+
+---
+
+## ADR-014 — Trunk-based: push directly to `main`, no CI
+**Status:** Accepted (2026-06-04)
+
+**Context.** A solo owner ships this project. The template shipped a GitHub Actions CI (build/test/lint gate on branches/PRs). For one operator who verifies locally, that gate adds latency/maintenance without catching anything a local run wouldn't.
+
+**Decision.** **Remove the CI workflow** (commit `607db97`); push directly to `main`. Verify locally before pushing: `dotnet build`/`dotnet test` (warnings-as-errors), `npm run build`/`lint`, the `@mabhas19/assessment-core` vitest suite. Use **short-lived feature branches** for risky multi-commit work, merged to `main` after local verification.
+
+**Consequences.**
+- (+) Simpler; no CI cost/maintenance; fastest path for one person.
+- (−) No automated gate — the discipline is manual; a skipped local check can land on `main`.
+- (−) Anything CI would have done (e.g. image CVE scan) becomes a **manual pre-deploy step**.
+
+---
+
+## ADR-015 — Production secrets via SOPS + age (server-less, git-committed encrypted)
+**Status:** Accepted (2026-06-03)
+
+**Context.** The single-server compose deploy reads a `.env` of prod secrets (DB/MinIO/admin/SMS/OIDC). That file previously lived only as plaintext on the server — unversioned, un-backed-up. The server cannot reach GitHub (Iran), so a tool that needs network at deploy time is out.
+
+**Decision.** Encrypt the deploy secrets with **SOPS + age** (no secrets server — right-sized). Commit **`deploy/prod.enc.env`** (each value AES-256-GCM). **`deploy/decrypt-env.sh`** regenerates the git-ignored `deploy/.env` on the server at deploy time. **`.sops.yaml`** holds the age **public recipient**. The age **private key lives only on the server** (`/srv/mabhas19/secrets/age.key`, `chmod 600`) with an off-server backup; `sops`/`age` binaries were **hand-transferred** to `/srv/mabhas19/bin`.
+
+**Consequences.**
+- (+) Secrets are versioned + backed up safely in git; repeatable decrypt; nothing extra to run/secure.
+- (−) The age private key is the single recovery point — it **must** be backed up off-server.
+- (−) Changing a secret is a server-side `sops` edit → recommit `prod.enc.env` → redeploy.
+
+---
+
+## ADR-016 — Frontend data layer: TanStack Query + bounded RSC prefetch
+**Status:** Accepted (2026-06-03)
+
+**Context.** The dashboard hand-rolled `useState`/`useEffect` fetches per page — no caching, duplicated loading/error state, `set-state-in-effect` lint debt. We wanted the 2026-standard data layer without disturbing the backend system-of-record (ADR-003) or the interactive scoring.
+
+**Decision.** Adopt **TanStack Query v5** for all client reads + mutations (mutations invalidate the relevant query keys). Add **RSC server-prefetch + `HydrationBoundary`** on the read pages via a server-side fetch (`lib/api-server.ts` using `auth()`), so they render server-first with a warm cache. Components consume the **tested pure scorers** from `@mabhas19/assessment-core` (ADR-004) instead of duplicating the math inline. The backend remains the system of record (ADR-003 unchanged).
+
+**Consequences.**
+- (+) Caching/dedup/background refetch; the fetch-in-effect boilerplate (and its lint disables) is gone; scoring is now test-backed via the shared package.
+- (−) One added dependency; a second (server-side) fetch path to maintain (`api-server.ts`).
+- (−) RSC's first-paint benefit was initially capped by the client auth gate — **fully unlocked by ADR-017**.
+
+---
+
+## ADR-017 — Server-side auth boundary (middleware gate + identity from the OIDC token + RSC role gate)
+**Status:** Accepted — **in-flight on `feat/server-auth-ssr`**; deployed to production for owner verification, pending merge.
+
+**Context.** Under ADR-013, web auth was still **client-side** (`SessionProvider` + `useSession` + a client `<RequireAuth>`), which caused an auth flicker and blocked true SSR of the private dashboard.
+
+**Decision.** Move route protection to the **Edge middleware** as a cheap **session-cookie presence gate** (`next-intl` owns the response). Lift identity (`role`/`email`/`name` → `isAdmin`) from the OIDC token into the **Auth.js session JWT** at sign-in; resolve it **server-side** in the dashboard layout (Server Component) and seed `<AuthProvider initialUser>` — no client `/api/Users/me` fetch. Gate **`/admin`** in a **Server Component layout** via `auth()`. **Remove** the client `<RequireAuth>`. Keep the client session only for the API bearer token. **Hard constraint:** do **NOT** wrap `next-intl` in Auth.js's `auth()` middleware helper — behind Traefik (`AUTH_TRUST_HOST` + `AUTH_URL`) it rebases the `/`→`/fa` rewrite to an absolute URL the standalone server proxies (`EAI_AGAIN`), breaking the default-locale site (learned in production; see `gotchas.md`).
+
+**Consequences.**
+- (+) No auth flicker; true SSR-first; protection enforced before render; admin gate server-side; identity without an extra round-trip.
+- (−) Sessions minted before the change lack the new role claim → users (esp. admins) must **re-login once**.
+- (−) The middleware presence-gate is a **UX gate, not validation** — real validation stays at the API JWT layer + the RSC `auth()` checks.
+
+---
+
+## ADR-018 — AutoMapper licensing accepted as a non-blocker
+**Status:** Accepted (2026-06-03) — contrast ADR-002 (MediatR pinned to free)
+
+**Context.** AutoMapper 16.x uses the same vendor commercial-license model as MediatR (last free = 12.x). The roadmap previously tracked "resolve before go-live."
+
+**Decision.** The owner **accepts** the AutoMapper commercial-license terms as a **non-blocker**. Stay on **16.x**; no migration to Mapperly, no pin to 12.x. (Unlike MediatR, which was pinned to free 12.5.0 in ADR-002.)
+
+**Consequences.**
+- (+) No mapping refactor; keep the current `Mapping : Profile` API.
+- (−) A commercial-license obligation is **accepted** for production use of AutoMapper; revisit if terms/cost change.
+
+---
+
+## ADR-019 — ArvanCloud CDN posture: proxy the web, DNS-only for api/auth/s3
+**Status:** Accepted (2026-06-03)
+
+**Context.** All domains sit behind ArvanCloud. A CDN/proxy in front of dynamic/auth/storage endpoints breaks things: cached authenticated responses, **broken MinIO presigned-URL signatures** + large uploads, and ACME/cert + OIDC round-trip issues. Container DNS for the proxied IdP host is also intermittently flaky (`EAI_AGAIN`).
+
+**Decision.** Keep the CDN **ON** (orange) **only** for `mabhas19.myceo.ir` (static web — edge cache + DDoS). Set **`api.*` / `auth.*` / `s3.*` to DNS-only** (grey). Keep the **`auth.myceo.ir → 185.143.234.234` IP pin** (`extra_hosts` on web + api) so Auth.js/JWKS resolution is deterministic; update only if the edge IP rotates.
+
+**Consequences.**
+- (+) Web gets edge caching/DDoS; dynamic/auth/storage avoid CDN-induced breakage; deterministic IdP resolution.
+- (−) The IP pin is a manual fragility (rotate ⇒ update `extra_hosts`).
+- (−) Web behind the CDN needs cache-busting discipline on deploys.

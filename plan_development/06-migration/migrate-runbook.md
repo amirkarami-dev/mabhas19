@@ -70,7 +70,7 @@ slice per client, then cross-cutting features, then sharing, then mobile, then d
 1. **Backend core** — Domain -> Application -> Infrastructure -> Web (CRUD, no auth yet).
 2. **Web shell** — Next.js routes + i18n + design system.
 3. **Scoring engine (frontend)** — the interactive domain logic in the browser.
-4. **Auth + roles + admin** — password / OTP / Google, `Administrator`/`User`, admin area.
+4. **Auth + roles + admin** — central OIDC SSO (OpenIddict IdP owns password/OTP/Google); the API is a JWT resource server; web is an Auth.js v5 OIDC client; `Administrator`/`User`, admin area.
 5. **Public landing page**.
 6. **Subscriptions + PDF / object storage**.
 7. **Extract the shared package** — engine becomes `packages/<CORE_PACKAGE>`, web consumes it.
@@ -96,7 +96,7 @@ on. The `architect` plans; the `reviewer` verifies every phase.
 | 1 — Backend core | `backend-builder` | `scaffold-clean-architecture`, `add-cqrs-usecase`, `add-endpoint-group` | `dotnet build <PROJECT_NAME>.slnx` green under warnings-as-errors; **domain parity unit tests pass**; `dotnet run --project src/Web` applies migrations + `/scalar` lists endpoints; CRUD works against a real DB. |
 | 2 — Web shell | `frontend-builder` | — (see `01-development/frontend-web.md`, `i18n-rtl.md`) | `npm run build` (web) passes; `npm run lint` clean; routes render; locale switch flips `dir`/`lang`; dashboard redirects to login when unauthenticated. |
 | 3 — Scoring engine (frontend) | `frontend-builder` | — (see `01-development/frontend-web.md`) | Checklists update score live (no per-keystroke server calls); save persists + reload restores; **frontend<->backend parity tests pass**. |
-| 4 — Auth + roles + admin | `backend-builder` + `frontend-builder` | `add-endpoint-group`, `add-cqrs-usecase` | Sign in via password/OTP/Google -> bearer; session survives refresh; non-admin gets 403 from `/api/Admin/*` + no admin UI; `dotnet test` + `npm run build` pass. |
+| 4 — Auth + roles + admin | `backend-builder` + `frontend-builder` | `add-endpoint-group`, `add-cqrs-usecase` | Central OIDC SSO: IdP owns password/OTP/Google; web Auth.js (Auth Code + PKCE) lands authenticated; the API (JWT resource server, no `/api/Auth/*`) accepts the IdP JWT; identity server-resolved (no client `<RequireAuth>`); non-admin gets 403 from `/api/Admin/*` and the `/admin` server-layout gate hides admin UI; `GET /api/Users/me` -> `{ id, email, phoneNumber, roles, isAdmin }` from JWT claims; `dotnet test` (mocks the OIDC JWT scheme) + `npm run build` pass. |
 | 5 — Landing page | `frontend-builder` | — | `/` renders for anonymous users in both locales with correct `dir`; `npm run build` passes. |
 | 6 — Subscriptions + PDF | `backend-builder` + `frontend-builder` | — (see `01-development/subscriptions.md`, `file-storage-pdf.md`) | Creating beyond the cap returns a **`Subscription`-field 400** (not 500); a report PDF generates, uploads, downloads via presigned URL; the script font renders. |
 | 7 — Shared package | `frontend-builder` (+ `mobile-builder` for Metro) | `setup-monorepo-shared-package` | `npm install` at root links the workspace; web imports from `@<SCOPE>/<CORE_PACKAGE>`; web build still passes; package Vitest tests pass; **scores unchanged** vs Phase 3. |
@@ -157,9 +157,10 @@ client-side, with the backend as the **system of record**. To migrate an existin
    portable across providers. Re-run the full test suite + a prod smoke test after loading data.
 
 > Migration invariants to preserve: domain-parity-first; **scoring in the frontend/shared package**
-> with the backend as system of record; the three auth methods + roles + the subscription quota;
-> the strict build flags; the APK monorepo fixes scheduled as their own phase; and the
-> image-transfer / existing-Traefik deploy that **never restarts the shared daemon**.
+> with the backend as system of record; **central OIDC SSO** (OpenIddict IdP owns password/OTP/Google;
+> the API is a JWT resource server with **no** `/api/Auth/*`; web is an Auth.js v5 OIDC client) + roles
+> + the subscription quota; the strict build flags; the APK monorepo fixes scheduled as their own
+> phase; and the image-transfer / existing-Traefik deploy that **never restarts the shared daemon**.
 
 ---
 
@@ -177,9 +178,14 @@ this; the essentials:
   resolver `<CERT_RESOLVER>`; hosts `<WEB_DOMAIN>` / `<API_DOMAIN>` / `<S3_DOMAIN>`.
 - **MinIO is reached via its public host** with `UseSSL=true` so presigned report URLs are valid in
   browsers.
-- **Recreate ONLY `api`/`web`** (`docker compose ... up -d api web`); **never restart the shared
-  Docker daemon**; leave the other stacks untouched.
-- Secrets come from `deploy/.env` (never committed); the API **migrates + seeds the admin user on
-  startup** from `AdminUser:Email/Password`.
+- **Recreate ONLY `api`/`web`** (and the **OIDC IdP** if it ships in this stack — `auth`);
+  **never restart the shared Docker daemon**; leave the other stacks untouched.
+- The API has **no** password/OTP/Google endpoints — those live in the **OIDC IdP**, which owns the
+  user store. **Admin user / role seeding is IdP-side** (`AdminUser:Email/Password` is seeded by the
+  IdP on startup), not by the API. The API just **migrates its own schema** on startup.
+- Web runs **Auth.js v5** as the OIDC client (Authorization Code + PKCE, httpOnly session cookie);
+  `lib/api-server.ts` uses `auth()` to attach the bearer token for **RSC server-prefetch**.
+- Secrets come from `deploy/.env` (regenerated by `decrypt-env.sh`, never committed): DB, MinIO public
+  host + SSL, the **OIDC client id/secret + authority**, and the admin user for the IdP.
 
 See `checklist.md` for the exact deploy gate.

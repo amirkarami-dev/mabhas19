@@ -70,8 +70,7 @@ Read `CLAUDE.md` (Deployment section), `deploy/README.md`, `docker-compose.serve
   default password is baked in**. Set them via `deploy/.env`.
 - **PDF fonts**: the API image bundles Vazirmatn for Persian PDF rendering; ensure the
   `Regular`/`Bold` TTFs are in `deploy/fonts/` before building.
-- **MediatR v14** needs a commercial license for production use — confirm it's licensed/replaced
-  before a real go-live.
+- **MediatR 12.5.0** (Apache-2.0, free) — no license needed.
 
 ## Step-by-step approach
 1. **Read first.** `deploy/README.md` + the server compose + `.env.example`. Confirm the

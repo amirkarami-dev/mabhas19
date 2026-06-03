@@ -28,7 +28,7 @@ Then place each diagram in:
 ### General tips
 - **One diagram per block.** Mermaid renders each `<pre class="mermaid">` independently.
 - **Line breaks inside a node:** use `<br/>` (e.g. `API[".NET 10 API<br/>Clean Architecture"]`).
-- **Quote any label** with spaces, slashes, parentheses, or punctuation: `A["POST /api/Users/login"]`.
+- **Quote any label** with spaces, slashes, parentheses, or punctuation: `A["GET /api/Users/me"]`.
 - **Keep node ids short and code-like** (`WEB`, `API`, `DB`); put the human text in the `["..."]` label.
 - **Test fast:** paste into the live editor at `mermaid.live`, fix syntax, then paste back.
 - **Don't over-style.** The template's `.mermaid` box already gives a border, padding, and the
@@ -163,68 +163,41 @@ concrete pieces your Infrastructure layer implements.
 
 ---
 
-## 4. Auth flows — `sequenceDiagram`
+## 4. Auth flow — `sequenceDiagram`
 
-**Goal:** one sequence per sign-in method, showing the messages between the client, the API, and any
-helper (OTP cache, SMS relay, Google, the token validator). All three end with the API returning
-`{ accessToken, refreshToken }`.
+**Goal:** one sequence for the **OIDC Authorization Code + PKCE** flow, showing the messages between
+the client, the central **IdP** (the token issuer), and the **API** (a resource server that only
+*validates* JWTs). The IdP — not the API — authenticates the user; the API never issues tokens.
 
 - Declare each actor once: `participant C as Client`.
 - `A->>B: msg` = a call/message; `A-->>B: msg` = the response (dashed).
-- `A->>A: note` = an internal step (validate, create user, sign in).
+- `A->>A: note` = an internal step (verify PKCE, validate the JWT signature).
 - Keep messages to the **real HTTP calls and the key internal steps** — don't narrate every line of
   code.
-
-**Password login:**
 
 ```mermaid
 sequenceDiagram
   participant C as Client (web/mobile)
-  participant A as API (Identity)
-  C->>A: POST /api/Users/login (email, password)
-  A->>A: Validate credentials
-  A-->>C: { accessToken, refreshToken }
-  C->>A: GET /api/Users/me (Bearer accessToken)
-  A-->>C: CurrentUserDto { roles, isAdmin }
+  participant IDP as IdP (OpenIddict)
+  participant A as API (resource server)
+  C->>C: Generate PKCE code_verifier + code_challenge
+  C->>IDP: GET /authorize (client_id, redirect_uri, code_challenge, scope)
+  IDP->>IDP: Authenticate the user (one of several factors)
+  IDP-->>C: 302 redirect_uri?code=...
+  C->>IDP: POST /token (code, code_verifier)
+  IDP->>IDP: Verify PKCE; issue signed JWT
+  IDP-->>C: { access_token (JWT), id_token, expires_in }
+  C->>A: GET /api/Users/me (Bearer access_token)
+  A->>A: Validate JWT (signature via JWKS, issuer, audience)
+  A-->>C: CurrentUserDto { id, email, roles, isAdmin }
 ```
 
-**Mobile OTP (request + verify):**
+**Note:** the IdP may offer **several login factors internally** (password, OTP, Google, …) and may
+change them over time — this does **not** alter the API contract. The API only ever sees a validated
+Bearer JWT; from its side the flow above is identical regardless of how the user authenticated.
 
-```mermaid
-sequenceDiagram
-  participant C as Client
-  participant A as API
-  participant O as OtpService (cache)
-  participant S as SMS relay
-  C->>A: POST /api/Auth/otp/request (phoneNumber)
-  A->>O: Generate N-digit code, store key otp:{phone} (TTL)
-  A->>S: SendAsync(phone, "code: NNNN")
-  S-->>C: SMS delivered to phone
-  C->>A: POST /api/Auth/otp/verify (phone, code)
-  A->>O: FixedTimeEquals(code); delete on match
-  A->>A: Create user if new; SignInAsync (Bearer)
-  A-->>C: { accessToken, refreshToken }
-```
-
-**Google ID-token:**
-
-```mermaid
-sequenceDiagram
-  participant C as Client
-  participant G as Google Identity
-  participant A as API
-  participant V as GoogleTokenValidator
-  C->>G: User signs in with Google
-  G-->>C: idToken
-  C->>A: POST /api/Auth/google (idToken)
-  A->>V: ValidateAsync(idToken)
-  V-->>A: GoogleUserInfo { sub, email, name }
-  A->>A: Create user if new; SignInAsync (Bearer)
-  A-->>C: { accessToken, refreshToken }
-```
-
-**Adapt:** if you drop a sign-in method, delete its diagram. If you add one (e.g. a different OAuth
-provider), copy the Google sequence and swap the provider/validator participants.
+**Adapt:** if your IdP differs (e.g. a hosted provider instead of OpenIddict), rename the `IDP` actor;
+the message shape (authorize → code → token → Bearer-to-API) is the standard Auth Code + PKCE flow.
 
 ---
 

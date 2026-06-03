@@ -1,15 +1,19 @@
 # Auth & Roles
 
-> **SUPERSEDED FOR MULTI-SERVICE DEPLOYMENTS**
+> # ⛔ SUPERSEDED for production by central OIDC SSO (ADR-013) — see [`sso-oidc.md`](sso-oidc.md).
+> **Retained as the historical single-service bearer-token reference.**
 >
-> This document describes the original single-service bearer-token model
-> (`MapIdentityApi` + `AddBearerToken`). It is **retained as the historical reference** and
-> still applies to a standalone `mabhas19` deployment that does not need SSO.
+> In production, **`src/Web` is now a JWT resource server** that validates IdP-issued OIDC
+> tokens via `AddJwtBearer` — it has **no `MapIdentityApi`** and **no `/api/Auth/*` (OTP /
+> Google) endpoints**; those moved to the IdP (`src/Auth`). Everything below describes the
+> *original* single-service bearer-token model (`MapIdentityApi` + `AddBearerToken`), kept as
+> a historical reference for a standalone deployment that does not need SSO.
 >
 > **For the production `*.myceo.ir` architecture** (mabhas19 + plan + future services sharing
 > one login), the authoritative model is the **OIDC/SSO central IdP** described in
-> [`sso-oidc.md`](sso-oidc.md) (Token Contract frozen 2026-06-03) and recorded in
-> **ADR-013** (`plan_development/00-planning/architecture-decisions.md`).
+> [`sso-oidc.md`](sso-oidc.md) (Token Contract frozen 2026-06-03, **deployed to production**)
+> and recorded in **ADR-013** (`plan_development/00-planning/architecture-decisions.md`). The
+> web client's server-side auth boundary is further refined by **ADR-017**.
 >
 > **What changed:**
 > - `src/Auth` (OpenIddict) is now the only component that authenticates users. It owns

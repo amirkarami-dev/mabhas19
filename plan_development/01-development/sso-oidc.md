@@ -1,6 +1,6 @@
 # SSO / OIDC — Central Identity Provider design & contract
 
-> **Status:** Design approved (2026-06-03) — implementation pending.
+> **Status:** **IMPLEMENTED & DEPLOYED to production (Phases 1-3).** Web auth boundary refined by the in-flight `feat/server-auth-ssr` (ADR-017).
 > **Supersedes:** the bearer-token model in `auth-and-roles.md` / ADR-006 (`MapIdentityApi`).
 > **Execution:** wave-based (Phase 1 → 2 → 3), see §8. The **Token Contract (§4) is frozen at the end of Phase 1** and is the single source of truth every client builds against.
 
@@ -16,7 +16,7 @@ One login across every `*.myceo.ir` service. A user authenticates once at a cent
 | D2 | User store | **Own database `Mabhas19AuthDb`** on the existing SQL Server instance; existing users migrated in, **IDs preserved** |
 | D3 | Web client | **Auth.js (NextAuth v5)** OIDC client, httpOnly session cookie |
 | D4 | Scope | IdP + `mabhas19` web + `mabhas19` mobile + **`plan` client placeholder** |
-| D5 | Prod cutover | **NOT in this pass.** Build + verify on the branch; cutover is a separate, gated runbook. Current auth keeps working until then. |
+| D5 | Prod cutover | (Historical decision: build + verify first, cutover via a separate gated runbook.) ✅ The runbook has since been **executed** — SSO is **live in production**. |
 
 ## 3. Architecture
 
@@ -84,18 +84,19 @@ One login across every `*.myceo.ir` service. A user authenticates once at a cent
 - **Keep** `ApplicationDbContext` as-is (still `IdentityDbContext`) to avoid a destructive migration; the Identity tables simply go unused. **No schema change to `Mabhas19Db` in this pass.**
 - Subscriptions/Projects/Assessments unchanged (they key off the preserved `sub`).
 
-### C — web (Next.js) — Phase 2
-- **Auth.js (NextAuth v5)** generic OIDC provider → `auth.myceo.ir`; httpOnly encrypted session cookie (removes the localStorage token layer and its XSS exposure).
-- Rewire `lib/api.ts` (attach access token from the server session / call via route handlers), `lib/auth-context`, `RequireAuth`; `(auth)/login`+`register` become "sign in" → redirect to IdP; `lib/tokens.ts` retired.
+### C — web (Next.js) — Phase 2 ✅ COMPLETED (historical)
+- **Auth.js (NextAuth v5)** generic OIDC provider → `auth.myceo.ir`; httpOnly encrypted session cookie (removed the localStorage token layer and its XSS exposure).
+- `lib/api.ts` now attaches the access token from the Auth.js session (`getSession()` client-side); `lib/auth-context` is server-seeded (`<AuthProvider initialUser>`); `(auth)/login` redirects to the IdP (no `register`); **`lib/tokens.ts` retired**.
+- **Note (ADR-017, in-flight on `feat/server-auth-ssr`, deployed for testing — not merged):** the client `<RequireAuth>` has been **removed**; route protection is now a `middleware.ts` session-cookie presence gate, identity is resolved server-side in the dashboard layout, and `/admin` is gated by a Server Component layout. See `frontend-web.md` and ADR-017.
 
 ### D — mobile (Expo) — Phase 2
 - **`expo-auth-session`** code+PKCE against `auth.myceo.ir`; tokens in `expo-secure-store`; send JWT to the API.
 - Replace the password/OTP/Google screens (`app/login.tsx`) with the IdP-hosted flow via the system browser. **Nuance:** Google sign-in happens *inside* the IdP page (server-side OAuth), not a native Google SDK — keeps the flow uniform.
 
-### E — infra + docs + migration — Phase 3
-- `auth` service in `docker-compose.server.yml`, `mabhas19-auth:deploy` image (`deploy/Dockerfile.auth`), Traefik route `auth.myceo.ir` (cert resolver `myresolver`; DNS already → `10.249.52.216` ✅), `.env` additions (client secrets, signing cert path).
-- **User-migration script** (§7).
-- **plan_development** doc updates (§9) + **cutover runbook** (built, not executed).
+### E — infra + docs + migration — Phase 3 ✅ COMPLETED (historical)
+- `auth` service in `docker-compose.server.yml`, `mabhas19-auth:deploy` image (`deploy/Dockerfile.auth`), Traefik route `auth.myceo.ir` (cert resolver `myresolver`; DNS → `10.249.52.216` ✅), `.env` additions (client secrets, signing cert path). Secrets now flow through SOPS + age (ADR-015).
+- **User-migration script** (§7) — run at cutover, IDs preserved.
+- **plan_development** doc updates (§9) + **cutover runbook** (written **AND executed** — SSO is live in production).
 
 ## 6. Auth flow (the "no re-login" experience)
 1. User signs in at `mabhas19.myceo.ir` → Auth.js redirects to `auth.myceo.ir/connect/authorize`.
@@ -107,15 +108,17 @@ One login across every `*.myceo.ir` service. A user authenticates once at a cent
 - Because `Project.OwnerId` / `Subscription.UserId` reference `AspNetUsers.Id` and the IdP's `sub` = that same `Id`, all existing data stays linked with no changes to `Mabhas19Db`.
 - Repeatable, idempotent (insert-if-absent). Verified at cutover by row-count parity + a real test login. `Mabhas19Db`'s Identity tables are left in place (unused) — dropping them is a future cleanup, not this pass.
 
-## 8. Wave-based execution (controlled — avoids contract drift)
+## 8. Wave-based execution (controlled — avoids contract drift) — ✅ ALL PHASES COMPLETE (historical record)
 
-**Phase 1 — A + B (foundation; freeze the contract).** Build the IdP and convert the API. **Done when:** IdP issues a signed JWT for each login method; the API accepts a valid IdP JWT (200) and rejects others (401); roles enforce; an integration test (obtain token from IdP → call a protected API endpoint) is green. **→ Token Contract (§4) is marked FROZEN.**
+All three waves were executed and the system is **deployed to production**. The plan is kept below as the historical build order.
 
-**Phase 2 — C + D (against the frozen contract).** Web (Auth.js) and mobile (expo-auth-session) integrate. Controlled parallelism is OK here because §4 is fixed. **Done when:** web login redirect→callback→session→authenticated API call works; mobile PKCE flow→SecureStore→authenticated API call works.
+**Phase 1 — A + B (foundation; freeze the contract). ✅ DONE.** Built the IdP and converted the API. IdP issues a signed JWT for each login method; the API accepts a valid IdP JWT (200) and rejects others (401); roles enforce; the integration test (obtain token from IdP → call a protected API endpoint) is green. **→ Token Contract (§4) FROZEN 2026-06-03.**
 
-**Phase 3 — E (infra + docs + migration).** Compose/Traefik/Dockerfile for `auth.myceo.ir`, `Mabhas19AuthDb` provisioning, migration script, plan_development updates, **cutover runbook (written, not run)**. **Done when:** all three images build, the stack runs locally end-to-end, and the runbook is reviewed.
+**Phase 2 — C + D (against the frozen contract). ✅ DONE.** Web (Auth.js) and mobile (expo-auth-session) integrated. Web login redirect→callback→session→authenticated API call works; mobile PKCE flow→SecureStore→authenticated API call works. *(The web auth boundary was subsequently moved server-side — ADR-017, in-flight on `feat/server-auth-ssr`, deployed for owner testing, not yet merged.)*
 
-> Parallelism is **within** a phase only, never across — and only after the prior phase's "done when" gate passes and the contract is frozen.
+**Phase 3 — E (infra + docs + migration). ✅ DONE.** Compose/Traefik/Dockerfile for `auth.myceo.ir`, `Mabhas19AuthDb` provisioning, migration script, plan_development updates, and the **cutover runbook (written AND executed)**. All three images build, the stack runs end-to-end, and SSO is live in production.
+
+> (Historical guidance) Parallelism was **within** a phase only, never across — and only after the prior phase's "done when" gate passed and the contract was frozen.
 
 ## 9. plan_development updates (Phase 3)
 - This document (`01-development/sso-oidc.md`) — canonical design + contract.

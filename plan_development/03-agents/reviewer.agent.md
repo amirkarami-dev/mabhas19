@@ -55,27 +55,42 @@ conventions, and reintroduces **none** of the known gotchas. You report; the bui
       `MapPut`/`MapPatch`/`MapDelete` carry a pattern; correct `RequireAuthorization` /
       `RequireRole(Administrator)` gating.
 - [ ] 404 via `Guard.Against.NotFound`, 403 via `ForbiddenAccessException`; quota breach is a
-      `Subscription`-field **400** (not a 500). Auth: Identity bearer under `/api/Users/*`, OTP +
-      Google issue bearer tokens, `GET /api/Users/me` → `{ roles, isAdmin }`.
+      `Subscription`-field **400** (not a 500). **Auth: the API is a JWT resource server** —
+      `AddJwtBearer` (authority `auth.myceo.ir`, audience `mabhas19.api`, `RoleClaimType="role"`,
+      `NameClaimType="name"`), **no `MapIdentityApi` and no `/api/Auth/*` (OTP/Google)** endpoints
+      (those live in the IdP `src/Auth`). It exposes only `GET /api/Users/me` (from JWT claims →
+      `{ id, email, phoneNumber, roles, isAdmin }`) and gates `/api/Admin/*` with
+      `RequireRole(Administrator)`.
 - [ ] **Scoring is NOT in the backend** — only the system-of-record storage
       (`nvarchar(max)` input/result + denormalised scores) and PDF-from-stored-result.
 
 **Web**
 - [ ] App Router under `app/[locale]`; providers/`<html lang/dir>` in the locale layout; route
-      groups public `/` landing, public `(auth)`, protected `(dashboard)` via `<RequireAuth>`;
-      admin UI gated on `isAdmin`.
+      groups public `/` landing, public `(auth)`, **protected `(dashboard)` server-side** — its
+      `layout.tsx` is a **Server Component** resolving identity via `auth()` and seeding
+      `<AuthProvider initialUser>` (the client `<RequireAuth>` is **removed**); `/admin` gated by
+      its own **Server Component layout**; admin UI gated on `isAdmin`.
+- [ ] **Auth is server-side (Auth.js v5 OIDC)**: `middleware.ts` does a **cookie-presence gate**
+      and lets **`next-intl` own the response** — it must **NOT** wrap `next-intl` in Auth.js's
+      `auth()` helper (Traefik `EAI_AGAIN` / broken `/`→`/fa`); role decryption is server-side in
+      RSC `auth()`, not middleware. No `tokens.ts`/`localStorage` token store (httpOnly cookie);
+      no client `useSession`/`me` fetch on mount.
 - [ ] Navigation imported from `@/i18n/navigation` (no `next/link`/`next/navigation`); new i18n
       keys in **both** `fa.json` and `en.json`; `localePrefix: "as-needed"` preserved.
 - [ ] `components/ui` export surface **unchanged** (restyled, not renamed); the `.dark` compat
       layer in `globals.css` intact; new code uses token utilities; emerald token system intact.
-- [ ] `lib/` layer: calls declared in `endpoints.ts`; `apiFetch` keeps bearer + **single 401
-      auto-refresh**; `next.config.ts` keeps `output: "standalone"` + the `transpilePackages`
+- [ ] `lib/` data layer: calls declared in `endpoints.ts`; reads/writes go through **TanStack
+      Query** hooks (mutations invalidate keys); read pages use **RSC prefetch +
+      `HydrationBoundary`** (`api-server.ts` via `auth()`); `apiFetch` attaches the **OIDC session
+      access token**; `next.config.ts` keeps `output: "standalone"` + the `transpilePackages`
       entry; no reliance on changing the build-time-baked `NEXT_PUBLIC_API_BASE` at runtime.
 
 **Mobile / shared / deploy**
 - [ ] APK trio intact: `newArchEnabled: true`; Metro `resolveRequest` React-dedup +
       `watchFolders`/`nodeModulesPaths`; `EXPO_NO_METRO_WORKSPACE_ROOT=1` in `.env` **and every**
       `eas.json` profile; `main: "index.js"` → `expo-router/entry`; NDK `27.1.12297006` + JDK 17.
+- [ ] **Mobile auth = OIDC** via **expo-auth-session** (Auth Code + PKCE, tokens in
+      `expo-secure-store`) against the IdP — no app-local password/OTP/Google login screens.
 - [ ] Shared engine ships as **TS source** (no build artifact); consumed via web
       `transpilePackages` and mobile Metro paths.
 - [ ] Deploy: attaches to the **external** Traefik (cert resolver `<resolver>`); images built
@@ -89,7 +104,8 @@ conventions, and reintroduces **none** of the known gotchas. You report; the bui
 - [ ] No `jsonb` (this is SQL Server → `nvarchar(max)`).
 - [ ] Functional tests qualify the Aspire `global::Projects.TestAppHost`.
 - [ ] `dotnet-ef` matched EF Core 10 for any migration; migrations apply on startup.
-- [ ] MediatR v14 licensing flagged before any production go-live.
+- [ ] **MediatR is pinned to free 12.5.0** (Apache-2.0) in `Directory.Packages.props` — not 13/14;
+      no commercial license needed (ADR-002).
 - [ ] No `next/link`/`next/navigation` imports; no broken `components/ui` barrel; the dark-mode
       compat layer not deleted.
 - [ ] APK trio untouched (see above); RTL-first-launch caveat acknowledged where relevant.

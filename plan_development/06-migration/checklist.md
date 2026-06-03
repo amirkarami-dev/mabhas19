@@ -11,7 +11,7 @@ Legend: each box is a command result or an observable outcome you must confirm.
 
 ## Phase 0 — Planning gate
 - [ ] Charter filled (`00-planning/project-charter.template.md`) and stack agreed (`tech-stack.md`).
-- [ ] ADRs recorded/appended in `00-planning/architecture-decisions.md` (layering, CQRS/MediatR, EF provider, the three auth methods + roles, subscription quota, scoring-in-frontend, monorepo + shared package, Expo/APK, Traefik image-transfer deploy).
+- [ ] ADRs recorded/appended in `00-planning/architecture-decisions.md` (layering, CQRS/MediatR, EF provider, central OIDC SSO + roles, subscription quota, scoring-in-frontend, monorepo + shared package, Expo/APK, Traefik image-transfer deploy).
 - [ ] `roadmap-and-phases.md` refreshed with concrete names and per-phase Exit gates.
 - [ ] DB provider decided (start on SQL Server to skip Phase 10).
 
@@ -38,12 +38,18 @@ Legend: each box is a command result or an observable outcome you must confirm.
 - [ ] **Frontend <-> backend parity tests pass** (same fixtures, identical results).
 
 ## Phase 4 — Auth + roles + admin
-- [ ] Sign in via **password**, **OTP**, and **Google** each yields a bearer token.
-- [ ] Session survives a refresh (token **auto-refresh** works in `api.ts`).
-- [ ] A non-admin gets **403** from `/api/Admin/*` and sees **no** admin UI.
+Auth is **central OIDC SSO** — an **OpenIddict IdP** owns all login methods (password/OTP/Google);
+web is an **Auth.js v5** OIDC client (Authorization Code + PKCE, httpOnly cookie), mobile uses
+**expo-auth-session** (PKCE). The IdP issues **signed JWT access tokens** (30-min, **no auto-refresh**
+— expiry forces a re-auth redirect). The API is a **JWT resource server** (`AddJwtBearer`,
+authority = IdP, audience = `<API_AUDIENCE>`) — it has **no** `/api/Auth/*` (OTP/Google) or
+`MapIdentityApi` endpoints.
+- [ ] Sign in via **password**, **OTP**, and **Google** through the **IdP** each lands back authenticated (web httpOnly cookie / mobile secure store), and the API accepts the IdP-issued JWT.
+- [ ] Identity is **server-resolved**: the Auth.js session JWT carries `role`/`email`/`name` (`isAdmin` derived); the `(dashboard)` layout (Server Component) seeds `<AuthProvider initialUser>` — no client `<RequireAuth>`.
+- [ ] A non-admin gets **403** from `/api/Admin/*`; the `/admin` route is gated by `(dashboard)/admin/layout.tsx` (Server Component via `auth()`) and shows **no** admin UI.
 - [ ] An admin can list users and change a plan/role.
-- [ ] `GET /api/Users/me` returns `{ roles, isAdmin }`.
-- [ ] `dotnet test` (incl. auth) and `npm run build` pass.
+- [ ] `GET /api/Users/me` returns `{ id, email, phoneNumber, roles, isAdmin }` read from the **JWT claims**.
+- [ ] `dotnet test` (auth tests **mock the OIDC JWT scheme**) and `npm run build` pass; frontend tests **mock the Auth.js session / `auth()`**.
 
 ## Phase 5 — Landing page
 - [ ] `/` renders for anonymous users in **both** locales with the correct `dir`.

@@ -22,13 +22,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified.
 - [ ] Each assessment stores raw **input JSON**, **result JSON**, and denormalised **score(s)** (`TotalScore`/`MaxScore`).
 - [ ] List shows only the signed-in user's projects (ownership enforced server-side).
 
-### A3. Authentication (sign-in methods)
-- [ ] **Username / password** (ASP.NET Identity API, bearer tokens).
-- [ ] **Mobile OTP** — request code (`/api/Auth/otp/request`) + verify (`/api/Auth/otp/verify`) → bearer token.
-- [ ] **Google ID-token** — client gets Google token, posts to `/api/Auth/google` → bearer token.
-- [ ] Token **auto-refresh** in the client API layer; session survives a page refresh.
-- [ ] Sign-out clears tokens on the client.
-- [ ] *(cut any method you don't ship and note it here)*
+### A3. Authentication (central OIDC SSO)
+- [ ] Sign-in is delegated to a **central OIDC identity provider** (`<IdP host>`); the API does **not** issue its own tokens — it is a **JWT resource server** that validates the IdP's tokens (`authority=<IdP>`, `audience=<api>`).
+- [ ] The IdP offers the sign-in methods (**username / password**, **mobile OTP**, **Google**); the resource API has **no** `MapIdentityApi` and **no** `/api/Auth/*` endpoints.
+- [ ] **Web** signs in via **Auth.js** (generic OIDC, **Authorization Code + PKCE**), storing an **httpOnly session cookie** — **no tokens in `localStorage`**.
+- [ ] **Mobile** signs in via PKCE (`expo-auth-session`), tokens in secure storage (`expo-secure-store`), **not** `localStorage`.
+- [ ] Session survives a page refresh (resolved server-side from the session cookie); sign-out clears the session.
+- [ ] *(cut any method the IdP doesn't offer and note it here)*
 
 ### A4. Roles & access control (RBAC)
 - [ ] Roles seeded on startup: **`Administrator`** and **`User`** (default for new sign-ups).
@@ -125,7 +125,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified.
 
 ## C. Mabhas19 reference (how the boxes were ticked)
 - A1–A2: scoring engine in `@mabhas19/assessment-core` (6 checklist modules under `src/scoring`), mirrored by `Domain/Services` (`BuildingGroupCalculator`, `ClimateData`); `Assessment.InputJson`/`ResultJson` = `nvarchar(max)` + `TotalScore`/`MaxScore`.
-- A3–A4: `Web/Endpoints/Auth.cs` (OTP + Google issue Identity bearer tokens); roles `Administrator`/`User` seeded by `ApplicationDbContextInitialiser`; `/api/Admin/*` behind `RequireRole`.
+- A3–A4: central OIDC SSO via the OpenIddict IdP `auth.myceo.ir` (password/OTP/Google live in `src/Auth`); the `src/Web` API is a JWT resource server (`AddJwtBearer`, `audience=mabhas19.api`); web uses Auth.js (httpOnly session cookie); roles `Administrator`/`User` come from the `role` claim; `/api/Admin/*` behind `RequireRole`. [ADR-013]
 - A5: `ISubscriptionService.EnsureCanCreateProjectAsync`, Free = 5, error under `Subscription`.
 - A6–A7: `QuestPdfReportGenerator` + `MinioFileStorage`; presigned URLs against `s3.mabhas19.myceo.ir`.
 - A8: next-intl `fa-IR` (default RTL) + `en-US`; `localePrefix: "as-needed"`.

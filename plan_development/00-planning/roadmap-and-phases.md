@@ -72,6 +72,14 @@ Global Entry criterion for phase 1: charter signed (`project-charter.template.md
 ## Phase 4 — Auth (password / OTP / Google) + roles + admin area
 **Goal.** Real sign-in by all committed methods, role-aware UI, and a working admin area.
 
+> **Superseded in production.** The reference project replaced this single-service
+> bearer-token model with **central OIDC SSO** (ADR-013) and a **server-side auth-SSR
+> boundary** (ADR-017): no client `<RequireAuth>`; `AuthProvider` is server-seeded;
+> route protection is a `middleware.ts` session-cookie gate; `/admin` is gated by a Server
+> Component layout; sign-in redirects to the IdP (the API exposes **no** auth endpoints — no
+> `MapIdentityApi`, no OTP/Google). Token-refresh rotation is deferred. See Phase 12,
+> `01-development/sso-oidc.md`, and `01-development/auth-and-roles.md` (historical).
+
 **Steps.**
 1. Backend: confirm Identity API under `/api/Users/*`; add **OTP** (`/api/Auth/otp/request|verify`) and **Google** (`/api/Auth/google`) endpoints that issue Identity bearer tokens via the bearer scheme. Seed `Administrator`/`User` roles + admin user on startup. `GET /api/Users/me` → `{ roles, isAdmin }`.
 2. Backend admin: `/api/Admin/*` gated with `RequireRole(Administrator)` (list users, change role/plan).
@@ -198,6 +206,15 @@ Global Entry criterion for phase 1: charter signed (`project-charter.template.md
 - [ ] Installed app signs in and runs the assessment against production.
 
 ---
+
+## Phase 12 — Post-build evolution
+**Goal.** The architecture changes made after the initial 1–11 build, as the product grew toward a portal. Each is recorded as an ADR.
+
+- **Central OIDC SSO** — extracted a dedicated OpenIddict IdP (`auth.myceo.ir`); the API became a JWT resource server, web uses Auth.js, mobile uses expo-auth-session. **Deployed to production.** (ADR-013; `01-development/sso-oidc.md`.)
+- **Production secrets — SOPS + age** — encrypted `deploy/prod.enc.env` committed to git; decrypted on the server at deploy time. (ADR-015.)
+- **Frontend data layer — TanStack Query v5 + bounded RSC prefetch** — replaced per-page fetch-in-effect; read pages prefetch server-side with `HydrationBoundary`. (ADR-016.)
+- **Server-side auth boundary (SSR)** — route protection moved client → server: `middleware.ts` cookie gate, server-seeded `<AuthProvider>`, RSC `/admin` role gate, no `<RequireAuth>`. **In-flight on `feat/server-auth-ssr` (deployed for testing, not merged).** (ADR-017.)
+- **Trunk-based, no CI** — removed the GitHub Actions workflow; push directly to `main`, verify locally. (ADR-014.)
 
 ## At-a-glance dependency order
 ```

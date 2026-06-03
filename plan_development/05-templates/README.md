@@ -20,7 +20,7 @@ Read this alongside `plan_development/01-development/*` (the prose guides) and t
 | `gitignore.template` | repo root `.gitignore` | Monorepo ignore set: `bin/obj`, `artifacts/`, `node_modules`, `web/.next`, generated `mobile/{android,ios}`, `*.apk/*.aab/*.zip`, `.env*.local`, secrets — **plus** the `**/[Pp]ackages/*` NuGet rule and the explicit re-include that rescues the shared TS workspace package. |
 | `docker-compose.dev.template.yml` | `deploy/docker-compose.dev.yml` | Local dev backing services only: **SQL Server + MinIO**. API/web run on the host. |
 | `docker-compose.local.template.yml` | `deploy/docker-compose.local.yml` | Full stack on localhost (sqlserver + minio + api + web), no proxy/TLS. |
-| `docker-compose.server.template.yml` | `deploy/docker-compose.server.yml` | Production: attaches to an **existing external `traefik` network** with cert resolver `<CERT_RESOLVER>`; sqlserver (Express) + minio + api + web; Traefik labels for the three hosts; base images via `<REGISTRY_MIRROR>`; `api`/`web` images loaded from transferred tars. |
+| `docker-compose.server.template.yml` | `deploy/docker-compose.server.yml` | Production: attaches to an **existing external `traefik` network** with cert resolver `<CERT_RESOLVER>`; sqlserver (Express) + minio + **auth (OpenIddict OIDC IdP)** + api + web; Traefik labels for the four hosts; base images via `<REGISTRY_MIRROR>`; `auth`/`api`/`web` images loaded from transferred tars. |
 | `Dockerfile.api.template` | `deploy/Dockerfile.api` | .NET SDK build -> aspnet runtime, with `fontconfig` (QuestPDF) and an optional script font for non-Latin PDFs. |
 | `Dockerfile.web.template` | `deploy/Dockerfile.web` | Monorepo-aware Next.js standalone: scoped `npm install` that drops the `mobile` workspace, builds the shared-package consumer, `HOSTNAME=0.0.0.0`, copies the standalone monorepo layout (`server.js` under `web/`). |
 | `eas.template.json` | `mobile/eas.json` | EAS `development` / `preview` (apk) / `production` (app-bundle) profiles; each `env` sets `EXPO_NO_METRO_WORKSPACE_ROOT=1` and `EXPO_PUBLIC_API_BASE`. |
@@ -43,6 +43,8 @@ reference (Mabhas19) value is shown for orientation.
 | `<PROJECT_NAME>` | Solution / assembly root **and** lowercase compose/image/bucket slug | `Mabhas19` / `mabhas19` | server + local + dev compose, both Dockerfiles |
 | `<RootName>` | The .NET namespace root (same string as `<PROJECT_NAME>`) | `Mabhas19` | all four `sample-*.cs` |
 | `<PROJECT_NAME>Db` | EF Core DB name **and** `ConnectionStrings__` key | `Mabhas19Db` | local + server compose |
+| `<PROJECT_NAME>AuthDb` | The OIDC IdP's **own** DB name (separate from the app DB) | `Mabhas19AuthDb` | server compose (`auth` service) |
+| `<PROJECT_NAME_UPPER>` | UPPER_SNAKE form for Auth.js env-var names | `MABHAS19` | server compose (`AUTH_MABHAS19_ISSUER/ID/SECRET`) |
 | `<SCOPE>` | npm scope of the shared package | `mabhas19` | (referenced in Dockerfile.web comments / package config) |
 | `<CORE_PACKAGE>` | Shared TS package dir under `packages/` | `assessment-core` | `gitignore`, `Dockerfile.web` |
 | `<Feature>` | Application feature folder / endpoint group | `Projects` | `sample-usecase-*`, `sample-dto`, `sample-endpoint-group` |
@@ -56,6 +58,7 @@ reference (Mabhas19) value is shown for orientation.
 | `<ROUTER_PREFIX>` | Short unique Traefik router/service id prefix | `m19` | server compose |
 | `<WEB_DOMAIN>` | Public web host | `mabhas19.myceo.ir` | server compose (`${WEB_DOMAIN}`) |
 | `<API_DOMAIN>` | Public API host (also baked into the web image) | `api.mabhas19.myceo.ir` | server compose, `Dockerfile.web`, `eas.template.json` |
+| `<AUTH_DOMAIN>` | Public OIDC IdP host (issuer / JWKS / login UI) | `auth.myceo.ir` | server compose (`${AUTH_DOMAIN}`) |
 | `<S3_DOMAIN>` | Public MinIO/S3 host for presigned URLs | `s3.mabhas19.myceo.ir` | server compose (`${S3_DOMAIN}`) |
 | `<SCRIPT_FONT>` | (optional) apt font for non-Latin PDF text | `fonts-vazirmatn` | `Dockerfile.api` |
 | `<SERVER_IP>` | Production server address | `10.249.52.216` | not in these files — used in the deploy runbook (`06-migration/`) |
@@ -67,15 +70,20 @@ reference (Mabhas19) value is shown for orientation.
 
 Never hard-code real secrets. In `docker-compose.server.template.yml` every secret/host is a
 `${VAR}` resolved from `deploy/.env` (e.g. `MSSQL_SA_PASSWORD`, `MINIO_ROOT_USER/PASSWORD`,
-`ADMIN_EMAIL/PASSWORD`, provider keys). The dev/local compose files inline a `<SA_PASSWORD>` for
-convenience only — change it and keep it out of any public history.
+`ADMIN_EMAIL/PASSWORD`, the OIDC/Auth.js values `OPENIDDICT_CERT_PASSWORD`,
+`WEB_CLIENT_SECRET`, `AUTH_SECRET`, and provider keys). That `deploy/.env` is
+**not committed** — it is decrypted on the server from the committed `deploy/prod.enc.env` via SOPS+age
+(`deploy/decrypt-env.sh`) before `compose up` (ADR-015). The dev/local compose files inline a
+`<SA_PASSWORD>` for convenience only — change it and keep it out of any public history.
 
 ---
 
 ## Order of use
 
 1. Repo scaffold: `Directory.Build.props.template`, `gitignore.template`, plus
-   `Directory.Packages.props` (see `04-skills/scaffold-clean-architecture`).
+   `Directory.Packages.props` (see `04-skills/scaffold-clean-architecture`). **Note:**
+   `Directory.Packages.props` pins **MediatR to `12.5.0`** (Apache-2.0, the last free version — 13.0+
+   requires a commercial license), so no license is needed. See ADR-002.
 2. Backend conventions: the four `sample-*.cs` files when adding entities / use cases / endpoints.
 3. Local run: `docker-compose.dev.template.yml` (then `docker-compose.local.template.yml` for the
    full containerized stack).

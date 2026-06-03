@@ -35,12 +35,12 @@ API and reusing `@<PLACEHOLDER>/assessment-core`.
   `<AuthProvider>` + RTL force), `src/lib` (`api.ts`, `tokens.ts`, `auth-context.tsx`,
   `endpoints.ts`, `types.ts`), `src/i18n.ts`, `src/theme.ts`, `src/components/ui.tsx`,
   `src/features/assessment/...`.
-- **Tokens via expo-secure-store** (not `localStorage`): persist bearer tokens in the OS
-  keychain with an **in-memory cache** so `apiFetch` can read the access token synchronously.
-  `AuthProvider` calls `tokenStore.load()` once on mount, then `refreshUser()` if a token
-  exists. `apiFetch` mirrors web (bearer + **one-shot 401 refresh** against `/api/Users/refresh`,
-  typed `ApiError`) but awaits the async store. Register `expo-secure-store` as a plugin in
-  `app.json`.
+- **OIDC sign-in via expo-auth-session** (Authorization Code + PKCE) against the central IdP
+  (`auth.myceo.ir`), **not** the API. Persist tokens in **expo-secure-store** (OS keychain) with
+  an **in-memory cache** so `apiFetch` can read the access token synchronously; renew the token
+  against the **IdP's token endpoint** (refresh_token), not `/api/Users/refresh`. `apiFetch` sends
+  `Authorization: Bearer <jwt>` to the API and surfaces a typed `ApiError`. Register
+  `expo-secure-store` as a plugin in `app.json`.
 - **Forced RTL**: Persian is primary, so force RTL at startup in `_layout.tsx` via
   `I18nManager` (run at module load **and** in an effect): `allowRTL(true)` + `forceRTL(true)`
   when `isRTL && !I18nManager.isRTL`. Include `expo-localization` as a plugin.

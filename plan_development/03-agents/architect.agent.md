@@ -33,11 +33,13 @@ these facts of the reference architecture; do not invent a different stack:
 
 - **Backend** = .NET 10 Clean Architecture (Jason Taylor template + .NET Aspire), four layers
   `Domain → Application → Infrastructure → Web`, dependencies point **inward only**. CQRS via
-  **MediatR v14** (commercial license required for prod), **FluentValidation**, **AutoMapper**
-  (nested `Mapping : Profile` inside the DTO), **EF Core 10 + Microsoft SQL Server**, ASP.NET
-  **Identity bearer** tokens, three sign-ins (**password / OTP / Google**), roles
-  **Administrator / User**, a **subscription quota** (Free = `<N>`), `IEndpointGroup`
-  auto-mapped at **`/api/{ClassName}`**, `Guard.Against.NotFound` for 404s. Build is **strict**
+  **MediatR 12.5.0** (Apache-2.0, free — pinned; no commercial license, ADR-002),
+  **FluentValidation**, **AutoMapper** (nested `Mapping : Profile` inside the DTO), **EF Core 10
+  + Microsoft SQL Server**, roles **Administrator / User**, a **subscription quota** (Free =
+  `<N>`), `IEndpointGroup` auto-mapped at **`/api/{ClassName}`**, `Guard.Against.NotFound` for
+  404s. **Auth is OIDC SSO**: the three sign-ins (**password / OTP / Google**) live in the
+  central **OpenIddict IdP (`src/Auth`)**; `src/Web` is a **JWT resource server** (`AddJwtBearer`
+  against `auth.myceo.ir`) — no `MapIdentityApi`. Build is **strict**
   (`TreatWarningsAsErrors=true`, with `WarningsNotAsErrors=NU1608;NU1902;NU1903`), output to
   `./artifacts/`.
 - **Domain-correctness-first** rule: any numerically-sensitive engine (the Section-19
@@ -49,7 +51,9 @@ these facts of the reference architecture; do not invent a different stack:
   keep this split.
 - **Web** = Next.js 16 App Router under `app/[locale]`, **next-intl** (`fa-IR` default **RTL** +
   `en-US` LTR, `localePrefix: "as-needed"`), Tailwind v4 emerald/dark CSS-variable tokens, a
-  `lib/` API layer (bearer + **auto-refresh**), `<RequireAuth>` + `isAdmin` gating.
+  `lib/` data layer (**TanStack Query + RSC prefetch**), **server-side auth** (Auth.js v5 OIDC,
+  a middleware session-presence gate, a server-seeded `AuthProvider`, a `/admin` server-layout
+  gate) + `isAdmin` gating. (ADR-013/016/017.)
 - **Mobile** = Expo SDK 54 reusing the shared package; the **APK build trio** (New Arch ON,
   React dedup via Metro `resolveRequest`, `EXPO_NO_METRO_WORKSPACE_ROOT=1`, local `index.js`
   entry, NDK `27.1.12297006` + JDK 17) is a known-hard area — schedule it as its own phase.
@@ -88,8 +92,8 @@ these facts of the reference architecture; do not invent a different stack:
    depends on 4; 7 depends on 3; 8 depends on 7+4; 9 needs a deployable web+API; 11 needs 8+9).
    Recommend a sequence and call out what can run in parallel.
 6. **Hand off.** For each phase, name the responsible builder agent and link the relevant
-   `01-development/*.md` guide. Flag risks early (MediatR licensing before go-live; the APK
-   monorepo traps; the blocked-network deploy).
+   `01-development/*.md` guide. Flag risks early (the APK monorepo traps; the blocked-network
+   deploy). (MediatR is pinned to free 12.5.0 — no longer a licensing risk, ADR-002.)
 
 ## Verification before you declare done
 - [ ] Every open decision from the charter/stack is now covered by an ADR (context, decision,

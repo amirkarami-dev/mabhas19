@@ -14,12 +14,12 @@ ones in `Directory.Packages.props`, `global.json`, and the `package.json` files 
 | Target framework | `net10.0` | Single TFM across all projects (`Directory.Build.props`). |
 | Solution format | `.slnx` (`Mabhas19.slnx`) | New XML solution format; cleaner diffs than `.sln`. |
 | Clean Architecture base | Jason Taylor template + **.NET Aspire** | Battle-tested layering (Domain/Application/Infrastructure/Web) + Aspire AppHost/ServiceDefaults for orchestration, telemetry, health, resilience out of the box. |
-| CQRS / mediator | **MediatR `14.1.0`** | Thin command/query dispatch + pipeline behaviours (validation, logging). **Note: v14 needs a commercial license for production** — license or replace before go-live. |
+| CQRS / mediator | **MediatR `12.5.0`** (Apache-2.0, free) | Thin command/query dispatch + pipeline behaviours (validation, logging). **Pinned to the last free version** — MediatR 13.0+ needs a commercial license; no license/replacement needed here. See ADR-002. |
 | Validation | FluentValidation.DI `12.1.1` | Declarative request validators plugged into the MediatR pipeline. |
 | Mapping | AutoMapper `16.1.1` | DTO↔entity mapping; profiles declared as nested `Mapping : Profile` inside DTOs. |
 | ORM | EF Core `10.0.5` | Migrations applied on startup; `dotnet-ef` global tool **must match** EF Core 10. |
 | Database | **Microsoft SQL Server** (`Microsoft.EntityFrameworkCore.SqlServer 10.0.5`, `Aspire.Hosting.SqlServer 13.2.0`) | Migrated from Postgres for ops parity with the target environment. Large JSON kept as `nvarchar(max)` (provider-portable), not a JSON column type. |
-| Identity / auth | ASP.NET Identity (`Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.5`), `MapIdentityApi`, JWT bearer (`System.IdentityModel.Tokens.Jwt 8.16.0`) | Built-in user store + bearer-token endpoints under `/api/Users/*`; OTP/Google flows reuse the same bearer scheme. |
+| Identity / auth | **Central OIDC SSO** — OpenIddict IdP (`src/Auth`, `auth.myceo.ir`) owns password/OTP/Google login + issues signed JWTs; web = **Auth.js v5** (generic OIDC, httpOnly cookie), mobile = **expo-auth-session** (PKCE); the API is a **JWT resource server** (`AddJwtBearer`, authority `auth.myceo.ir`, audience `mabhas19.api`). | Single sign-on across all `*.myceo.ir` services; the API validates JWTs via JWKS. Supersedes the per-app `MapIdentityApi` bearer model. See ADR-013 / ADR-017. |
 | Google sign-in | `Google.Apis.Auth 1.68.0` | Server-side validation of Google ID-tokens. |
 | Object storage client | `Minio 6.0.5` | S3-compatible client behind an `IFileStorage` abstraction. |
 | PDF generation | **QuestPDF `2024.12.3`** | Code-first PDF with reliable embedded-font support (needed for RTL/Persian). |

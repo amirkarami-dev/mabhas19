@@ -242,7 +242,8 @@
 <table>
   <tr><th>Area</th><th>Technology</th><th>Notes</th></tr>
   <tr><td>Backend</td><td>.NET 10, C#</td><td>Clean Architecture + .NET Aspire (Jason Taylor template)</td></tr>
-  <tr><td>Backend patterns</td><td>MediatR (CQRS), FluentValidation, AutoMapper</td><td>MediatR v14 needs a commercial license for production</td></tr>
+  <tr><td>Backend patterns</td><td>MediatR (CQRS), FluentValidation, AutoMapper</td><td>MediatR 12.5.0 (Apache-2.0, free; pinned — ADR-002)</td></tr>
+  <tr><td>Auth</td><td>OIDC SSO via central OpenIddict IdP</td><td>web Auth.js v5 (Auth Code + PKCE), mobile expo-auth-session; API validates IdP JWTs</td></tr>
   <tr><td>Database</td><td>Microsoft SQL Server via EF Core</td><td><code>nvarchar(max)</code> columns for the domain JSON</td></tr>
   <tr><td>Object storage</td><td>MinIO (S3-compatible)</td><td>Stores generated PDF reports</td></tr>
   <tr><td>PDF</td><td>QuestPDF (community license)</td><td><PLACEHOLDER: language / layout note></td></tr>
@@ -429,14 +430,11 @@ graph LR
 
 <!-- ============ 8 API ============ -->
 <h2 id="api">8. API Reference</h2>
-<p>Base path is <code>/api/</code>. Port 5000 in development, 8080 in containers, behind Traefik on production. The Identity API (username/password) is mounted via <code>MapIdentityApi&lt;ApplicationUser&gt;()</code> under <code>/api/Users/*</code> with bearer tokens. Interactive docs (Scalar) live at <code>/scalar</code>.</p>
+<p>Base path is <code>/api/</code>. Port 5000 in development, 8080 in containers, behind Traefik on production. Auth is OIDC via the external IdP — the API is a resource server that <strong>validates</strong> the IdP's signed JWTs (it never issues tokens), so there is no <code>MapIdentityApi</code>. The only Users endpoint is <code>GET /api/Users/me</code> (current user's claims). Interactive docs (Scalar) live at <code>/scalar</code>.</p>
 <p>See <code>api-reference.template.md</code> for the full table. Summary of groups:</p>
 <table>
   <tr><th>Group</th><th>Method</th><th>Path</th><th>Purpose</th><th>Auth</th></tr>
-  <tr><td>Auth</td><td>POST</td><td><code>/api/Auth/otp/request</code></td><td>Request an OTP code</td><td><span class="badge no">No</span></td></tr>
-  <tr><td>Auth</td><td>POST</td><td><code>/api/Auth/otp/verify</code></td><td>Verify OTP, issue token</td><td><span class="badge no">No</span></td></tr>
-  <tr><td>Auth</td><td>POST</td><td><code>/api/Auth/google</code></td><td>Sign in with Google ID-token</td><td><span class="badge no">No</span></td></tr>
-  <tr><td>Users</td><td>GET</td><td><code>/api/Users/me</code></td><td>Current user + roles</td><td><span class="badge">Yes</span></td></tr>
+  <tr><td>Users</td><td>GET</td><td><code>/api/Users/me</code></td><td>Current user's claims (from the validated OIDC JWT)</td><td><span class="badge">Yes</span></td></tr>
   <tr><td><MAIN_ENTITY>s</td><td>GET</td><td><code>/api/<MAIN_ENTITY>s</code></td><td>List the user's records</td><td><span class="badge">Yes</span></td></tr>
   <tr><td><MAIN_ENTITY>s</td><td>POST</td><td><code>/api/<MAIN_ENTITY>s</code></td><td>Create (checks quota)</td><td><span class="badge">Yes</span></td></tr>
   <tr><td>Subscriptions</td><td>GET</td><td><code>/api/Subscriptions/me</code></td><td>Current subscription</td><td><span class="badge">Yes</span></td></tr>
@@ -445,56 +443,28 @@ graph LR
 
 <!-- ============ 9 AUTH ============ -->
 <h2 id="auth">9. Authentication &amp; Roles</h2>
-<p>There are three sign-in methods. All of them end with the API issuing an Identity <strong>bearer token</strong> (an access token plus a refresh token). The OTP and Google flows set <code>signInManager.AuthenticationScheme = IdentityConstants.BearerScheme</code> before calling <code>SignInAsync</code>.</p>
-<p>Roles: <strong>Administrator</strong> (manage users + subscriptions, access <code>/api/Admin/*</code>) and <strong>User</strong> (default). <code>GET /api/Users/me</code> returns <code>{ roles, isAdmin }</code>.</p>
+<p>Authentication is OIDC SSO via the external IdP (OpenIddict at <code>https://&lt;AUTH_DOMAIN&gt;</code>). All login factors — password, OTP, Google — live in the IdP, which is the sole token issuer. The API is a <strong>resource server</strong>: it <strong>validates</strong> the IdP's signed JWTs (<code>AddJwtBearer</code>, JWKS-verified, authority = the IdP, audience = <code>&lt;PROJECT&gt;.api</code>) and never issues tokens. Clients run the Authorization Code + PKCE flow against the IdP and then send <code>Authorization: Bearer &lt;jwt&gt;</code> to the API.</p>
+<p>Roles: <strong>Administrator</strong> (manage users + subscriptions, access <code>/api/Admin/*</code>) and <strong>User</strong> (default). <code>GET /api/Users/me</code> reads the validated JWT claims and returns <code>{ id, email, phoneNumber, roles, isAdmin }</code>.</p>
 
-<h3>Password login</h3>
-<!-- DIAGRAM: password login sequence. See diagram-guide.md §4. -->
+<h3>OIDC Authorization Code + PKCE</h3>
+<!-- DIAGRAM: OIDC Authorization Code + PKCE sequence. See diagram-guide.md §4. -->
 <pre class="mermaid">
 sequenceDiagram
   participant C as Client (web/mobile)
-  participant A as API (Identity)
-  C->>A: POST /api/Users/login (email, password)
-  A->>A: Validate credentials
-  A-->>C: { accessToken, refreshToken }
-  C->>A: GET /api/Users/me (Bearer accessToken)
-  A-->>C: CurrentUserDto { roles, isAdmin }
+  participant IDP as IdP (OpenIddict)
+  participant A as API (resource server)
+  C->>C: Generate PKCE code_verifier + code_challenge
+  C->>IDP: GET /authorize (client_id, redirect_uri, code_challenge, scope)
+  IDP->>IDP: Authenticate the user (one of several factors)
+  IDP-->>C: 302 redirect_uri?code=...
+  C->>IDP: POST /token (code, code_verifier)
+  IDP->>IDP: Verify PKCE; issue signed JWT
+  IDP-->>C: { access_token (JWT), id_token, expires_in }
+  C->>A: GET /api/Users/me (Bearer access_token)
+  A->>A: Validate JWT (signature via JWKS, issuer, audience)
+  A-->>C: CurrentUserDto { id, email, roles, isAdmin }
 </pre>
-
-<h3>Mobile OTP (one-time password)</h3>
-<!-- DIAGRAM: OTP sign-in sequence. See diagram-guide.md §4. -->
-<pre class="mermaid">
-sequenceDiagram
-  participant C as Client
-  participant A as API
-  participant O as OtpService (cache)
-  participant S as SMS relay
-  C->>A: POST /api/Auth/otp/request (phoneNumber)
-  A->>O: Generate N-digit code, store key otp:{phone} (TTL)
-  A->>S: SendAsync(phone, "code: NNNN")
-  S-->>C: SMS delivered to phone
-  C->>A: POST /api/Auth/otp/verify (phone, code)
-  A->>O: FixedTimeEquals(code); delete on match
-  A->>A: Create user if new; SignInAsync (Bearer)
-  A-->>C: { accessToken, refreshToken }
-</pre>
-
-<h3>Google ID token</h3>
-<!-- DIAGRAM: Google sign-in sequence. See diagram-guide.md §4. -->
-<pre class="mermaid">
-sequenceDiagram
-  participant C as Client
-  participant G as Google Identity
-  participant A as API
-  participant V as GoogleTokenValidator
-  C->>G: User signs in with Google
-  G-->>C: idToken
-  C->>A: POST /api/Auth/google (idToken)
-  A->>V: ValidateAsync(idToken)
-  V-->>A: GoogleUserInfo { sub, email, name }
-  A->>A: Create user if new; SignInAsync (Bearer)
-  A-->>C: { accessToken, refreshToken }
-</pre>
+<p>The IdP may offer several login factors internally (password, OTP, Google, …) and may change them over time — this does not alter the API contract. The API only ever sees a validated Bearer JWT; from its side the flow above is identical regardless of how the user authenticated.</p>
 
 <!-- ============ 10 WEB ============ -->
 <h2 id="web">10. Web Frontend</h2>
@@ -503,12 +473,12 @@ sequenceDiagram
 <table>
   <tr><th>Route</th><th>Group</th><th>Purpose</th><th>Auth</th></tr>
   <tr><td><code>/</code></td><td>public</td><td>Landing page</td><td><span class="badge no">No</span></td></tr>
-  <tr><td><code>/(auth)/login</code></td><td>auth</td><td>Password + OTP + Google</td><td><span class="badge no">No</span></td></tr>
+  <tr><td><code>/(auth)/login</code></td><td>auth</td><td>Redirects to the central OIDC IdP (password/OTP/Google live there)</td><td><span class="badge no">No</span></td></tr>
   <tr><td><code>/dashboard</code></td><td>dashboard</td><td>Overview</td><td><span class="badge">Yes</span></td></tr>
   <tr><td><code>/<MAIN_ENTITY_PLURAL></code></td><td>dashboard</td><td>List + create/delete</td><td><span class="badge">Yes</span></td></tr>
   <tr><td><code>/admin/users</code></td><td>dashboard</td><td>Manage users (admin only)</td><td><span class="badge">Yes</span></td></tr>
 </table>
-<p>Protected routes are guarded by <code>&lt;RequireAuth&gt;</code>. Tokens live in <code>localStorage</code> via <code>lib/tokens.ts</code>; <code>lib/auth-context.tsx</code> exposes <code>useAuth()</code>; <code>lib/api.ts</code> adds the bearer token and refreshes once on a 401.</p>
+<p>Auth is server-side: <code>middleware.ts</code> does a session-cookie-presence gate, then <code>(dashboard)/layout.tsx</code> (a Server Component) resolves identity via <code>auth()</code> and seeds <code>&lt;AuthProvider initialUser&gt;</code>; <code>/admin</code> is gated by the server <code>(dashboard)/admin/layout.tsx</code>. The session is an <strong>httpOnly cookie</strong> — no <code>localStorage</code> and no <code>lib/tokens.ts</code>. Data is fetched with TanStack Query plus RSC prefetch.</p>
 <h3>Design tokens &amp; dark mode</h3>
 <p>shadcn-style CSS variables in <code>app/globals.css</code> (<ACCENT> primary), dark mode via <code>components/theme-provider.tsx</code>, font <WEBFONT>.</p>
 
@@ -516,8 +486,8 @@ sequenceDiagram
 <h2 id="mobile">11. Mobile App</h2>
 <p>The mobile app is Expo SDK 54 with expo-router (file-based navigation). Default locale is <code><PRIMARY_LOCALE></code>. App name is <PROJECT_NAME_LOCALIZED>; package id is <code><MOBILE_PACKAGE_ID></code>.</p>
 <ul>
-  <li>Two login modes: password (<code>/api/Users/login</code>) and OTP (<code>/api/Auth/otp/*</code>).</li>
-  <li>Tokens stored with <strong>expo-secure-store</strong> plus an in-memory cache; one-shot 401 retry against <code>/api/Users/refresh</code>.</li>
+  <li>Sign-in via the central OIDC IdP (the IdP offers password/OTP/Google internally), using <strong>expo-auth-session</strong> (Authorization Code + PKCE).</li>
+  <li>Tokens stored with <strong>expo-secure-store</strong>; the access token is sent to the API as <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
   <li>Imports the same <code>@<SCOPE>/<CORE_PACKAGE></code> functions as web, so results match exactly.</li>
   <li>API base: <code>EXPO_PUBLIC_API_BASE</code> -> <code>app.json extra.apiBase</code> -> fallback <code>https://<API_DOMAIN></code>.</li>
 </ul>

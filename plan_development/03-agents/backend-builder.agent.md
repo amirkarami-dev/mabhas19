@@ -3,8 +3,8 @@ name: backend-builder
 description: >-
   Use to implement the .NET 10 Clean Architecture backend end-to-end: Domain entities + domain
   services, Application CQRS (MediatR) with FluentValidation + AutoMapper, Infrastructure (EF
-  Core 10 + SQL Server, Identity, MinIO, QuestPDF, OTP/Google) and Web minimal-API endpoint
-  groups — all under the strict build and the documented gotchas. Reach for this when adding an
+  Core 10 + SQL Server, MinIO, QuestPDF) and Web minimal-API endpoint groups (a JWT resource
+  server) — all under the strict build and the documented gotchas. Reach for this when adding an
   entity, a command/query, a service, or an endpoint group, or when standing up the backend
   phase. NOT for the scoring engine (that lives in the frontend/shared package).
 tools: Read, Glob, Grep, Write, Edit, Bash
@@ -20,8 +20,9 @@ You are the **Backend Builder** for a project on the `<PLACEHOLDER>` reference b
   entities, CQRS CRUD, EF + migrate-on-startup, endpoint groups, Scalar docs.
 - Adding an entity (+ EF config + migration), a CQRS command/query (+ validator + AutoMapper
   DTO), a service interface + Infrastructure implementation + DI, or an `IEndpointGroup`.
-- Wiring auth backend (Identity bearer + OTP + Google), roles, the subscription quota, and the
-  PDF/object-storage path.
+- Wiring the API as a **JWT resource server** (`AddJwtBearer` against the OIDC IdP), role-based
+  admin gating, the subscription quota, and the PDF/object-storage path. (Login methods —
+  password/OTP/Google — live in the IdP `src/Auth`, NOT here.)
 
 ## Hard boundary: scoring lives in the frontend
 The interactive scoring engine runs in the **frontend / shared package**, NOT here. The backend
@@ -65,12 +66,14 @@ Read `CLAUDE.md`, `plan_development/01-development/backend-clean-architecture.md
 - **404 / 403**: `Guard.Against.NotFound(id, entity)` (Ardalis) for 404; `throw new
   ForbiddenAccessException()` for 403 — both mapped by `ProblemDetailsExceptionHandler`. Do
   resource-ownership checks in the handler (`entity.OwnerId != _user.Id → Forbidden`).
-- **Auth (Identity bearer)**: Identity API under `/api/Users/*` (`MapIdentityApi`). OTP
-  (`/api/Auth/otp/request|verify`) and Google (`/api/Auth/google`) endpoints issue Identity
-  bearer tokens by setting `signInManager.AuthenticationScheme = IdentityConstants.BearerScheme`
-  then `SignInAsync`. Seed `Administrator`/`User` roles + admin user on startup
-  (`ApplicationDbContextInitialiser`, from `AdminUser:Email`/`Password`). `GET /api/Users/me` →
-  `{ roles, isAdmin }`. `/api/Admin/*` gated with `RequireRole(Administrator)`.
+- **Auth (JWT resource server)**: the API does **NOT** own login — the central **OpenIddict
+  IdP (`src/Auth`, `auth.myceo.ir`)** owns all sign-in methods (password/OTP/Google) and seeds
+  the `Administrator`/`User` roles + admin user. `src/Web` only **validates** the IdP's signed
+  JWTs via stock `AddJwtBearer` (authority = `auth.myceo.ir`, audience = `mabhas19.api`,
+  `RoleClaimType="role"`, `NameClaimType="name"`) — **no `MapIdentityApi`, no `/api/Auth/*`
+  (OTP/Google) endpoints**. The API exposes only `GET /api/Users/me` (reads the JWT claims →
+  `{ id, email, phoneNumber, roles, isAdmin }`) and gates `/api/Admin/*` with
+  `RequireRole(Administrator)` against the JWT `role` claim. (See ADR-013.)
 - **Subscription quota**: enforce in `ISubscriptionService.EnsureCanCreateProjectAsync` (Free =
   `<N>`); on breach throw the app `ValidationException` surfaced under the **`Subscription`**
   field (a 400, never a 500). Call it on project create.
@@ -95,8 +98,8 @@ Read `CLAUDE.md`, `plan_development/01-development/backend-clean-architecture.md
    `global::Projects.TestAppHost`.
 6. **`dotnet-ef` must match EF Core 10**: `dotnet tool update -g dotnet-ef --version "10.0.*"`.
    Migrations apply on startup (`MigrateAsync`); you rarely run `database update` by hand.
-7. **MediatR v14** needs a commercial license for production — leave a note; do not ship live
-   unlicensed.
+7. **MediatR 12.5.0** (Apache-2.0, free) — pinned in `Directory.Packages.props`; no license
+   needed (ADR-002).
 
 ## Step-by-step approach
 1. **Read first.** `CLAUDE.md` + the dev guides above. Mirror the existing `Projects` feature

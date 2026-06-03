@@ -2,7 +2,9 @@
 
 The `<PLACEHOLDER>` web app is **Next.js 16 (App Router)** with **next-intl** for i18n,
 Tailwind v4, and a shadcn-style token design system. It lives in `web/` inside the
-npm-workspaces monorepo and talks to the .NET API via bearer tokens.
+npm-workspaces monorepo. Auth is **central OIDC SSO via Auth.js v5** (ADR-013): the user
+signs in at the IdP and the API receives the OIDC access token as a bearer. The data layer
+is **TanStack Query v5 + bounded RSC prefetch** (ADR-016).
 
 ```bash
 cd web && npm install
@@ -45,16 +47,25 @@ return (
 ```
 app/[locale]/
   page.tsx              ← root "/" = PUBLIC landing page (components/landing/*)
-  (auth)/               ← PUBLIC: login, register, auth/callback
-  (dashboard)/          ← PROTECTED: wrapped in <RequireAuth>; sidebar + topbar shell
-    dashboard/  projects/  import/  subscription/
-    admin/users/          ← shown only when useAuth().isAdmin
+  (auth)/               ← PUBLIC: login (→ redirect to IdP), auth/callback
+  (dashboard)/          ← PROTECTED: Server-Component layout seeds identity; sidebar + topbar shell
+    layout.tsx          ← Server Component: auth() → <AuthProvider initialUser>
+    dashboard/  projects/  projects/[id]/  import/  subscription/
+    admin/layout.tsx      ← Server Component role gate (auth() → require Administrator)
+    admin/users/          ← admin-only (gated by the admin layout, not a client check)
 ```
 
 - Route groups `(auth)` / `(dashboard)` organize layout without adding URL segments.
-- The dashboard layout (`(dashboard)/layout.tsx`) wraps children in `<RequireAuth>` and
-  renders the sidebar/topbar. Anything you drop under `(dashboard)/` is automatically
-  protected and gets the shell.
+- **Auth boundary lives on the SERVER** (in-flight on `feat/server-auth-ssr` — deployed to
+  production for owner testing, **not yet merged**; ADR-017). The dashboard layout
+  (`(dashboard)/layout.tsx`) is a **Server Component**: it resolves identity via `auth()`
+  and seeds `<AuthProvider initialUser>`, then renders the sidebar/topbar. There is **no
+  client `<RequireAuth>`** — route protection is a **session-cookie presence gate in
+  `middleware.ts`** (locale-aware redirect to `/login`).
+- The `/admin` area is gated by its own **Server Component layout**
+  (`(dashboard)/admin/layout.tsx`), which re-checks the role via `auth()` server-side. The
+  cookie-presence middleware is a UX gate; real validation stays at the API JWT layer + the
+  RSC `auth()` checks.
 
 ---
 
@@ -98,17 +109,19 @@ All network + auth code is in `web/src/lib/`:
 | File | Role |
 |---|---|
 | `env.ts` | Reads `NEXT_PUBLIC_API_BASE` once; warns (prod) and falls back to `localhost:5000`. |
-| `api.ts` | `apiFetch<T>()` — fetch wrapper: attaches bearer, **auto-refreshes once on 401**, throws typed `ApiError`. |
-| `tokens.ts` | `tokenStore` — access/refresh tokens in `localStorage` (`m19_accessToken` / `m19_refreshToken`). |
-| `endpoints.ts` | Grouped API calls: `authApi`, `projectsApi`, `subscriptionApi`, `adminApi`. |
-| `auth-context.tsx` | `<AuthProvider>` + `useAuth()` exposing `user`, `isAdmin`, `setTokens`, `logout`. |
+| `api.ts` | `apiFetch<T>()` — fetch wrapper: attaches the OIDC access token from the Auth.js session (`getSession()`), throws typed `ApiError`. Also drives the top loading bar (§7). |
+| `api-server.ts` | Server-side fetch used by RSC prefetch — reads the access token from `auth()` and warms the TanStack Query cache via `HydrationBoundary`. |
+| `endpoints.ts` | Grouped API calls: `projectsApi`, `subscriptionApi`, `adminApi`. (No `authApi` — login lives in the IdP.) |
+| `auth-context.tsx` | `<AuthProvider initialUser>` + `useAuth()` exposing `{ user, roles, isAdmin, ready, logout }`. Identity is **seeded server-side**; it does **not** call `GET /api/Users/me`. |
 | `types.ts` | Shared request/response TypeScript types. |
 
-### `apiFetch` (fetch + bearer + auto-refresh)
-- Attaches `Authorization: Bearer <access>` unless `skipAuth: true` (login/register/refresh).
-- On `401`, calls `/api/Users/refresh` **once** (a shared in-flight `refreshPromise` so
-  concurrent 401s do one refresh), then retries the original request. If refresh fails it
-  clears tokens.
+> **`lib/tokens.ts` is gone** — there is no `localStorage` token store. The httpOnly Auth.js
+> session cookie holds the OIDC tokens; the client reads the access token via `getSession()`.
+
+### `apiFetch` (fetch + OIDC bearer)
+- Attaches `Authorization: Bearer <access>` from the Auth.js session (`getSession()`).
+- The OIDC access token has a 30-min lifetime; on expiry the user is redirected to re-auth
+  at the IdP (silent refresh rotation is a tracked deferred follow-up — ADR-017).
 - Throws `ApiError(status, message, body)` on non-2xx; returns `undefined` for 204/empty.
 
 ```ts
@@ -122,12 +135,16 @@ export const projectsApi = {
 ```
 
 ### Auth context
-`useAuth()` gives `{ user, roles, isAdmin, ready, isAuthenticated, setTokens, refreshUser,
-logout }`. On mount it calls `GET /api/Users/me` if a token exists. Gate admin UI on
-`isAdmin`; gate protected routes by rendering inside `<RequireAuth>` (which shows a spinner
-while `ready === false` and redirects to `/login` if unauthenticated).
+`useAuth()` gives `{ user, roles, isAdmin, ready, logout }` — **no** `setTokens`,
+`refreshUser`, or `isAuthenticated`. `<AuthProvider initialUser>` is **seeded server-side**
+from the dashboard layout's `auth()` call; it does **not** call `GET /api/Users/me` on
+mount. Gate admin **UI** cosmetically on `isAdmin`; route protection itself is enforced by
+the `middleware.ts` cookie gate and the server `(dashboard)/admin/layout.tsx` role gate —
+the old client `<RequireAuth>` is removed.
 
-See `auth-and-roles.md` for the full auth/role model.
+This server-auth model is in-flight on `feat/server-auth-ssr` (ADR-017): deployed to
+production for owner testing, not yet merged. See `sso-oidc.md` for the SSO design/contract
+and `auth-and-roles.md` for the (historical) single-service bearer model.
 
 ---
 
@@ -183,15 +200,19 @@ rather than repurposing existing ones, and re-export them from the barrel.
 
 ## 6. Recipe: add a protected dashboard page
 
-1. Create `app/[locale]/(dashboard)/widgets/page.tsx` (auto-protected by the dashboard
-   layout's `<RequireAuth>`, and it gets the sidebar/topbar shell).
+1. Create `app/[locale]/(dashboard)/widgets/page.tsx` (auto-protected by the
+   `middleware.ts` cookie gate + the server dashboard layout, and it gets the
+   sidebar/topbar shell).
 2. Add an API group method in `lib/endpoints.ts` (e.g. `widgetsApi.list()`), with response
    types in `lib/types.ts`.
-3. Fetch with `apiFetch` in a client component; handle `ApiError` (read `body.errors` for
-   400 field errors).
+3. Read with a TanStack Query hook (`useQuery`) over the endpoint; write with `useMutation`
+   that invalidates the relevant keys. For SSR-first pages, prefetch in the RSC via
+   `lib/api-server.ts` + `HydrationBoundary`. Handle `ApiError` (read `body.errors` for 400
+   field errors).
 4. Use `useTranslations(...)` for all strings and `@/i18n/navigation` for links.
 5. Build UI from `@/components/ui` primitives and token utility classes.
-6. For admin-only UI, render conditionally on `useAuth().isAdmin`.
+6. For admin-only UI, render conditionally on `useAuth().isAdmin` (cosmetic — the real gate
+   is the server `admin/layout.tsx`).
 
 ## 7. Global loading feedback (top progress bar)
 
@@ -209,7 +230,7 @@ Three small pieces:
    - No dependencies, SSR-safe (just module state + a `Set` of listeners).
 2. **`lib/api.ts`** — the central `apiFetch` wrapper calls `beginLoading()` on entry and
    `endLoading()` in a `finally`, so **every** data request drives the bar automatically.
-   Keep the 401-refresh retry in an inner function (`apiFetchInner`) so the public wrapper
+   Keep the request work in an inner function (`apiFetchInner`) so the public wrapper
    counts each top-level call exactly once.
 3. **`components/top-loading-bar.tsx`** (`"use client"`) — a fixed, thin bar at the top:
    - Subscribes to `subscribeLoading` (reflects in-flight API requests).
