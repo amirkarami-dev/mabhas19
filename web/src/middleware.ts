@@ -1,34 +1,38 @@
 import createMiddleware from "next-intl/middleware"
-import NextAuth from "next-auth"
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { routing } from "./i18n/routing"
-import { authConfig } from "./auth.config"
 
-// Auth.js on the Edge runtime (reads the JWT session cookie; no IdP round-trip) composed
-// with next-intl locale routing. The auth gate runs first; everything else falls through
-// to next-intl so locale detection/rewrites are unchanged.
-const { auth } = NextAuth(authConfig)
+// next-intl owns EVERY response (locale routing/rewrites) exactly as before — we do NOT
+// wrap it in Auth.js's auth() helper, because behind a reverse proxy (Traefik) with
+// AUTH_TRUST_HOST + AUTH_URL the wrapper rebases next-intl's "/" -> "/fa" rewrite to an
+// absolute external URL, which the standalone server then tries to proxy (EAI_AGAIN).
+//
+// Auth here is a cheap session-cookie PRESENCE gate for protected routes (real validation
+// is the API's JWT check + the server components). The /admin ROLE gate lives in
+// (dashboard)/admin/layout.tsx via auth().
 const intlMiddleware = createMiddleware(routing)
 
-// Protected app areas — both the default-locale paths (fa, unprefixed) and the /en variants.
 const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|admin)(?:\/|$)/
-const ADMIN_ONLY = /^\/(?:en\/)?admin(?:\/|$)/
 
-export default auth((req) => {
+export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isEn = pathname === "/en" || pathname.startsWith("/en/")
 
-  if (PROTECTED.test(pathname) && !req.auth) {
-    return NextResponse.redirect(new URL(isEn ? "/en/login" : "/login", req.nextUrl))
-  }
-
-  // Admin area: role comes straight from the session JWT (lifted from the OIDC claims).
-  if (ADMIN_ONLY.test(pathname) && !req.auth?.user?.isAdmin) {
-    return NextResponse.redirect(new URL(isEn ? "/en/dashboard" : "/dashboard", req.nextUrl))
+  if (PROTECTED.test(pathname)) {
+    // Matches authjs.session-token / __Secure-authjs.session-token (+ chunked .0/.1) across
+    // http (local) and https (prod), without decrypting.
+    const hasSession = req.cookies
+      .getAll()
+      .some((c) => c.name.includes("session-token"))
+    if (!hasSession) {
+      const isEn = pathname === "/en" || pathname.startsWith("/en/")
+      return NextResponse.redirect(
+        new URL(isEn ? "/en/login" : "/login", req.nextUrl)
+      )
+    }
   }
 
   return intlMiddleware(req)
-})
+}
 
 export const config = {
   // Match all paths except api, static files, and Next internals.
