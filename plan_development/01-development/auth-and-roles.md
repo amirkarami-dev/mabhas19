@@ -1,5 +1,29 @@
 # Auth & Roles
 
+> **SUPERSEDED FOR MULTI-SERVICE DEPLOYMENTS**
+>
+> This document describes the original single-service bearer-token model
+> (`MapIdentityApi` + `AddBearerToken`). It is **retained as the historical reference** and
+> still applies to a standalone `mabhas19` deployment that does not need SSO.
+>
+> **For the production `*.myceo.ir` architecture** (mabhas19 + plan + future services sharing
+> one login), the authoritative model is the **OIDC/SSO central IdP** described in
+> [`sso-oidc.md`](sso-oidc.md) (Token Contract frozen 2026-06-03) and recorded in
+> **ADR-013** (`plan_development/00-planning/architecture-decisions.md`).
+>
+> **What changed:**
+> - `src/Auth` (OpenIddict) is now the only component that authenticates users. It owns
+>   `Mabhas19AuthDb` and all login UI (password, OTP, Google).
+> - `src/Web` is a **resource server**: it validates IdP JWTs via `AddJwtBearer` and reads
+>   identity from `sub`/`role` claims. `MapIdentityApi` and `Web/Endpoints/Auth.cs` are
+>   removed.
+> - Web clients use **Auth.js (NextAuth v5)** OIDC + httpOnly cookies instead of
+>   `localStorage` bearer tokens. Mobile uses `expo-auth-session` code+PKCE.
+> - `Mabhas19Db`'s `AspNetUsers` rows are migrated to `Mabhas19AuthDb` with IDs preserved
+>   (see `deploy/sso-migrate-users.sql`). `Project.OwnerId` / `Subscription.UserId`
+>   references remain valid with no schema changes to `Mabhas19Db`.
+> - ADR-006 (`MapIdentityApi`) is marked *Superseded by ADR-013*.
+
 `<PLACEHOLDER>` uses **ASP.NET Identity bearer tokens** with three sign-in methods, and a
 simple two-role model (`Administrator` / `User`). All three sign-ins issue the **same**
 bearer access/refresh tokens, so the rest of the system treats every authenticated user
