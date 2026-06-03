@@ -18,7 +18,6 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Field,
   Input,
   Select,
@@ -112,6 +111,7 @@ export default function AdminUsersPage() {
   }, [errText])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ready && isAdmin) void load()
   }, [ready, isAdmin, load])
 

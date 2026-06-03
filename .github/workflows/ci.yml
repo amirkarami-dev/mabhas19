@@ -59,12 +59,10 @@ jobs:
       - name: Test assessment-core
         run: npm test --workspace @mabhas19/assessment-core
 
-      # Non-blocking for now: there are pre-existing react-hooks/set-state-in-effect violations
-      # in the client-side data-fetching/derived-state code, slated for the data-layer
-      # modernization. The build/typecheck/tests below still gate the pipeline hard.
+      # All pre-existing set-state-in-effect violations have been resolved (real fix or
+      # scoped eslint-disable with TODO). Lint is now a hard CI gate.
       - name: Lint web
         run: npm run lint --workspace web
-        continue-on-error: true
 
       - name: Build web
         run: npm run build --workspace web

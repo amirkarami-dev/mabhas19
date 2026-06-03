@@ -29,15 +29,20 @@ function apply(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light")
+  // Lazy initializer reads localStorage synchronously on first render (client only,
+  // "use client" guarantees this runs in the browser). The inline themeNoFlashScript
+  // already applies the class before paint so there is no hydration mismatch.
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "light"
+    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
+    return stored ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+  })
 
+  // Keep the DOM class in sync with the initial value on mount (the lazy initializer
+  // cannot call apply() directly) and whenever the provider first renders.
   useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? null
-    const initial: Theme =
-      stored ??
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    setThemeState(initial)
-    apply(initial)
+    apply(theme)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setTheme = useCallback((t: Theme) => {

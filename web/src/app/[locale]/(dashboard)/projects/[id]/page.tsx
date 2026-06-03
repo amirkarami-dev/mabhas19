@@ -61,6 +61,7 @@ export default function ProjectDetailPage() {
   }, [id, tc])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 

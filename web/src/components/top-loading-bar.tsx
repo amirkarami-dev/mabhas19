@@ -19,7 +19,9 @@ export function TopLoadingBar() {
   useEffect(() => subscribeLoading(setApiActive), [])
 
   // Brief pulse on every route change (covers navigations with no data fetch).
+  // setState is intentional here: pathname IS the external event driving the animation.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNavActive(true)
     const id = setTimeout(() => setNavActive(false), 500)
     return () => clearTimeout(id)
@@ -31,8 +33,11 @@ export function TopLoadingBar() {
   const [visible, setVisible] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // setState calls here are intentional: `loading` is an external signal (API in-flight
+  // + nav pulse) that drives the progress-bar animation imperatively.
   useEffect(() => {
     if (loading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(true)
       setProgress((p) => (p < 10 ? 10 : p))
       intervalRef.current = setInterval(() => {

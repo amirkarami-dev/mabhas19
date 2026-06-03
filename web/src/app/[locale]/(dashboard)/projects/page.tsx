@@ -15,7 +15,6 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Spinner,
 } from "@/components/ui"
 
@@ -63,6 +62,7 @@ export default function ProjectsPage() {
   }, [tc])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
