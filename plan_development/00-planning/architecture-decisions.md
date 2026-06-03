@@ -24,17 +24,26 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 ---
 
 ## ADR-002 — CQRS use cases via MediatR + FluentValidation pipeline
-**Status:** Accepted (with a licensing caveat)
+**Status:** Accepted — pinned to last free version (12.5.0) as of 2026-06-03
 
 **Context.** We want each use case isolated, with cross-cutting concerns (validation, logging) applied uniformly, and thin endpoints.
 
 **Decision.** Model every use case as a MediatR command/query handler. Validation runs as a pipeline behaviour using FluentValidation; mapping uses AutoMapper profiles declared as nested `Mapping : Profile` classes inside the DTOs. Endpoints just send the request.
 
+**Resolution (2026-06-03).** MediatR 13.0+ (owned by jbogard + LuckyPennySoftware) requires a commercial license for production. To remove this release-blocker `Directory.Packages.props` was pinned to **MediatR 12.5.0** (Apache-2.0, released 2025-04-01), the last version published before the commercial-license change. `MediatR.Contracts` stays at 2.0.1 (Apache-2.0) — it is a dependency of MediatR 12.5.0 and unaffected. The `LuckyPennySoftware.MediatR.License: None` log-filter suppressor was removed from `appsettings.json`. Zero API changes were required; the 12.x → 14.x public surface is backward-compatible for all patterns used here (`IPipelineBehavior<,>`, `IRequestPreProcessor<>`, `AddOpenBehavior`, `AddOpenRequestPreProcessor`, `ISender`, `IMediator`, `INotification`).
+
+**Forward options (choose before next major upgrade):**
+1. **Purchase a MediatR v14+ commercial license** from mediatr.io — restores access to the latest features and security fixes.
+2. **Migrate to `Mediator` (martinothamar/Mediator, MIT, source-generated)** — zero runtime overhead, no license cost, but requires replacing `AddMediatR`/`ISender`/`IPipelineBehavior` registrations with the Mediator equivalents (a medium-effort, low-risk refactor).
+
+MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not receive new features. Treat it as a **maintained-but-older stopgap** until one of the options above is executed.
+
 **Consequences.**
 - (+) Endpoints stay tiny; behaviours give consistent validation/error shaping.
 - (+) Each handler is independently testable.
+- (+) Commercial-license requirement removed — no blocker for go-live.
 - (−) Indirection — a request hops through the mediator before reaching logic.
-- (−) **MediatR v14 requires a commercial license for production** (dev-only warning today). Must license or replace before go-live — a real release blocker, tracked in the charter constraints.
+- (−) Pinned to 12.5.0 — won't receive MediatR 13/14 feature additions; must eventually migrate or license.
 
 ---
 
