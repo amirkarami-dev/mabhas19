@@ -93,7 +93,7 @@ export function Pricing() {
                 </ul>
 
                 <div className="mt-8 pt-2">
-                  <Link href="/register" className="block">
+                  <Link href="/login" className="block">
                     <Button variant={t.popular ? "primary" : "outline"} className="w-full">
                       {fa ? "شروع کنید" : "Get started"}
                     </Button>

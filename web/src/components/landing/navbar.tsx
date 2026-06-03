@@ -48,7 +48,7 @@ export function Navbar() {
               {fa ? "ورود" : "Login"}
             </Button>
           </Link>
-          <Link href="/register" className="hidden sm:inline-flex">
+          <Link href="/login" className="hidden sm:inline-flex">
             <Button size="sm">{fa ? "شروع کنید" : "Get started"}</Button>
           </Link>
 
@@ -88,7 +88,7 @@ export function Navbar() {
                   {fa ? "ورود" : "Login"}
                 </Button>
               </Link>
-              <Link href="/register" className="flex-1">
+              <Link href="/login" className="flex-1">
                 <Button size="sm" className="w-full">
                   {fa ? "شروع کنید" : "Get started"}
                 </Button>
