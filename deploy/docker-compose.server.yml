@@ -119,6 +119,14 @@ services:
     depends_on: [api]
     environment:
       NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
+      # Auth.js (NextAuth v5) OIDC client → central IdP. Server-side runtime values.
+      # AUTH_TRUST_HOST is required because the app runs behind Traefik (proxied host/proto).
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: "https://${WEB_DOMAIN}"
+      AUTH_MABHAS19_ISSUER: "https://${AUTH_DOMAIN}"
+      AUTH_MABHAS19_ID: "mabhas19-web"
+      AUTH_MABHAS19_SECRET: ${MABHAS19_WEB_CLIENT_SECRET}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"

@@ -21,6 +21,9 @@ COPY web/ ./web/
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_BASE=https://api.mabhas19.myceo.ir
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+# Client-side issuer (used for the logout redirect) — baked at build time.
+ARG NEXT_PUBLIC_AUTH_ISSUER=https://auth.myceo.ir
+ENV NEXT_PUBLIC_AUTH_ISSUER=$NEXT_PUBLIC_AUTH_ISSUER
 RUN npm run build -w web
 
 FROM node:24-alpine AS final
