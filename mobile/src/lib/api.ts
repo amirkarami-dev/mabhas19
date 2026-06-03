@@ -1,8 +1,10 @@
-// fetch wrapper with bearer auth + one-shot 401 refresh. Mirrors web/src/lib/api.ts
-// but persists tokens through expo-secure-store (see tokens.ts).
+// fetch wrapper with bearer auth + one-shot 401 refresh via IdP token endpoint.
+// Mirrors the shape of web/src/lib/api.ts but persists tokens through
+// expo-secure-store (see tokens.ts) and refreshes through the OIDC issuer.
 import Constants from "expo-constants"
+import { fetchDiscoveryAsync, type DiscoveryDocument } from "expo-auth-session"
 import { tokenStore } from "./tokens"
-import type { TokenResponse } from "./types"
+import { refreshTokens, AUTH_ISSUER } from "./oidc"
 
 export const API_BASE: string =
   process.env.EXPO_PUBLIC_API_BASE ||
@@ -26,26 +28,36 @@ interface RequestOptions {
   _retried?: boolean
 }
 
+// Cache the discovery document so we don't re-fetch it on every 401.
+let cachedDiscovery: DiscoveryDocument | null = null
+async function getDiscovery(): Promise<DiscoveryDocument> {
+  if (!cachedDiscovery) {
+    cachedDiscovery = await fetchDiscoveryAsync(AUTH_ISSUER)
+  }
+  return cachedDiscovery
+}
+
 let refreshPromise: Promise<boolean> | null = null
 
 async function doRefresh(): Promise<boolean> {
   const refreshToken = tokenStore.getRefresh()
   if (!refreshToken) return false
   try {
-    const res = await fetch(`${API_BASE}/api/Users/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
+    const discovery = await getDiscovery()
+    const tokenResponse = await refreshTokens(refreshToken, discovery)
+    const newRefresh =
+      tokenResponse.refreshToken ?? tokenStore.getRefresh() ?? ""
+    await tokenStore.set({
+      accessToken: tokenResponse.accessToken,
+      refreshToken: newRefresh,
+      expiresIn: tokenResponse.expiresIn ?? 3600,
+      tokenType: tokenResponse.tokenType ?? "bearer",
     })
-    if (!res.ok) {
-      await tokenStore.clear()
-      return false
-    }
-    const data = (await res.json()) as TokenResponse
-    await tokenStore.set(data)
     return true
   } catch {
     await tokenStore.clear()
+    // Invalidate the discovery cache on error; it may have gone stale.
+    cachedDiscovery = null
     return false
   }
 }

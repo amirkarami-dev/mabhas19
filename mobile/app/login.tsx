@@ -1,162 +1,76 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect } from "react"
 import { View } from "react-native"
 import { useRouter } from "expo-router"
-import { AppText, Button, Card, Field, Screen } from "@/components/ui"
+import * as WebBrowser from "expo-web-browser"
+import { useAutoDiscovery, useAuthRequest } from "expo-auth-session"
+import { AppText, Button, Card, Screen } from "@/components/ui"
 import { useAuth } from "@/lib/auth-context"
-import { authApi } from "@/lib/endpoints"
+import { AUTH_ISSUER, clientId, scopes, redirectUri } from "@/lib/oidc"
 import { t } from "@/i18n"
 import { colors, spacing } from "@/theme"
 
-type Mode = "password" | "otp"
-
-// OTP code length — must match the backend Otp:CodeLength.
-const OTP_LENGTH = 5
+// Required on Android so the browser tab can hand the auth result back.
+WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen() {
   const router = useRouter()
-  const { loginWithPassword, loginWithOtp } = useAuth()
+  const { completeSignIn } = useAuth()
 
-  const [mode, setMode] = useState<Mode>("password")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [phone, setPhone] = useState("")
-  const [code, setCode] = useState("")
-  const [otpSent, setOtpSent] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const discovery = useAutoDiscovery(AUTH_ISSUER)
 
-  // Tracks the code we already auto-submitted, so we don't fire verify twice
-  // for the same value (e.g. after a failed attempt).
-  const submittedRef = useRef<string | null>(null)
+  const [request, result, promptAsync] = useAuthRequest(
+    {
+      clientId,
+      scopes,
+      redirectUri,
+      usePKCE: true,
+    },
+    discovery,
+  )
 
-  const onPasswordLogin = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      await loginWithPassword(email.trim(), password)
-      router.replace("/(app)/projects")
-    } catch {
-      setError(t("loginFailed"))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const onSendOtp = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      await authApi.requestOtp(phone.trim())
-      setOtpSent(true)
-      setCode("")
-      submittedRef.current = null
-    } catch {
-      setError(t("loginFailed"))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const onVerifyOtp = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      await loginWithOtp(phone.trim(), code.trim())
-      router.replace("/(app)/projects")
-    } catch {
-      setError(t("loginFailed"))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // Auto-verify as soon as the full code is entered — no button press needed.
+  // Handle the result from the browser redirect.
   useEffect(() => {
-    if (otpSent && code.length === OTP_LENGTH && !busy && submittedRef.current !== code) {
-      submittedRef.current = code
-      void onVerifyOtp()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, otpSent, busy])
+    if (result?.type !== "success") return
+    const code = result.params.code
+    if (!code) return
 
-  const onCodeChange = (value: string) =>
-    setCode(value.replace(/\D/g, "").slice(0, OTP_LENGTH))
+    void completeSignIn(code, request?.codeVerifier, discovery!).then(() => {
+      router.replace("/(app)/projects")
+    })
+  // `discovery` and `request` are stable references from hooks; `result` is
+  // the only value that actually changes between renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result])
+
+  const isLoading = !request || !discovery
 
   return (
     <Screen>
-      <View style={{ alignItems: "center", marginTop: spacing.xl, marginBottom: spacing.lg, gap: 4 }}>
+      <View
+        style={{
+          alignItems: "center",
+          marginTop: spacing.xl,
+          marginBottom: spacing.lg,
+          gap: 4,
+        }}
+      >
         <AppText variant="title">{t("appName")}</AppText>
         <AppText variant="muted">{t("tagline")}</AppText>
       </View>
 
       <Card>
-        <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm }}>
-          <Button
-            title={t("loginWithPassword")}
-            variant={mode === "password" ? "primary" : "outline"}
-            onPress={() => setMode("password")}
-          />
-          <Button
-            title={t("loginWithOtp")}
-            variant={mode === "otp" ? "primary" : "outline"}
-            onPress={() => setMode("otp")}
-          />
-        </View>
+        {result?.type === "error" ? (
+          <AppText style={{ color: colors.danger, marginBottom: spacing.sm }}>
+            {t("loginFailed")}
+          </AppText>
+        ) : null}
 
-        {mode === "password" ? (
-          <>
-            <Field
-              label={t("email")}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              textAlign="left"
-            />
-            <Field
-              label={t("password")}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              textAlign="left"
-            />
-            <Button title={busy ? t("signingIn") : t("login")} onPress={onPasswordLogin} loading={busy} />
-          </>
-        ) : (
-          <>
-            <Field
-              label={t("phone")}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              textAlign="left"
-            />
-            {otpSent ? (
-              <>
-                <Field
-                  label={t("otpCode")}
-                  keyboardType="number-pad"
-                  value={code}
-                  onChangeText={onCodeChange}
-                  maxLength={OTP_LENGTH}
-                  autoFocus
-                  textAlign="left"
-                />
-                {/* Code auto-verifies when complete; this is a manual fallback. */}
-                <Button
-                  title={busy ? t("signingIn") : t("verify")}
-                  onPress={onVerifyOtp}
-                  loading={busy}
-                  disabled={code.length !== OTP_LENGTH}
-                />
-              </>
-            ) : (
-              <Button title={t("sendOtp")} onPress={onSendOtp} loading={busy} />
-            )}
-          </>
-        )}
-
-        {error ? <AppText style={{ color: colors.danger }}>{error}</AppText> : null}
+        <Button
+          title={isLoading ? t("signingIn") : t("loginWithSso")}
+          onPress={() => void promptAsync()}
+          loading={isLoading}
+          disabled={isLoading}
+        />
       </Card>
     </Screen>
   )
