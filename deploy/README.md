@@ -90,8 +90,9 @@ docker save mabhas19-web:deploy | gzip > mabhas19-web-deploy.tar.gz
 pscp -pw "<SERVER_PWD>" mabhas19-api-deploy.tar.gz admin1@10.249.52.216:/srv/mabhas19/
 pscp -pw "<SERVER_PWD>" mabhas19-web-deploy.tar.gz admin1@10.249.52.216:/srv/mabhas19/
 
-# 4) Load + (re)start ONLY api/web — SQL/MinIO and the shared daemon are left untouched
+# 4) Decrypt secrets, then load + (re)start ONLY api/web — SQL/MinIO and the shared daemon are left untouched
 plink -pw "<SERVER_PWD>" admin1@10.249.52.216 "cd /srv/mabhas19 && \
+  bash deploy/decrypt-env.sh && \
   gunzip -c mabhas19-api-deploy.tar.gz | docker load && \
   gunzip -c mabhas19-web-deploy.tar.gz | docker load && \
   docker compose -f deploy/docker-compose.server.yml --env-file deploy/.env up -d api web"
@@ -107,6 +108,30 @@ curl.exe -fsS https://api.mabhas19.myceo.ir/alive
   `https://mabhas19.myceo.ir`); runtime **secrets** come from `deploy/.env` via `docker-compose.server.yml`,
   so an image-only deploy needs **no `git pull` on the server**.
 - Base images for SQL Server / MinIO are pulled on the server through the `docker.arvancloud.ir` mirror.
+
+## Secrets (SOPS + age)
+
+Production secrets are managed with **[SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age)** — small, server-less, and a good fit for a single-server compose deploy.
+
+- **`deploy/prod.enc.env`** — the encrypted secrets, **committed to git** (each value is AES-256-GCM; safe to version).
+- **`deploy/.env`** — the plaintext file `docker compose` reads. **Git-ignored**; produced on the server by `deploy/decrypt-env.sh`.
+- **age private key** — lives **only** on the server at `/srv/mabhas19/secrets/age.key` (`chmod 600`). Keep an off-server backup (password manager); without it the committed secrets cannot be decrypted.
+- **age public recipient** — `age1qyjamsz4r7ntx0mn63y4gu0xkje5hvz09xst4vhr9jsw7dlefajq96ncv3` (also in `.sops.yaml`). Public — used to (re-)encrypt; cannot decrypt.
+- The `sops`/`age` binaries live at `/srv/mabhas19/bin/` (hand-transferred — the server can't reach GitHub).
+
+```bash
+# Decrypt at deploy time (run on the server; decrypt-env.sh does this for you):
+SOPS_AGE_KEY_FILE=/srv/mabhas19/secrets/age.key \
+  /srv/mabhas19/bin/sops -d --input-type dotenv --output-type dotenv deploy/prod.enc.env > deploy/.env
+
+# Add / change / rotate a secret (run on the server, where the private key is):
+cd /srv/mabhas19 && SOPS_AGE_KEY_FILE=secrets/age.key PATH="$PWD/bin:$PATH" sops deploy/prod.enc.env
+#   ...opens $EDITOR with the decrypted dotenv; on save it is re-encrypted in place.
+#   Then commit the updated deploy/prod.enc.env and redeploy.
+```
+
+> **Rotating the age key:** generate a new key, `sops updatekeys deploy/prod.enc.env` after updating the
+> recipient in `.sops.yaml`, then commit. Back up the new private key before discarding the old one.
 
 ## Local development
 
