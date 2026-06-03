@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Respawn;
+using Respawn.Graph;
 using System.Data.Common;
 
 namespace Mabhas19.Application.FunctionalTests.Infrastructure;
@@ -20,7 +21,13 @@ internal sealed class DatabaseResetter : IAsyncDisposable
         var connection = new SqlConnection(connectionString);
 
         await connection.OpenAsync();
-        var respawner = await Respawner.CreateAsync(connection);
+        // Protect the EF migration history table so that any WebApplicationFactory
+        // started after a reset can still detect already-applied migrations and skip
+        // re-running them (MigrateAsync is idempotent only when the history is intact).
+        var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            TablesToIgnore = [new Table("__EFMigrationsHistory")]
+        });
         await connection.CloseAsync();
         return new DatabaseResetter(connection, respawner);
     }

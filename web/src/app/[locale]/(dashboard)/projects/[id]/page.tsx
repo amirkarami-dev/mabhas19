@@ -61,6 +61,7 @@ export default function ProjectDetailPage() {
   }, [id, tc])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
@@ -131,9 +132,9 @@ export default function ProjectDetailPage() {
     { label: t("address"), value: project.address || "-" },
     { label: t("city"), value: project.city || "-" },
     { label: t("climateCode"), value: climateLabel },
-    { label: t("totalArea"), value: fmt(locale, project.totalArea) },
-    { label: t("floorCount"), value: fmt(locale, project.floorCount) },
-    { label: t("unitCount"), value: fmt(locale, project.unitCount) },
+    { label: t("totalArea"), value: fmt(locale, project.totalArea == null ? project.totalArea : Number(project.totalArea)) },
+    { label: t("floorCount"), value: fmt(locale, project.floorCount == null ? project.floorCount : Number(project.floorCount)) },
+    { label: t("unitCount"), value: fmt(locale, project.unitCount == null ? project.unitCount : Number(project.unitCount)) },
     { label: t("usage"), value: project.usage || "-" },
   ]
 
@@ -197,7 +198,7 @@ export default function ProjectDetailPage() {
                 <dt className="text-slate-500">{t("assessment")}</dt>
                 <dd>
                   <Badge tone="green">
-                    {fmt(locale, project.totalScore)} / {fmt(locale, project.maxScore)}
+                    {fmt(locale, project.totalScore == null ? project.totalScore : Number(project.totalScore))} / {fmt(locale, project.maxScore == null ? project.maxScore : Number(project.maxScore))}
                   </Badge>
                 </dd>
               </div>

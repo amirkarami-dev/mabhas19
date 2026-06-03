@@ -1,0 +1,38 @@
+@page
+@model Mabhas19.Auth.Pages.Account.OtpModel
+@{
+    ViewData["Title"] = "ورود با کد OTP";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<h1>ورود با کد یکبار مصرف</h1>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="error">@Model.ErrorMessage</div>
+}
+
+@if (!Model.CodeSent)
+{
+    <form method="post" asp-page-handler="Request">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <label for="Phone">شماره موبایل</label>
+        <input asp-for="Phone" type="tel" id="Phone" placeholder="09xxxxxxxxx" autocomplete="tel" />
+        <button type="submit">ارسال کد</button>
+    </form>
+}
+else
+{
+    <form method="post" asp-page-handler="Verify">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <input type="hidden" asp-for="Phone" />
+        <p>کد ارسال شده به <strong>@Model.Phone</strong> را وارد کنید:</p>
+        <label for="Code">کد تأیید</label>
+        <input asp-for="Code" type="text" id="Code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+        <button type="submit">تأیید و ورود</button>
+    </form>
+}
+
+<div class="link-row">
+    <a href="/Account/Login@(returnUrl is not null ? "?returnUrl=" + Uri.EscapeDataString(returnUrl) : "")">بازگشت به صفحه ورود</a>
+</div>

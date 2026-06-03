@@ -30,7 +30,7 @@ export function CtaFooter() {
               : "5 free projects, Persian PDF export, and all of Section 19's expert checklists."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/register">
+            <Link href="/login">
               <Button size="lg" variant="secondary" className="bg-background text-foreground hover:bg-background/90">
                 {fa ? "شروع کنید" : "Get started"}
               </Button>

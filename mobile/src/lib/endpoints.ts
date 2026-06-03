@@ -1,49 +1,14 @@
 import { apiFetch } from "./api"
-import { tokenStore } from "./tokens"
 import type {
   Assessment,
   CreateProjectInput,
   CurrentUser,
   Project,
   Subscription,
-  TokenResponse,
 } from "./types"
 
 export const authApi = {
-  register: (email: string, password: string) =>
-    apiFetch("/api/Users/register", { method: "POST", body: { email, password }, skipAuth: true }),
-
-  login: (email: string, password: string) =>
-    apiFetch<TokenResponse>("/api/Users/login", {
-      method: "POST",
-      body: { email, password },
-      skipAuth: true,
-    }),
-
-  logout: () => apiFetch("/api/Users/logout", { method: "POST" }),
-
   me: () => apiFetch<CurrentUser>("/api/Users/me"),
-
-  requestOtp: (phoneNumber: string) =>
-    apiFetch("/api/Auth/otp/request", { method: "POST", body: { phoneNumber }, skipAuth: true }),
-
-  verifyOtp: (phoneNumber: string, code: string) =>
-    apiFetch<TokenResponse>("/api/Auth/otp/verify", {
-      method: "POST",
-      body: { phoneNumber, code },
-      skipAuth: true,
-    }),
-
-  google: (idToken: string) =>
-    apiFetch<TokenResponse>("/api/Auth/google", {
-      method: "POST",
-      body: { idToken },
-      skipAuth: true,
-    }),
-}
-
-export async function saveTokens(tokens: TokenResponse) {
-  await tokenStore.set(tokens)
 }
 
 export const subscriptionApi = {

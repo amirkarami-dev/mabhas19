@@ -8,9 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { authApi, saveTokens } from "./endpoints"
-import { tokenStore } from "./tokens"
-import type { CurrentUser, TokenResponse } from "./types"
+import { signOut, useSession } from "next-auth/react"
+import { authApi } from "./endpoints"
+import type { CurrentUser } from "./types"
 
 interface AuthState {
   user: CurrentUser | null
@@ -18,7 +18,6 @@ interface AuthState {
   isAdmin: boolean
   ready: boolean
   isAuthenticated: boolean
-  setTokens: (tokens: TokenResponse) => Promise<void>
   refreshUser: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -26,11 +25,15 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { status } = useSession()
   const [user, setUser] = useState<CurrentUser | null>(null)
-  const [ready, setReady] = useState(false)
+  const [userFetched, setUserFetched] = useState(false)
+
+  const ready = status !== "loading"
+  const isAuthenticated = status === "authenticated"
 
   const refreshUser = useCallback(async () => {
-    if (!tokenStore.hasToken()) {
+    if (!isAuthenticated) {
       setUser(null)
       return
     }
@@ -40,35 +43,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null)
     }
-  }, [])
+  }, [isAuthenticated])
 
+  // Fetch user profile once when the session becomes authenticated.
   useEffect(() => {
-    let active = true
-    ;(async () => {
+    void (async () => {
+      if (!isAuthenticated) {
+        setUser(null)
+        setUserFetched(false)
+        return
+      }
+      if (userFetched) return
+      setUserFetched(true)
       await refreshUser()
-      if (active) setReady(true)
     })()
-    return () => {
-      active = false
-    }
-  }, [refreshUser])
-
-  const setTokens = useCallback(
-    async (tokens: TokenResponse) => {
-      saveTokens(tokens)
-      await refreshUser()
-    },
-    [refreshUser]
-  )
+  }, [isAuthenticated, userFetched, refreshUser])
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout()
-    } catch {
-      // ignore network errors on logout
-    }
-    tokenStore.clear()
+    await signOut({ redirect: false })
     setUser(null)
+    setUserFetched(false)
+    const issuer = process.env.NEXT_PUBLIC_AUTH_ISSUER
+    if (issuer) {
+      window.location.href = `${issuer}/connect/logout`
+    } else {
+      window.location.href = "/login"
+    }
   }, [])
 
   return (
@@ -78,8 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles: user?.roles ?? [],
         isAdmin: user?.isAdmin ?? false,
         ready,
-        isAuthenticated: Boolean(user) || tokenStore.hasToken(),
-        setTokens,
+        isAuthenticated,
         refreshUser,
         logout,
       }}

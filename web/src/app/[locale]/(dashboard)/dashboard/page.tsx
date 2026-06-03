@@ -85,8 +85,8 @@ export default function DashboardPage() {
           value={
             sub
               ? t("usedOf", {
-                  used: fmt(locale, sub.usedProjects),
-                  max: fmt(locale, sub.maxProjects),
+                  used: fmt(locale, sub.usedProjects == null ? sub.usedProjects : Number(sub.usedProjects)),
+                  max: fmt(locale, sub.maxProjects == null ? sub.maxProjects : Number(sub.maxProjects)),
                 })
               : "-"
           }

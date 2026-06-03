@@ -58,7 +58,9 @@
     "otpSent": "کد تایید ارسال شد",
     "loggingIn": "در حال ورود...",
     "callbackProcessing": "در حال پردازش ورود...",
-    "invalidCredentials": "ایمیل یا گذرواژه نادرست است"
+    "invalidCredentials": "ایمیل یا گذرواژه نادرست است",
+    "ssoPrompt": "برای ورود یا ثبت‌نام روی دکمه زیر کلیک کنید.",
+    "ssoButton": "ورود / ثبت‌نام"
   },
   "dashboard": {
     "title": "داشبورد",

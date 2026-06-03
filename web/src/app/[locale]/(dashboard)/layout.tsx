@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { RequireAuth } from "@/components/require-auth"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topbar } from "@/components/layout/topbar"
@@ -10,16 +10,15 @@ const COLLAPSE_KEY = "m19_sidebar_collapsed"
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
-
-  // Restore persisted collapse preference.
-  useEffect(() => {
+  // Lazy initializer reads localStorage synchronously on first render (client-only "use client").
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false
     try {
-      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1")
+      return localStorage.getItem(COLLAPSE_KEY) === "1"
     } catch {
-      /* ignore */
+      return false
     }
-  }, [])
+  })
 
   const toggleCollapse = () => {
     setCollapsed((prev) => {

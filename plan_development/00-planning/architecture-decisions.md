@@ -24,17 +24,26 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 ---
 
 ## ADR-002 — CQRS use cases via MediatR + FluentValidation pipeline
-**Status:** Accepted (with a licensing caveat)
+**Status:** Accepted — pinned to last free version (12.5.0) as of 2026-06-03
 
 **Context.** We want each use case isolated, with cross-cutting concerns (validation, logging) applied uniformly, and thin endpoints.
 
 **Decision.** Model every use case as a MediatR command/query handler. Validation runs as a pipeline behaviour using FluentValidation; mapping uses AutoMapper profiles declared as nested `Mapping : Profile` classes inside the DTOs. Endpoints just send the request.
 
+**Resolution (2026-06-03).** MediatR 13.0+ (owned by jbogard + LuckyPennySoftware) requires a commercial license for production. To remove this release-blocker `Directory.Packages.props` was pinned to **MediatR 12.5.0** (Apache-2.0, released 2025-04-01), the last version published before the commercial-license change. `MediatR.Contracts` stays at 2.0.1 (Apache-2.0) — it is a dependency of MediatR 12.5.0 and unaffected. The `LuckyPennySoftware.MediatR.License: None` log-filter suppressor was removed from `appsettings.json`. Zero API changes were required; the 12.x → 14.x public surface is backward-compatible for all patterns used here (`IPipelineBehavior<,>`, `IRequestPreProcessor<>`, `AddOpenBehavior`, `AddOpenRequestPreProcessor`, `ISender`, `IMediator`, `INotification`).
+
+**Forward options (choose before next major upgrade):**
+1. **Purchase a MediatR v14+ commercial license** from mediatr.io — restores access to the latest features and security fixes.
+2. **Migrate to `Mediator` (martinothamar/Mediator, MIT, source-generated)** — zero runtime overhead, no license cost, but requires replacing `AddMediatR`/`ISender`/`IPipelineBehavior` registrations with the Mediator equivalents (a medium-effort, low-risk refactor).
+
+MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not receive new features. Treat it as a **maintained-but-older stopgap** until one of the options above is executed.
+
 **Consequences.**
 - (+) Endpoints stay tiny; behaviours give consistent validation/error shaping.
 - (+) Each handler is independently testable.
+- (+) Commercial-license requirement removed — no blocker for go-live.
 - (−) Indirection — a request hops through the mediator before reaching logic.
-- (−) **MediatR v14 requires a commercial license for production** (dev-only warning today). Must license or replace before go-live — a real release blocker, tracked in the charter constraints.
+- (−) Pinned to 12.5.0 — won't receive MediatR 13/14 feature additions; must eventually migrate or license.
 
 ---
 
@@ -83,7 +92,7 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 ---
 
 ## ADR-006 — Bearer-token auth with three sign-in methods on one Identity scheme
-**Status:** Accepted
+**Status:** Superseded by ADR-013 (central OIDC SSO) for multi-service deployments
 
 **Context.** Users sign in by password, **mobile OTP**, or **Google ID-token**. We want one consistent session model across web and mobile and don't want to hand-roll JWT issuance.
 
@@ -183,3 +192,20 @@ Each ADR: **Context** (forces in play) · **Decision** (what we chose) · **Cons
 - (+) Single source of truth for versions; strict build catches issues early; clean repo (no scattered `bin/obj`).
 - (−) Every new package needs an entry in `Directory.Packages.props` (intentional friction).
 - (−) Demoted advisories must be revisited when upstream fixes land (documented in the props file).
+
+---
+
+## ADR-013 — Central OIDC Identity Provider for cross-service SSO
+**Status:** Accepted (supersedes ADR-006 for multi-service deployments)
+
+**Context.** The product grows from one app into a portal of services under `*.myceo.ir` (e.g. `mabhas19`, `plan`, …). Users must log in once and move between services without re-authenticating. ADR-006's `MapIdentityApi` bearer tokens are app-local (DataProtection-encrypted, validatable only by the issuing app) and stored per-origin in `localStorage`, so they cannot be shared across services — they don't support SSO.
+
+**Decision.** Stand up a dedicated **OpenIddict** OIDC Identity Provider as its own app (`src/Auth`, `auth.myceo.ir`) with its **own database** (`Mabhas19AuthDb`); migrate existing users into it **preserving their IDs**. It owns all login methods (password/OTP/Google) and issues **signed JWT access tokens** (encryption disabled, JWKS-published). Every service becomes an **OIDC client**: `mabhas19` web via **Auth.js** (httpOnly cookie), mobile via **expo-auth-session** (PKCE), and the `mabhas19` API becomes a **resource server** validating JWTs via stock `AddJwtBearer`. The token shape is a **frozen contract** (see `01-development/sso-oidc.md` §4). Built and integrated wave-by-wave (IdP+API → clients → infra) to prevent contract drift; production cutover is a separate gated step.
+
+**Consequences.**
+- (+) True SSO across all `*.myceo.ir` services; new services join by registering a client — no per-service auth code.
+- (+) Single source of truth for identity; httpOnly cookies remove the web localStorage XSS exposure.
+- (+) Standard, federable JWTs that any service validates independently via JWKS.
+- (−) A new app, database, container, and Traefik route to build/operate; login UI moves out of the polished Next.js page into the IdP.
+- (−) One-time user migration (IDs/password-hashes preserved) and a careful production cutover.
+- (−) Admin user-management must move to the IdP (flagged follow-up); the IdP's signing key must be persisted (not ephemeral).

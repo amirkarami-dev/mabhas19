@@ -61,9 +61,9 @@ export default function ChecklistScreen() {
   const group = useMemo(
     () =>
       calcBuildingGroup({
-        area: project?.totalArea ?? 0,
-        floors: project?.floorCount ?? 0,
-        units: project?.unitCount ?? 0,
+        area: Number(project?.totalArea ?? 0),
+        floors: Number(project?.floorCount ?? 0),
+        units: Number(project?.unitCount ?? 0),
       }).code,
     [project],
   )

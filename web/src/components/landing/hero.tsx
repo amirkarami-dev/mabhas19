@@ -50,7 +50,7 @@ export function Hero() {
               : "Assess building envelope and systems, climate zoning, and generate official Persian PDF reports — all in one fast, simple platform compliant with Section 19 of Iran's building code."}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/register">
+            <Link href="/login">
               <Button size="lg">{fa ? "شروع کنید" : "Get started"}</Button>
             </Link>
             <Link href="/login">

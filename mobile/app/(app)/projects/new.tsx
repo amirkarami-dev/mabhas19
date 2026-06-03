@@ -19,14 +19,14 @@ export default function NewProjectScreen() {
     setForm((prev) => ({ ...prev, [key]: value === "" ? undefined : Number(value) }))
 
   const onSubmit = async () => {
-    if (!form.title.trim()) {
+    if (!form.title?.trim()) {
       setError(t("title"))
       return
     }
     setBusy(true)
     setError(null)
     try {
-      const { id } = await projectsApi.create({ ...form, title: form.title.trim() })
+      const { id } = await projectsApi.create({ ...form, title: form.title!.trim() })
       router.replace(`/(app)/projects/${id}`)
     } catch (err) {
       // Subscription quota and validation errors surface here.

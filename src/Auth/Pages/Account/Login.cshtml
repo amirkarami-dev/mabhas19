@@ -1,0 +1,50 @@
+@page
+@model Mabhas19.Auth.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "ورود";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<h1>ورود به مبحث ۱۹</h1>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="error">@Model.ErrorMessage</div>
+}
+
+<form method="post">
+    <input type="hidden" name="returnUrl" value="@returnUrl" />
+    <label for="UserName">نام کاربری</label>
+    <input asp-for="UserName" type="text" id="UserName" autocomplete="username" />
+    <label for="Password">رمز عبور</label>
+    <input asp-for="Password" type="password" id="Password" autocomplete="current-password" />
+    <button type="submit">ورود</button>
+</form>
+
+<div class="link-row">
+    <a href="/Account/Otp@(returnUrl is not null ? "?returnUrl=" + Uri.EscapeDataString(returnUrl) : "")">ورود با کد یکبار مصرف (OTP)</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.GoogleClientId))
+{
+    <div class="divider">یا</div>
+    <div id="g_id_onload"
+         data-client_id="@Model.GoogleClientId"
+         data-callback="handleGoogleCredential"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-theme="outline" data-size="large" data-text="signin_with" data-locale="fa"></div>
+
+    <form method="post" asp-page-handler="Google" id="googleForm">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <input type="hidden" name="credential" id="googleCredential" />
+    </form>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        function handleGoogleCredential(response) {
+            document.getElementById('googleCredential').value = response.credential;
+            document.getElementById('googleForm').submit();
+        }
+    </script>
+}

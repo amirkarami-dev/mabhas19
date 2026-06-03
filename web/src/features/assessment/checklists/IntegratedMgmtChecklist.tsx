@@ -42,11 +42,15 @@ export default function IntegratedMgmtChecklist({ meta, climateCode, initial, on
   )
 
   useEffect(() => {
+    // TODO: refactor to derived state (scoring-sensitive)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogicActive(autoLogicActive)
     setLogicMode(autoLogicActive ? "auto_on" : "auto_off")
   }, [autoLogicActive])
 
   useEffect(() => {
+    // TODO: refactor to derived state (scoring-sensitive)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!logicActive) setResponses({})
   }, [logicActive])
 

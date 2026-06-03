@@ -58,7 +58,9 @@
     "otpSent": "Verification code sent",
     "loggingIn": "Signing in...",
     "callbackProcessing": "Processing sign in...",
-    "invalidCredentials": "Invalid email or password"
+    "invalidCredentials": "Invalid email or password",
+    "ssoPrompt": "Click the button below to sign in or register.",
+    "ssoButton": "Sign in / Register"
   },
   "dashboard": {
     "title": "Dashboard",

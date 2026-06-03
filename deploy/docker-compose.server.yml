@@ -44,6 +44,45 @@ services:
       - "traefik.http.services.m19s3.loadbalancer.server.port=9000"
     networks: [internal, traefik]
 
+  auth:
+    image: mabhas19-auth:deploy
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Mabhas19AuthDb: "Server=sqlserver,1433;Database=Mabhas19AuthDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # OpenIddict signing certificate (PFX) — mounted from ./certs on the host.
+      OpenIddict__SigningCertificatePath: /certs/openiddict.pfx
+      OpenIddict__SigningCertificatePassword: ${OPENIDDICT_CERT_PASSWORD}
+      # Login methods (OTP/SMS + Google) now owned by the IdP.
+      Sms__Provider: "relay"
+      Sms__RelayBaseUrl: "https://sms.kurdnezambargh.ir"
+      Sms__RelayToken: ${SMS_RELAY_TOKEN}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      Otp__LogCode: "false"
+      AdminUser__Email: ${ADMIN_EMAIL}
+      AdminUser__Password: ${ADMIN_PASSWORD}
+      # OIDC client registrations.
+      Clients__Mabhas19Web__Secret: ${MABHAS19_WEB_CLIENT_SECRET}
+      Clients__Mabhas19Web__Redirect: "https://mabhas19.myceo.ir/api/auth/callback/mabhas19"
+      Clients__Mabhas19Web__PostLogout: "https://mabhas19.myceo.ir"
+      Clients__Mabhas19Mobile__Redirect: "mabhas19://auth"
+      Clients__PlanWeb__Secret: ${PLAN_WEB_CLIENT_SECRET}
+      Clients__PlanWeb__Redirect: "https://plan.myceo.ir/api/auth/callback/plan"
+    volumes:
+      - /srv/mabhas19/certs:/certs:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.m19auth.rule=Host(`${AUTH_DOMAIN}`)"
+      - "traefik.http.routers.m19auth.entrypoints=websecure"
+      - "traefik.http.routers.m19auth.tls.certresolver=myresolver"
+      - "traefik.http.routers.m19auth.service=m19auth"
+      - "traefik.http.services.m19auth.loadbalancer.server.port=8080"
+    networks: [internal, traefik]
+
   api:
     image: mabhas19-api:deploy
     restart: unless-stopped
@@ -52,6 +91,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    # Pin the IdP host to its ArvanCloud edge (valid cert) so JWKS/metadata resolution for JWT
+    # validation isn't subject to the flaky container DNS. NOTE: update if the edge IP rotates.
+    extra_hosts:
+      - "auth.myceo.ir:185.143.234.234"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19Db: "Server=sqlserver,1433;Database=Mabhas19Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
@@ -61,14 +104,8 @@ services:
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
       Minio__Bucket: ${MINIO_BUCKET}
       Minio__UseSSL: "true"
-      AdminUser__Email: ${ADMIN_EMAIL}
-      AdminUser__Password: ${ADMIN_PASSWORD}
-      # OTP via the external relay (whitelisted-IP microservice); token from .env.
-      Sms__Provider: "relay"
-      Sms__RelayBaseUrl: "https://sms.kurdnezambargh.ir"
-      Sms__RelayToken: ${SMS_RELAY_TOKEN}
-      Otp__LogCode: "false"
-      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      # The API validates JWTs issued by the central IdP.
+      Auth__Authority: "https://${AUTH_DOMAIN}"
       ExternalImport__NezamMohandesi__BaseUrl: ${NEZAM_BASE_URL}
       ExternalImport__NezamMohandesi__ApiKey: ${NEZAM_API_KEY}
     labels:
@@ -84,8 +121,21 @@ services:
     image: mabhas19-web:deploy
     restart: unless-stopped
     depends_on: [api]
+    # Container DNS for the (ArvanCloud-proxied) IdP host is intermittently flaky (EAI_AGAIN),
+    # which breaks Auth.js's server-side discovery/token calls. Pin it to the ArvanCloud edge
+    # (valid cert, SNI-routed) so resolution is deterministic. NOTE: update if the edge IP rotates.
+    extra_hosts:
+      - "auth.myceo.ir:185.143.234.234"
     environment:
       NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
+      # Auth.js (NextAuth v5) OIDC client → central IdP. Server-side runtime values.
+      # AUTH_TRUST_HOST is required because the app runs behind Traefik (proxied host/proto).
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: "https://${WEB_DOMAIN}"
+      AUTH_MABHAS19_ISSUER: "https://${AUTH_DOMAIN}"
+      AUTH_MABHAS19_ID: "mabhas19-web"
+      AUTH_MABHAS19_SECRET: ${MABHAS19_WEB_CLIENT_SECRET}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
@@ -93,7 +143,9 @@ services:
       - "traefik.http.routers.m19web.entrypoints=websecure"
       - "traefik.http.routers.m19web.tls.certresolver=myresolver"
       - "traefik.http.services.m19web.loadbalancer.server.port=3000"
-    networks: [traefik]
+    # internal: gives the container DNS + egress so Auth.js server-side calls reach the IdP
+    # (auth.myceo.ir) over the valid public path — same as the api container.
+    networks: [traefik, internal]
 
 volumes:
   pgdata:      # retained: previous PostgreSQL data (not deleted, in case migration is needed later)
