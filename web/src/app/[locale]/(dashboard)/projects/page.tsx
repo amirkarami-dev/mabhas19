@@ -6,7 +6,7 @@ import type { Project } from "@/lib/types"
 import ProjectsClient from "./projects-client"
 
 // Server Component: prefetch the projects list with the request's session token so the
-// client list mounts with a warm cache. (Same RequireAuth caveat as the dashboard page.)
+// client list server-renders with a warm cache (auth is enforced in middleware).
 export default async function ProjectsPage() {
   const queryClient = getQueryClient()
   await queryClient.prefetchQuery({
