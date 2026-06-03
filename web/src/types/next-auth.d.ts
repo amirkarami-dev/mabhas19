@@ -8,11 +8,17 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     /** Raw JWT access token issued by the IdP (audience: mabhas19.api). */
     accessToken?: string
+    /** Identity lifted from the OIDC token claims (so middleware + SSR can read it). */
+    user: {
+      id?: string
+      roles: string[]
+      isAdmin: boolean
+    } & DefaultSession["user"]
   }
 }
 
 declare module "@auth/core/jwt" {
-  /** Extends the Auth.js JWT with tokens forwarded from the IdP token response. */
+  /** Extends the Auth.js JWT with tokens + identity forwarded from the IdP. */
   interface JWT {
     /** IdP access token (audience: mabhas19.api). */
     accessToken?: string
@@ -20,5 +26,9 @@ declare module "@auth/core/jwt" {
     refreshToken?: string
     /** Absolute expiry of the access token (seconds since epoch). */
     expiresAt?: number
+    /** Role claims lifted from the OIDC token. */
+    roles?: string[]
+    /** Convenience flag derived from roles. */
+    isAdmin?: boolean
   }
 }

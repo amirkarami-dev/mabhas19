@@ -8,7 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { adminApi, projectsApi, subscriptionApi, authApi } from "./endpoints"
+import { adminApi, projectsApi, subscriptionApi } from "./endpoints"
 import { ApiError } from "./api"
 import { queryKeys } from "./query-keys"
 import type {
@@ -19,14 +19,7 @@ import type {
 } from "./types"
 
 // ---------------------------------------------------------------- Queries ----
-
-export function useCurrentUser(enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.currentUser,
-    queryFn: () => authApi.me(),
-    enabled,
-  })
-}
+// (Identity / currentUser is now resolved server-side from the session, not fetched here.)
 
 export function useSubscription(enabled = true) {
   return useQuery({

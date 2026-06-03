@@ -12,6 +12,7 @@ const intlMiddleware = createMiddleware(routing)
 
 // Protected app areas — both the default-locale paths (fa, unprefixed) and the /en variants.
 const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|admin)(?:\/|$)/
+const ADMIN_ONLY = /^\/(?:en\/)?admin(?:\/|$)/
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
@@ -19,6 +20,11 @@ export default auth((req) => {
 
   if (PROTECTED.test(pathname) && !req.auth) {
     return NextResponse.redirect(new URL(isEn ? "/en/login" : "/login", req.nextUrl))
+  }
+
+  // Admin area: role comes straight from the session JWT (lifted from the OIDC claims).
+  if (ADMIN_ONLY.test(pathname) && !req.auth?.user?.isAdmin) {
+    return NextResponse.redirect(new URL(isEn ? "/en/dashboard" : "/dashboard", req.nextUrl))
   }
 
   return intlMiddleware(req)

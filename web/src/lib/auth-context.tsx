@@ -6,10 +6,8 @@ import {
   useContext,
   type ReactNode,
 } from "react"
-import { signOut, useSession } from "next-auth/react"
+import { signOut } from "next-auth/react"
 import { useQueryClient } from "@tanstack/react-query"
-import { useCurrentUser } from "./queries"
-import { queryKeys } from "./query-keys"
 import type { CurrentUser } from "./types"
 
 interface AuthState {
@@ -17,27 +15,21 @@ interface AuthState {
   roles: string[]
   isAdmin: boolean
   ready: boolean
-  isAuthenticated: boolean
-  refreshUser: () => Promise<void>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const { status } = useSession()
+// Identity is resolved on the server (from the session JWT) and passed in as initialUser,
+// so there's no client fetch and no auth flicker. Route protection lives in middleware.
+export function AuthProvider({
+  initialUser,
+  children,
+}: {
+  initialUser: CurrentUser
+  children: ReactNode
+}) {
   const qc = useQueryClient()
-
-  const ready = status !== "loading"
-  const isAuthenticated = status === "authenticated"
-
-  // The user profile is fetched (and cached) only once the session is authenticated;
-  // disabling the query when signed out yields `undefined` -> null.
-  const { data: user = null } = useCurrentUser(isAuthenticated)
-
-  const refreshUser = useCallback(async () => {
-    await qc.invalidateQueries({ queryKey: queryKeys.currentUser })
-  }, [qc])
 
   const logout = useCallback(async () => {
     await signOut({ redirect: false })
@@ -53,12 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        roles: user?.roles ?? [],
-        isAdmin: user?.isAdmin ?? false,
-        ready,
-        isAuthenticated,
-        refreshUser,
+        user: initialUser,
+        roles: initialUser.roles ?? [],
+        isAdmin: initialUser.isAdmin ?? false,
+        ready: true,
         logout,
       }}
     >

@@ -22,17 +22,40 @@ export const authConfig: NextAuthConfig = {
     },
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, profile }) {
       if (account) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
         token.expiresAt = account.expires_at
       }
+      if (profile) {
+        // Lift identity from the OIDC claims once, at sign-in, so it lives in the
+        // session JWT and is readable by middleware (Edge) and SSR without an API call.
+        const claims = profile as Record<string, unknown>
+        const roles = rolesFromClaims(claims.role ?? claims.roles)
+        token.roles = roles
+        token.isAdmin = roles.includes("Administrator")
+        token.name =
+          (claims.name as string) ?? (claims.preferred_username as string) ?? token.name
+        token.email = (claims.email as string) ?? token.email
+      }
       return token
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken
+      if (session.user) {
+        if (token.sub) session.user.id = token.sub
+        session.user.roles = token.roles ?? []
+        session.user.isAdmin = token.isAdmin ?? false
+      }
       return session
     },
   },
+}
+
+// OIDC `role` may arrive as a string, an array, or be absent — normalise to string[].
+function rolesFromClaims(claim: unknown): string[] {
+  if (Array.isArray(claim)) return claim.map(String)
+  if (typeof claim === "string") return [claim]
+  return []
 }
