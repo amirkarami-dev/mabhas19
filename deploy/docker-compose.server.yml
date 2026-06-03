@@ -72,7 +72,7 @@ services:
       Clients__PlanWeb__Secret: ${PLAN_WEB_CLIENT_SECRET}
       Clients__PlanWeb__Redirect: "https://plan.myceo.ir/api/auth/callback/plan"
     volumes:
-      - ./certs:/certs:ro
+      - /srv/mabhas19/certs:/certs:ro
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
