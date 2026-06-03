@@ -145,12 +145,12 @@ export default function ProjectsPage() {
                       <td className="px-5 py-3">
                         {p.buildingGroupLabel ? <Badge tone="brand">{p.buildingGroupLabel}</Badge> : "-"}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">{fmt(locale, p.totalArea)}</td>
-                      <td className="px-5 py-3 text-slate-600">{fmt(locale, p.floorCount)}</td>
+                      <td className="px-5 py-3 text-slate-600">{fmt(locale, p.totalArea == null ? p.totalArea : Number(p.totalArea))}</td>
+                      <td className="px-5 py-3 text-slate-600">{fmt(locale, p.floorCount == null ? p.floorCount : Number(p.floorCount))}</td>
                       <td className="px-5 py-3">
                         {p.hasAssessment ? (
                           <Badge tone="green">
-                            {fmt(locale, p.totalScore)} / {fmt(locale, p.maxScore)}
+                            {fmt(locale, p.totalScore == null ? p.totalScore : Number(p.totalScore))} / {fmt(locale, p.maxScore == null ? p.maxScore : Number(p.maxScore))}
                           </Badge>
                         ) : (
                           <span className="text-slate-400">{tc("none")}</span>
@@ -168,7 +168,7 @@ export default function ProjectsPage() {
                             size="sm"
                             className="text-red-600 hover:bg-red-50"
                             disabled={deletingId === String(p.id)}
-                            onClick={() => handleDelete(p.id)}
+                            onClick={() => handleDelete(p.id!)}
                           >
                             {deletingId === String(p.id) ? <Spinner /> : tc("delete")}
                           </Button>

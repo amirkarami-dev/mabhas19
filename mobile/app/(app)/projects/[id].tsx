@@ -72,9 +72,9 @@ export default function ProjectDetailScreen() {
   }
 
   const group = calcBuildingGroup({
-    area: project.totalArea ?? 0,
-    floors: project.floorCount ?? 0,
-    units: project.unitCount ?? 0,
+    area: Number(project.totalArea ?? 0),
+    floors: Number(project.floorCount ?? 0),
+    units: Number(project.unitCount ?? 0),
   })
   const climateCode = project.climateCode ?? "4"
 

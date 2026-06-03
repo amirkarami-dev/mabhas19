@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
     setSavingSub(true)
     setEditError(null)
     try {
-      await adminApi.updateSubscription(editUser.id, {
+      await adminApi.updateSubscription(editUser.id!, {
         plan: editForm.plan,
         maxProjects: Number(editForm.maxProjects) || 0,
         isActive: editForm.isActive,
@@ -165,10 +165,10 @@ export default function AdminUsersPage() {
 
   // ---- role toggle ----
   const handleToggleRole = async (u: AdminUser) => {
-    setBusyId(u.id)
+    setBusyId(u.id!)
     setError(null)
     try {
-      await adminApi.setRole(u.id, !u.isAdmin)
+      await adminApi.setRole(u.id!, !u.isAdmin)
       await load()
     } catch (err) {
       setError(extractApiMessage(err, errText))
@@ -185,10 +185,10 @@ export default function AdminUsersPage() {
       `Delete user "${u.email}"?`
     )
     if (!window.confirm(msg)) return
-    setBusyId(u.id)
+    setBusyId(u.id!)
     setError(null)
     try {
-      await adminApi.removeUser(u.id)
+      await adminApi.removeUser(u.id!)
       setUsers((prev) => prev.filter((x) => x.id !== u.id))
     } catch (err) {
       setError(extractApiMessage(err, errText))

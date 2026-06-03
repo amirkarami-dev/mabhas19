@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@mabhas19/assessment-core": "*",
+    "@mabhas19/api-types": "*",
     "expo": "~54.0.0",
     "expo-auth-session": "~7.0.11",
     "expo-constants": "~18.0.0",

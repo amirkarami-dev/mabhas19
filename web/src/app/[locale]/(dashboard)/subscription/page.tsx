@@ -70,15 +70,17 @@ export default function SubscriptionPage() {
     return <Alert variant="error">{error ?? tc("error")}</Alert>
   }
 
+  const maxProjects = Number(sub.maxProjects ?? 0)
+  const usedProjects = Number(sub.usedProjects ?? 0)
   const pct =
-    sub.maxProjects > 0
-      ? Math.min(100, Math.round((sub.usedProjects / sub.maxProjects) * 100))
+    maxProjects > 0
+      ? Math.min(100, Math.round((usedProjects / maxProjects) * 100))
       : 0
 
   const rows: Array<{ label: string; value: string }> = [
-    { label: t("plan"), value: sub.plan },
-    { label: t("maxProjects"), value: fmt(locale, sub.maxProjects) },
-    { label: t("usedProjects"), value: fmt(locale, sub.usedProjects) },
+    { label: t("plan"), value: sub.plan ?? "-" },
+    { label: t("maxProjects"), value: fmt(locale, maxProjects) },
+    { label: t("usedProjects"), value: fmt(locale, usedProjects) },
     { label: t("validTo"), value: fmtDate(locale, sub.validTo) },
   ]
 
@@ -97,7 +99,7 @@ export default function SubscriptionPage() {
             <div className="mb-1.5 flex items-center justify-between text-sm">
               <span className="text-slate-600">{t("usedProjects")}</span>
               <span className="font-medium text-slate-900">
-                {fmt(locale, sub.usedProjects)} / {fmt(locale, sub.maxProjects)}
+                {fmt(locale, usedProjects)} / {fmt(locale, maxProjects)}
               </span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
