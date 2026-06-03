@@ -6,6 +6,7 @@ import { getMessages, setRequestLocale } from "next-intl/server"
 import { SessionProvider } from "next-auth/react"
 import { routing } from "@/i18n/routing"
 import { AuthProvider } from "@/lib/auth-context"
+import { QueryProvider } from "@/components/query-provider"
 import { ThemeProvider, themeNoFlashScript } from "@/components/theme-provider"
 import { TopLoadingBar } from "@/components/top-loading-bar"
 import "../globals.css"
@@ -38,12 +39,14 @@ export default async function LocaleLayout({
       <body className="min-h-screen antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeNoFlashScript }} />
         <SessionProvider>
-          <NextIntlClientProvider messages={messages}>
-            <ThemeProvider>
-              <TopLoadingBar />
-              <AuthProvider>{children}</AuthProvider>
-            </ThemeProvider>
-          </NextIntlClientProvider>
+          <QueryProvider>
+            <NextIntlClientProvider messages={messages}>
+              <ThemeProvider>
+                <TopLoadingBar />
+                <AuthProvider>{children}</AuthProvider>
+              </ThemeProvider>
+            </NextIntlClientProvider>
+          </QueryProvider>
         </SessionProvider>
       </body>
     </html>

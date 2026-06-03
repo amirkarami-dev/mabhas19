@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
-import { projectsApi } from "@/lib/endpoints"
+import { useImportProject } from "@/lib/queries"
 import {
   Alert,
   Button,
@@ -23,25 +23,20 @@ export default function ImportPage() {
 
   const [source, setSource] = useState("NezamMohandesi")
   const [externalId, setExternalId] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const importProject = useImportProject()
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!externalId.trim()) return
-    setSubmitting(true)
-    setError(null)
-    setSuccess(false)
-    try {
-      const res = await projectsApi.importProject(source, externalId.trim())
-      setSuccess(true)
-      if (res?.id) router.push(`/projects/${res.id}`)
-    } catch {
-      setError(tc("error"))
-    } finally {
-      setSubmitting(false)
-    }
+    const id = externalId.trim()
+    if (!id) return
+    importProject.mutate(
+      { source, externalId: id },
+      {
+        onSuccess: (res) => {
+          if (res?.id) router.push(`/projects/${res.id}`)
+        },
+      }
+    )
   }
 
   return (
@@ -53,14 +48,14 @@ export default function ImportPage() {
           <h2 className="text-sm font-bold text-slate-900">{t("title")}</h2>
         </CardHeader>
         <CardBody>
-          {success ? (
+          {importProject.isSuccess ? (
             <Alert variant="success" className="mb-4">
               {t("success")}
             </Alert>
           ) : null}
-          {error ? (
+          {importProject.isError ? (
             <Alert variant="error" className="mb-4">
-              {error}
+              {tc("error")}
             </Alert>
           ) : null}
 
@@ -80,8 +75,11 @@ export default function ImportPage() {
               />
             </Field>
             <div className="flex justify-end">
-              <Button type="submit" disabled={submitting || !externalId.trim()}>
-                {submitting ? <Spinner /> : null}
+              <Button
+                type="submit"
+                disabled={importProject.isPending || !externalId.trim()}
+              >
+                {importProject.isPending ? <Spinner /> : null}
                 {t("submit")}
               </Button>
             </div>

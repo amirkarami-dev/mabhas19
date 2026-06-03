@@ -1,9 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { subscriptionApi } from "@/lib/endpoints"
-import type { Subscription } from "@/lib/types"
+import { useSubscription } from "@/lib/queries"
 import {
   Alert,
   Badge,
@@ -34,30 +32,9 @@ export default function SubscriptionPage() {
   const tc = useTranslations("common")
   const locale = useLocale()
 
-  const [sub, setSub] = useState<Subscription | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: sub, isLoading } = useSubscription()
 
-  useEffect(() => {
-    let active = true
-    ;(async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const s = await subscriptionApi.me()
-        if (active) setSub(s)
-      } catch {
-        if (active) setError(tc("error"))
-      } finally {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [tc])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-slate-500">
         <Spinner className="me-2 text-brand-700" />
@@ -67,7 +44,7 @@ export default function SubscriptionPage() {
   }
 
   if (!sub) {
-    return <Alert variant="error">{error ?? tc("error")}</Alert>
+    return <Alert variant="error">{tc("error")}</Alert>
   }
 
   const maxProjects = Number(sub.maxProjects ?? 0)

@@ -1,10 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useParams } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { Link, useRouter } from "@/i18n/navigation"
-import { projectsApi } from "@/lib/endpoints"
+import {
+  useDeleteProject,
+  useGenerateReport,
+  useProject,
+  useUpdateProject,
+} from "@/lib/queries"
 import type { CreateProjectInput } from "@/lib/types"
 import { M19_CLIMATE_DEFINITIONS } from "@/features/assessment/data/climate"
 import type { ProjectDto } from "@/components/projects/project-types"
@@ -34,76 +39,33 @@ export default function ProjectDetailPage() {
   const locale = useLocale()
   const router = useRouter()
 
-  const [project, setProject] = useState<ProjectDto | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const projectQuery = useProject(id)
+  const updateProject = useUpdateProject(id)
+  const generateReport = useGenerateReport(id)
+  const deleteProject = useDeleteProject()
 
   const [editOpen, setEditOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
 
-  const [reporting, setReporting] = useState(false)
-  const [reportError, setReportError] = useState<string | null>(null)
+  const project = (projectQuery.data ?? null) as ProjectDto | null
 
-  const [deleting, setDeleting] = useState(false)
-
-  const load = useCallback(async () => {
-    if (!id) return
-    setLoading(true)
-    setError(null)
-    try {
-      const p = (await projectsApi.get(id)) as ProjectDto
-      setProject(p)
-    } catch {
-      setError(tc("error"))
-    } finally {
-      setLoading(false)
-    }
-  }, [id, tc])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load()
-  }, [load])
-
-  const handleSave = async (input: CreateProjectInput) => {
-    setSaving(true)
-    try {
-      await projectsApi.update(id, input)
-      setEditOpen(false)
-      await load()
-    } catch {
-      setError(tc("error"))
-    } finally {
-      setSaving(false)
-    }
+  const handleSave = (input: CreateProjectInput) => {
+    updateProject.mutate(input, { onSuccess: () => setEditOpen(false) })
   }
 
-  const handleReport = async () => {
-    setReporting(true)
-    setReportError(null)
-    try {
-      const res = await projectsApi.report(id)
-      if (res?.downloadUrl) window.open(res.downloadUrl, "_blank")
-    } catch {
-      setReportError(tc("error"))
-    } finally {
-      setReporting(false)
-    }
+  const handleReport = () => {
+    generateReport.mutate(undefined, {
+      onSuccess: (res) => {
+        if (res?.downloadUrl) window.open(res.downloadUrl, "_blank")
+      },
+    })
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!window.confirm(t("deleteConfirm"))) return
-    setDeleting(true)
-    try {
-      await projectsApi.remove(id)
-      router.push("/projects")
-    } catch {
-      setError(tc("error"))
-      setDeleting(false)
-    }
+    deleteProject.mutate(id, { onSuccess: () => router.push("/projects") })
   }
 
-  if (loading) {
+  if (projectQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-slate-500">
         <Spinner className="me-2 text-brand-700" />
@@ -115,7 +77,7 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="space-y-4">
-        <Alert variant="error">{error ?? tc("error")}</Alert>
+        <Alert variant="error">{tc("error")}</Alert>
         <Link href="/projects">
           <Button variant="outline">{tc("back")}</Button>
         </Link>
@@ -160,9 +122,9 @@ export default function ProjectDetailPage() {
           <Link href={`/projects/${id}/assessment`}>
             <Button variant="outline">{t("assessment")}</Button>
           </Link>
-          <Button onClick={handleReport} disabled={reporting}>
-            {reporting ? <Spinner /> : null}
-            {reporting ? t("generatingReport") : t("report")}
+          <Button onClick={handleReport} disabled={generateReport.isPending}>
+            {generateReport.isPending ? <Spinner /> : null}
+            {generateReport.isPending ? t("generatingReport") : t("report")}
           </Button>
           <Button variant="outline" onClick={() => setEditOpen(true)}>
             {tc("edit")}
@@ -170,16 +132,20 @@ export default function ProjectDetailPage() {
           <Button
             variant="danger"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleteProject.isPending}
           >
-            {deleting ? <Spinner /> : null}
+            {deleteProject.isPending ? <Spinner /> : null}
             {tc("delete")}
           </Button>
         </div>
       </div>
 
-      {error ? <Alert variant="error">{error}</Alert> : null}
-      {reportError ? <Alert variant="error">{reportError}</Alert> : null}
+      {updateProject.isError || deleteProject.isError ? (
+        <Alert variant="error">{tc("error")}</Alert>
+      ) : null}
+      {generateReport.isError ? (
+        <Alert variant="error">{tc("error")}</Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -210,7 +176,7 @@ export default function ProjectDetailPage() {
       <Modal
         title={tc("edit")}
         open={editOpen}
-        onClose={() => (saving ? undefined : setEditOpen(false))}
+        onClose={() => (updateProject.isPending ? undefined : setEditOpen(false))}
       >
         <ProjectForm
           initial={{
@@ -224,7 +190,7 @@ export default function ProjectDetailPage() {
             unitCount: project.unitCount,
             usage: project.usage ?? undefined,
           }}
-          submitting={saving}
+          submitting={updateProject.isPending}
           onSubmit={handleSave}
           onCancel={() => setEditOpen(false)}
         />

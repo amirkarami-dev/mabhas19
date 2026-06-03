@@ -1,10 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
-import { projectsApi, subscriptionApi } from "@/lib/endpoints"
-import type { Subscription } from "@/lib/types"
+import { useProjects, useSubscription } from "@/lib/queries"
 import type { ProjectDto } from "@/components/projects/project-types"
 import {
   Alert,
@@ -27,40 +25,18 @@ export default function DashboardPage() {
   const tc = useTranslations("common")
   const locale = useLocale()
 
-  const [sub, setSub] = useState<Subscription | null>(null)
-  const [projects, setProjects] = useState<ProjectDto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const projectsQuery = useProjects()
+  const subscriptionQuery = useSubscription()
 
-  useEffect(() => {
-    let active = true
-    ;(async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [s, p] = await Promise.all([
-          subscriptionApi.me().catch(() => null),
-          projectsApi.list() as Promise<ProjectDto[]>,
-        ])
-        if (!active) return
-        setSub(s)
-        setProjects(p)
-      } catch {
-        if (active) setError(tc("error"))
-      } finally {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [tc])
+  // Subscription is non-fatal here — the dashboard still renders if it fails.
+  const projects = (projectsQuery.data ?? []) as ProjectDto[]
+  const sub = subscriptionQuery.data ?? null
 
   const recent = [...projects]
     .sort((a, b) => (b.created ?? "").localeCompare(a.created ?? ""))
     .slice(0, 5)
 
-  if (loading) {
+  if (projectsQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-slate-500">
         <Spinner className="me-2 text-brand-700" />
@@ -71,7 +47,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {error ? <Alert variant="error">{error}</Alert> : null}
+      {projectsQuery.isError ? <Alert variant="error">{tc("error")}</Alert> : null}
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

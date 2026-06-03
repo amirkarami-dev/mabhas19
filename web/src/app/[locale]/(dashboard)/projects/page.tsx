@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
-import { projectsApi } from "@/lib/endpoints"
+import { useCreateProject, useDeleteProject, useProjects } from "@/lib/queries"
 import { ApiError } from "@/lib/api"
 import type { CreateProjectInput } from "@/lib/types"
 import type { ProjectDto } from "@/components/projects/project-types"
@@ -38,61 +38,33 @@ export default function ProjectsPage() {
   const tc = useTranslations("common")
   const locale = useLocale()
 
-  const [projects, setProjects] = useState<ProjectDto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const projectsQuery = useProjects()
+  const createProject = useCreateProject()
+  const deleteProject = useDeleteProject()
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const projects = (projectsQuery.data ?? []) as ProjectDto[]
+  // Single delete is in flight at a time; derive the busy row from the mutation.
+  const deletingId = deleteProject.isPending
+    ? String(deleteProject.variables)
+    : null
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const p = (await projectsApi.list()) as ProjectDto[]
-      setProjects(p)
-    } catch {
-      setError(tc("error"))
-    } finally {
-      setLoading(false)
-    }
-  }, [tc])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load()
-  }, [load])
-
-  const handleCreate = async (input: CreateProjectInput) => {
-    setSubmitting(true)
+  const handleCreate = (input: CreateProjectInput) => {
     setCreateError(null)
-    try {
-      await projectsApi.create(input)
-      setCreateOpen(false)
-      await load()
-    } catch (err) {
-      const subMsg = extractSubscriptionError(err)
-      setCreateError(subMsg ?? tc("error"))
-    } finally {
-      setSubmitting(false)
-    }
+    createProject.mutate(input, {
+      onSuccess: () => setCreateOpen(false),
+      onError: (err) => {
+        const subMsg = extractSubscriptionError(err)
+        setCreateError(subMsg ?? tc("error"))
+      },
+    })
   }
 
-  const handleDelete = async (id: string | number) => {
+  const handleDelete = (id: string | number) => {
     if (!window.confirm(t("deleteConfirm"))) return
-    const sid = String(id)
-    setDeletingId(sid)
-    try {
-      await projectsApi.remove(sid)
-      setProjects((prev) => prev.filter((p) => String(p.id) !== sid))
-    } catch {
-      setError(tc("error"))
-    } finally {
-      setDeletingId(null)
-    }
+    deleteProject.mutate(String(id))
   }
 
   return (
@@ -112,11 +84,13 @@ export default function ProjectsPage() {
         </Button>
       </div>
 
-      {error ? <Alert variant="error">{error}</Alert> : null}
+      {projectsQuery.isError || deleteProject.isError ? (
+        <Alert variant="error">{tc("error")}</Alert>
+      ) : null}
 
       <Card>
         <CardBody className="p-0">
-          {loading ? (
+          {projectsQuery.isLoading ? (
             <div className="flex items-center justify-center py-16 text-slate-500">
               <Spinner className="me-2 text-brand-700" />
               {tc("loading")}
@@ -186,7 +160,7 @@ export default function ProjectsPage() {
       <Modal
         title={t("createTitle")}
         open={createOpen}
-        onClose={() => (submitting ? undefined : setCreateOpen(false))}
+        onClose={() => (createProject.isPending ? undefined : setCreateOpen(false))}
       >
         {createError ? (
           <Alert variant="error" className="mb-4">
@@ -194,7 +168,7 @@ export default function ProjectsPage() {
           </Alert>
         ) : null}
         <ProjectForm
-          submitting={submitting}
+          submitting={createProject.isPending}
           onSubmit={handleCreate}
           onCancel={() => setCreateOpen(false)}
         />

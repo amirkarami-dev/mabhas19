@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { Alert, Badge, Button, Card, CardBody, CardHeader, Spinner } from "@/components/ui"
-import { projectsApi } from "@/lib/endpoints"
-import { ApiError } from "@/lib/api"
+import { useAssessment, useSaveAssessment } from "@/lib/queries"
+import type { Assessment } from "@/lib/types"
 import {
   ASSESSMENT_SECTIONS,
   TOTAL_MAX_SCORE,
@@ -41,69 +41,65 @@ interface AssessmentWorkspaceProps {
   climateCode: string
 }
 
-type SaveState = "idle" | "saving" | "success" | "error"
+// Parse the stored assessment JSON into the inputs each checklist hydrates from and
+// the score-only results used to show badges/totals before a tool is opened.
+function parseAssessment(assessment: Assessment | null | undefined): {
+  initialInputs: Record<string, Record<string, unknown>>
+  loadedResults: Record<string, ToolResult>
+} {
+  const initialInputs: Record<string, Record<string, unknown>> = {}
+  const loadedResults: Record<string, ToolResult> = {}
+  if (!assessment) return { initialInputs, loadedResults }
+  try {
+    if (assessment.inputJson) {
+      Object.assign(initialInputs, JSON.parse(assessment.inputJson))
+    }
+  } catch {
+    // ignore malformed inputJson
+  }
+  try {
+    if (assessment.resultJson) {
+      const raw = JSON.parse(assessment.resultJson) as Record<
+        string,
+        { score: number; maxScore: number; title?: string }
+      >
+      Object.entries(raw).forEach(([toolKey, r]) => {
+        loadedResults[toolKey] = {
+          toolKey: toolKey as ToolKey,
+          score: r.score,
+          maxScore: r.maxScore,
+        }
+      })
+    }
+  } catch {
+    // ignore malformed resultJson
+  }
+  return { initialInputs, loadedResults }
+}
 
 export default function AssessmentWorkspace({ projectId, meta, climateCode }: AssessmentWorkspaceProps) {
   const t = useTranslations("assessment")
 
-  const [loading, setLoading] = useState(true)
-  const [initialInputs, setInitialInputs] = useState<Record<string, Record<string, unknown>>>({})
-  const [results, setResults] = useState<Record<string, ToolResult>>({})
-  const [openTool, setOpenTool] = useState<ToolKey | null>(null)
-  const [saveState, setSaveState] = useState<SaveState>("idle")
+  const assessmentQuery = useAssessment(projectId)
+  const saveAssessment = useSaveAssessment(projectId)
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const assessment = await projectsApi.getAssessment(projectId)
-        if (cancelled) return
-        const parsedInputs: Record<string, Record<string, unknown>> = {}
-        const parsedResults: Record<string, ToolResult> = {}
-        try {
-          if (assessment.inputJson) {
-            Object.assign(parsedInputs, JSON.parse(assessment.inputJson))
-          }
-        } catch {
-          // ignore malformed inputJson
-        }
-        try {
-          if (assessment.resultJson) {
-            const raw = JSON.parse(assessment.resultJson) as Record<
-              string,
-              { score: number; maxScore: number; title?: string }
-            >
-            Object.entries(raw).forEach(([toolKey, r]) => {
-              parsedResults[toolKey] = {
-                toolKey: toolKey as ToolKey,
-                score: r.score,
-                maxScore: r.maxScore,
-              }
-            })
-          }
-        } catch {
-          // ignore malformed resultJson
-        }
-        setInitialInputs(parsedInputs)
-        setResults(parsedResults)
-      } catch (err) {
-        if (!(err instanceof ApiError && err.status === 404)) {
-          // non-404 errors: log but still allow a fresh assessment
-          console.error("Failed to load assessment", err)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [projectId])
+  // Loaded data is derived from the query (no set-state-on-load); runtime edits from the
+  // checklists overlay it, so opened tools win over the score-only loaded entries.
+  const { initialInputs, loadedResults } = useMemo(
+    () => parseAssessment(assessmentQuery.data),
+    [assessmentQuery.data]
+  )
+  const [runtimeResults, setRuntimeResults] = useState<Record<string, ToolResult>>({})
+  const [openTool, setOpenTool] = useState<ToolKey | null>(null)
+
+  const results = useMemo(
+    () => ({ ...loadedResults, ...runtimeResults }),
+    [loadedResults, runtimeResults]
+  )
 
   const handleResult = (result: ToolResult) => {
-    setResults((prev) => {
-      const existing = prev[result.toolKey]
+    setRuntimeResults((prev) => {
+      const existing = prev[result.toolKey] ?? loadedResults[result.toolKey]
       if (
         existing &&
         existing.score === result.score &&
@@ -121,38 +117,31 @@ export default function AssessmentWorkspace({ projectId, meta, climateCode }: As
     [results]
   )
 
-  const handleSave = async () => {
-    setSaveState("saving")
-    try {
-      const inputMap: Record<string, unknown> = {}
-      const resultMap: Record<string, { score: number; maxScore: number; title: string }> = {}
-      ASSESSMENT_SECTIONS.forEach((section) => {
-        section.tools.forEach((tool) => {
-          const r = results[tool.toolKey]
-          if (r) {
-            inputMap[tool.toolKey] = r.details ?? {}
-            resultMap[tool.toolKey] = {
-              score: r.score,
-              maxScore: r.maxScore,
-              title: tool.name,
-            }
+  const handleSave = () => {
+    const inputMap: Record<string, unknown> = {}
+    const resultMap: Record<string, { score: number; maxScore: number; title: string }> = {}
+    ASSESSMENT_SECTIONS.forEach((section) => {
+      section.tools.forEach((tool) => {
+        const r = results[tool.toolKey]
+        if (r) {
+          inputMap[tool.toolKey] = r.details ?? {}
+          resultMap[tool.toolKey] = {
+            score: r.score,
+            maxScore: r.maxScore,
+            title: tool.name,
           }
-        })
+        }
       })
-      await projectsApi.saveAssessment(projectId, {
-        inputJson: JSON.stringify(inputMap),
-        resultJson: JSON.stringify(resultMap),
-        totalScore,
-        maxScore: TOTAL_MAX_SCORE,
-      })
-      setSaveState("success")
-    } catch (err) {
-      console.error("Failed to save assessment", err)
-      setSaveState("error")
-    }
+    })
+    saveAssessment.mutate({
+      inputJson: JSON.stringify(inputMap),
+      resultJson: JSON.stringify(resultMap),
+      totalScore,
+      maxScore: TOTAL_MAX_SCORE,
+    })
   }
 
-  if (loading) {
+  if (assessmentQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-500">
         <Spinner className="h-6 w-6" />
@@ -170,13 +159,13 @@ export default function AssessmentWorkspace({ projectId, meta, climateCode }: As
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {saveState === "success" ? (
+          {saveAssessment.isSuccess ? (
             <Alert variant="success">{t("saveSuccess")}</Alert>
-          ) : saveState === "error" ? (
+          ) : saveAssessment.isError ? (
             <Alert variant="error">{t("saveError")}</Alert>
           ) : null}
-          <Button onClick={handleSave} disabled={saveState === "saving"}>
-            {saveState === "saving" ? <Spinner /> : null}
+          <Button onClick={handleSave} disabled={saveAssessment.isPending}>
+            {saveAssessment.isPending ? <Spinner /> : null}
             {t("save")}
           </Button>
         </div>

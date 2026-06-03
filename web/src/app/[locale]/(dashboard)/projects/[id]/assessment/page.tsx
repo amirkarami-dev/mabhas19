@@ -1,11 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Alert, Badge, Card, CardBody, CardHeader, Spinner } from "@/components/ui"
-import { projectsApi } from "@/lib/endpoints"
-import type { Project } from "@/lib/types"
+import { useProject } from "@/lib/queries"
 import AssessmentWorkspace from "@/features/assessment/AssessmentWorkspace"
 import type { BuildingMeta } from "@/features/assessment/checklists/shared"
 
@@ -14,30 +12,10 @@ export default function AssessmentPage() {
   const id = params?.id ?? ""
   const t = useTranslations("assessment")
 
-  const [project, setProject] = useState<Project | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const projectQuery = useProject(id)
+  const project = projectQuery.data ?? null
 
-  useEffect(() => {
-    if (!id) return
-    let cancelled = false
-    const load = async () => {
-      try {
-        const p = await projectsApi.get(id)
-        if (!cancelled) setProject(p)
-      } catch {
-        if (!cancelled) setError(true)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [id])
-
-  if (loading) {
+  if (projectQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-20 text-slate-500">
         <Spinner className="h-6 w-6" />
@@ -45,7 +23,7 @@ export default function AssessmentPage() {
     )
   }
 
-  if (error || !project) {
+  if (projectQuery.isError || !project) {
     return (
       <div className="mx-auto max-w-3xl py-10">
         <Alert variant="error">{t("saveError")}</Alert>

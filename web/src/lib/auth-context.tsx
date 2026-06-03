@@ -4,12 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
   type ReactNode,
 } from "react"
 import { signOut, useSession } from "next-auth/react"
-import { authApi } from "./endpoints"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCurrentUser } from "./queries"
+import { queryKeys } from "./query-keys"
 import type { CurrentUser } from "./types"
 
 interface AuthState {
@@ -26,50 +26,29 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { status } = useSession()
-  const [user, setUser] = useState<CurrentUser | null>(null)
-  const [userFetched, setUserFetched] = useState(false)
+  const qc = useQueryClient()
 
   const ready = status !== "loading"
   const isAuthenticated = status === "authenticated"
 
-  const refreshUser = useCallback(async () => {
-    if (!isAuthenticated) {
-      setUser(null)
-      return
-    }
-    try {
-      const info = await authApi.me()
-      setUser(info)
-    } catch {
-      setUser(null)
-    }
-  }, [isAuthenticated])
+  // The user profile is fetched (and cached) only once the session is authenticated;
+  // disabling the query when signed out yields `undefined` -> null.
+  const { data: user = null } = useCurrentUser(isAuthenticated)
 
-  // Fetch user profile once when the session becomes authenticated.
-  useEffect(() => {
-    void (async () => {
-      if (!isAuthenticated) {
-        setUser(null)
-        setUserFetched(false)
-        return
-      }
-      if (userFetched) return
-      setUserFetched(true)
-      await refreshUser()
-    })()
-  }, [isAuthenticated, userFetched, refreshUser])
+  const refreshUser = useCallback(async () => {
+    await qc.invalidateQueries({ queryKey: queryKeys.currentUser })
+  }, [qc])
 
   const logout = useCallback(async () => {
     await signOut({ redirect: false })
-    setUser(null)
-    setUserFetched(false)
+    qc.clear() // drop all cached private data so nothing leaks to the next user
     const issuer = process.env.NEXT_PUBLIC_AUTH_ISSUER
     if (issuer) {
       window.location.href = `${issuer}/connect/logout`
     } else {
       window.location.href = "/login"
     }
-  }, [])
+  }, [qc])
 
   return (
     <AuthContext.Provider

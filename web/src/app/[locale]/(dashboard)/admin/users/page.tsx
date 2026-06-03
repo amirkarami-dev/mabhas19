@@ -1,10 +1,16 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useLocale } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { adminApi } from "@/lib/endpoints"
+import {
+  useAdminUsers,
+  useCreateUser,
+  useRemoveUser,
+  useSetUserRole,
+  useUpdateUserSubscription,
+} from "@/lib/queries"
 import { ApiError } from "@/lib/api"
 import type {
   AdminUser,
@@ -67,9 +73,31 @@ export default function AdminUsersPage() {
   const fa = locale === "fa"
   const { ready, isAdmin } = useAuth()
 
-  const [users, setUsers] = useState<AdminUser[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const errText = bi(fa, "خطایی رخ داد", "Something went wrong")
+
+  const usersQuery = useAdminUsers(ready && isAdmin)
+  const createUser = useCreateUser()
+  const updateSub = useUpdateUserSubscription()
+  const setRole = useSetUserRole()
+  const removeUser = useRemoveUser()
+
+  const users = usersQuery.data ?? []
+
+  // Top-level error: a load failure, or a row action (role toggle / delete) failure.
+  const error = usersQuery.isError
+    ? extractApiMessage(usersQuery.error, errText)
+    : setRole.isError
+      ? extractApiMessage(setRole.error, errText)
+      : removeUser.isError
+        ? extractApiMessage(removeUser.error, errText)
+        : null
+
+  // Per-row busy state (one role toggle / delete in flight at a time).
+  const busyId = setRole.isPending
+    ? (setRole.variables?.id ?? null)
+    : removeUser.isPending
+      ? (removeUser.variables ?? null)
+      : null
 
   // create-user modal
   const [createOpen, setCreateOpen] = useState(false)
@@ -79,7 +107,6 @@ export default function AdminUsersPage() {
     isAdmin: false,
   })
   const [createError, setCreateError] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
 
   // edit-subscription modal
   const [editUser, setEditUser] = useState<AdminUser | null>(null)
@@ -90,45 +117,17 @@ export default function AdminUsersPage() {
     validTo: null,
   })
   const [editError, setEditError] = useState<string | null>(null)
-  const [savingSub, setSavingSub] = useState(false)
-
-  // per-row busy state (role toggle / delete)
-  const [busyId, setBusyId] = useState<string | null>(null)
-
-  const errText = bi(fa, "خطایی رخ داد", "Something went wrong")
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const list = await adminApi.listUsers()
-      setUsers(list)
-    } catch (err) {
-      setError(extractApiMessage(err, errText))
-    } finally {
-      setLoading(false)
-    }
-  }, [errText])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (ready && isAdmin) void load()
-  }, [ready, isAdmin, load])
 
   // ---- create ----
-  const handleCreate = async () => {
-    setCreating(true)
+  const handleCreate = () => {
     setCreateError(null)
-    try {
-      await adminApi.createUser(createForm)
-      setCreateOpen(false)
-      setCreateForm({ email: "", password: "", isAdmin: false })
-      await load()
-    } catch (err) {
-      setCreateError(extractApiMessage(err, errText))
-    } finally {
-      setCreating(false)
-    }
+    createUser.mutate(createForm, {
+      onSuccess: () => {
+        setCreateOpen(false)
+        setCreateForm({ email: "", password: "", isAdmin: false })
+      },
+      onError: (err) => setCreateError(extractApiMessage(err, errText)),
+    })
   }
 
   // ---- edit subscription ----
@@ -143,58 +142,40 @@ export default function AdminUsersPage() {
     })
   }
 
-  const handleSaveSub = async () => {
+  const handleSaveSub = () => {
     if (!editUser) return
-    setSavingSub(true)
     setEditError(null)
-    try {
-      await adminApi.updateSubscription(editUser.id!, {
-        plan: editForm.plan,
-        maxProjects: Number(editForm.maxProjects) || 0,
-        isActive: editForm.isActive,
-        validTo: editForm.validTo || null,
-      })
-      setEditUser(null)
-      await load()
-    } catch (err) {
-      setEditError(extractApiMessage(err, errText))
-    } finally {
-      setSavingSub(false)
-    }
+    updateSub.mutate(
+      {
+        id: editUser.id!,
+        input: {
+          plan: editForm.plan,
+          maxProjects: Number(editForm.maxProjects) || 0,
+          isActive: editForm.isActive,
+          validTo: editForm.validTo || null,
+        },
+      },
+      {
+        onSuccess: () => setEditUser(null),
+        onError: (err) => setEditError(extractApiMessage(err, errText)),
+      }
+    )
   }
 
   // ---- role toggle ----
-  const handleToggleRole = async (u: AdminUser) => {
-    setBusyId(u.id!)
-    setError(null)
-    try {
-      await adminApi.setRole(u.id!, !u.isAdmin)
-      await load()
-    } catch (err) {
-      setError(extractApiMessage(err, errText))
-    } finally {
-      setBusyId(null)
-    }
+  const handleToggleRole = (u: AdminUser) => {
+    setRole.mutate({ id: u.id!, isAdmin: !u.isAdmin })
   }
 
   // ---- delete ----
-  const handleDelete = async (u: AdminUser) => {
+  const handleDelete = (u: AdminUser) => {
     const msg = bi(
       fa,
       `کاربر «${u.email}» حذف شود؟`,
       `Delete user "${u.email}"?`
     )
     if (!window.confirm(msg)) return
-    setBusyId(u.id!)
-    setError(null)
-    try {
-      await adminApi.removeUser(u.id!)
-      setUsers((prev) => prev.filter((x) => x.id !== u.id))
-    } catch (err) {
-      setError(extractApiMessage(err, errText))
-    } finally {
-      setBusyId(null)
-    }
+    removeUser.mutate(u.id!)
   }
 
   // ---- access guard ----
@@ -248,7 +229,7 @@ export default function AdminUsersPage() {
 
       <Card>
         <CardBody className="p-0">
-          {loading || !ready ? (
+          {usersQuery.isLoading || !ready ? (
             <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
               <Spinner className="text-primary" />
               {bi(fa, "در حال بارگذاری…", "Loading…")}
@@ -335,7 +316,7 @@ export default function AdminUsersPage() {
       <AdminModal
         title={bi(fa, "کاربر جدید", "New user")}
         open={createOpen}
-        onClose={() => (creating ? undefined : setCreateOpen(false))}
+        onClose={() => (createUser.isPending ? undefined : setCreateOpen(false))}
       >
         {createError ? (
           <Alert variant="error" className="mb-4">
@@ -380,12 +361,12 @@ export default function AdminUsersPage() {
               type="button"
               variant="outline"
               onClick={() => setCreateOpen(false)}
-              disabled={creating}
+              disabled={createUser.isPending}
             >
               {bi(fa, "انصراف", "Cancel")}
             </Button>
-            <Button type="submit" disabled={creating}>
-              {creating ? <Spinner /> : bi(fa, "ایجاد", "Create")}
+            <Button type="submit" disabled={createUser.isPending}>
+              {createUser.isPending ? <Spinner /> : bi(fa, "ایجاد", "Create")}
             </Button>
           </div>
         </form>
@@ -395,7 +376,7 @@ export default function AdminUsersPage() {
       <AdminModal
         title={bi(fa, "ویرایش اشتراک", "Edit subscription")}
         open={Boolean(editUser)}
-        onClose={() => (savingSub ? undefined : setEditUser(null))}
+        onClose={() => (updateSub.isPending ? undefined : setEditUser(null))}
       >
         {editUser ? (
           <>
@@ -460,12 +441,12 @@ export default function AdminUsersPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setEditUser(null)}
-                  disabled={savingSub}
+                  disabled={updateSub.isPending}
                 >
                   {bi(fa, "انصراف", "Cancel")}
                 </Button>
-                <Button type="submit" disabled={savingSub}>
-                  {savingSub ? <Spinner /> : bi(fa, "ذخیره", "Save")}
+                <Button type="submit" disabled={updateSub.isPending}>
+                  {updateSub.isPending ? <Spinner /> : bi(fa, "ذخیره", "Save")}
                 </Button>
               </div>
             </form>
