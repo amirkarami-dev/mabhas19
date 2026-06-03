@@ -91,6 +91,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    # Pin the IdP host to its ArvanCloud edge (valid cert) so JWKS/metadata resolution for JWT
+    # validation isn't subject to the flaky container DNS. NOTE: update if the edge IP rotates.
+    extra_hosts:
+      - "auth.myceo.ir:185.143.234.234"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19Db: "Server=sqlserver,1433;Database=Mabhas19Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
@@ -117,6 +121,11 @@ services:
     image: mabhas19-web:deploy
     restart: unless-stopped
     depends_on: [api]
+    # Container DNS for the (ArvanCloud-proxied) IdP host is intermittently flaky (EAI_AGAIN),
+    # which breaks Auth.js's server-side discovery/token calls. Pin it to the ArvanCloud edge
+    # (valid cert, SNI-routed) so resolution is deterministic. NOTE: update if the edge IP rotates.
+    extra_hosts:
+      - "auth.myceo.ir:185.143.234.234"
     environment:
       NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
       # Auth.js (NextAuth v5) OIDC client → central IdP. Server-side runtime values.
@@ -134,7 +143,9 @@ services:
       - "traefik.http.routers.m19web.entrypoints=websecure"
       - "traefik.http.routers.m19web.tls.certresolver=myresolver"
       - "traefik.http.services.m19web.loadbalancer.server.port=3000"
-    networks: [traefik]
+    # internal: gives the container DNS + egress so Auth.js server-side calls reach the IdP
+    # (auth.myceo.ir) over the valid public path — same as the api container.
+    networks: [traefik, internal]
 
 volumes:
   pgdata:      # retained: previous PostgreSQL data (not deleted, in case migration is needed later)
