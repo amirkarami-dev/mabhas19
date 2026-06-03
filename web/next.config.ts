@@ -6,8 +6,8 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // Compile the workspace-local shared engine (ships as TypeScript source).
-  transpilePackages: ["@mabhas19/assessment-core"],
+  // Compile workspace-local packages that ship as TypeScript source (no build step).
+  transpilePackages: ["@mabhas19/assessment-core", "@mabhas19/ui"],
   // We're in an npm-workspaces monorepo; trace from the repo root so the
   // standalone bundle is deterministic (server entry lands at web/server.js).
   outputFileTracingRoot: path.join(__dirname, ".."),

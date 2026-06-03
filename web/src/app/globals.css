@@ -3,6 +3,9 @@
 @import "@fontsource/vazirmatn/500.css";
 @import "@fontsource/vazirmatn/700.css";
 
+/* Ensure Tailwind v4 scans the shared UI package so its classes are not purged. */
+@source "../../../packages/ui/src";
+
 @custom-variant dark (&:is(.dark *));
 
 /* ------------------------------------------------------------------ *
