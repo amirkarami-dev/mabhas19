@@ -7,6 +7,7 @@ import {
   INTEGRATED_ITEMS,
   INTEGRATED_TOOL_MAX_SCORE,
   INTEGRATED_USAGE_OPTIONS,
+  scoreIntegrated,
 } from "../data/integratedDb"
 import { toPersianDigits } from "../data/utils"
 import type { ToolResult } from "../data/sections"
@@ -55,13 +56,15 @@ export default function IntegratedMgmtChecklist({ meta, climateCode, initial, on
   }, [logicActive])
 
   const scoreState = useMemo(() => {
-    const activeRows = logicActive ? ITEMS.length : 0
-    const passedRows = logicActive
-      ? ITEMS.filter((_, idx) => responses[`row_${idx}`] === "y").length
-      : 0
-    const allPassed = !logicActive || passedRows === ITEMS.length
-    const totalScore = allPassed ? INTEGRATED_TOOL_MAX_SCORE : 0
-    return { activeRows, passedRows, allPassed, totalScore }
+    // Single source of truth: the tested pure scorer in @mabhas19/assessment-core,
+    // instead of duplicating the math here.
+    const r = scoreIntegrated({ logicActive, responses })
+    return {
+      activeRows: r.activeRows,
+      passedRows: r.passedRows,
+      allPassed: r.allPassed,
+      totalScore: r.score,
+    }
   }, [logicActive, responses])
 
   useEffect(() => {

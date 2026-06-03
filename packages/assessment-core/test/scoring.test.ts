@@ -9,6 +9,7 @@ import {
   scoreTool,
   calcBuildingGroup,
   getOpaqueTargetR,
+  INTEGRATED_ITEMS,
   TOTAL_MAX_SCORE,
 } from "../src/index"
 
@@ -95,6 +96,22 @@ describe("monitoring + integrated", () => {
     const r = scoreIntegrated({ logicActive: true, responses: {} })
     expect(r.allPassed).toBe(false)
     expect(r.score).toBe(0)
+  })
+
+  it("integrated awards full score only when every active row passes", () => {
+    const items = INTEGRATED_ITEMS as unknown[]
+    const allYes = Object.fromEntries(items.map((_, i) => [`row_${i}`, "y"]))
+    const full = scoreIntegrated({ logicActive: true, responses: allYes })
+    expect(full.passedRows).toBe(items.length)
+    expect(full.allPassed).toBe(true)
+    expect(full.score).toBe(77)
+
+    // One missing answer -> all-or-nothing, no credit.
+    const oneMissing = { ...allYes }
+    delete oneMissing.row_0
+    const partial = scoreIntegrated({ logicActive: true, responses: oneMissing })
+    expect(partial.allPassed).toBe(false)
+    expect(partial.score).toBe(0)
   })
 })
 
