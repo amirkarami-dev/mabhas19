@@ -40,7 +40,7 @@ proceed now.
 ### Phase B — Foundation
 - [ ] **Shared design-system package** (`packages/ui` from `web/src/components/ui`) — portal foundation. *(dev-time; do now)*
 - [ ] **Typed API SDK** generated from the API OpenAPI doc; replace hand-written DTOs in web + mobile. *(dev-time; do now)*
-- [ ] **Shared api-client package** (dedupe web/mobile `api.ts` + the generated SDK). *(dev-time)*
+- [x] ~~**Shared api-client package**~~ — **DROPPED** (Phase 2 diverged web Auth.js ⇄ mobile expo-auth-session token handling; a unified client buys too little).
 - [ ] **MediatR v14 license** or swap to a free mediator — release blocker (ADR-002). *(dev-time)*
 - [ ] **Observability** — deploy an OTel collector + set `OTEL_EXPORTER_OTLP_ENDPOINT`. *(deferred to cutover)*
 - [ ] **Image hardening** — pin base images by digest + CVE scan (Trivy) in CI. *(deferred to cutover)*
