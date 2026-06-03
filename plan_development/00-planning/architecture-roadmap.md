@@ -38,10 +38,11 @@ proceed now.
 - [ ] Follow-up: move admin user-management into the IdP.
 
 ### Phase B — Foundation
-- [ ] **Shared design-system package** (`packages/ui` from `web/src/components/ui`) — portal foundation. *(dev-time; do now)*
-- [ ] **Typed API SDK** generated from the API OpenAPI doc; replace hand-written DTOs in web + mobile. *(dev-time; do now)*
+- [x] **Shared design-system package** (`packages/ui`) — portal foundation. ✅ done (`7199885`)
+- [ ] **Typed API SDK** generated from the API OpenAPI doc; replace hand-written DTOs in web + mobile. *(dev-time; in progress)*
 - [x] ~~**Shared api-client package**~~ — **DROPPED** (Phase 2 diverged web Auth.js ⇄ mobile expo-auth-session token handling; a unified client buys too little).
-- [ ] **MediatR v14 license** or swap to a free mediator — release blocker (ADR-002). *(dev-time)*
+- [x] **MediatR** — pinned to free **12.5.0** (Apache-2.0); commercial-license requirement removed. ✅ done (`7ee0e41`, ADR-002)
+- [ ] **AutoMapper licensing — TRACKED (not a current blocker, per decision 2026-06-03).** AutoMapper 16.x uses the same vendor commercial-license model (last free = 12.x). Resolve **before go-live** via one of: pin to free 12.x (API churn), migrate to **Mapperly** (source-gen, MIT), or purchase the license. No mapping refactor now.
 - [ ] **Observability** — deploy an OTel collector + set `OTEL_EXPORTER_OTLP_ENDPOINT`. *(deferred to cutover)*
 - [ ] **Image hardening** — pin base images by digest + CVE scan (Trivy) in CI. *(deferred to cutover)*
 - [ ] Make web lint blocking in CI after fixing the `react-hooks/set-state-in-effect` items.
