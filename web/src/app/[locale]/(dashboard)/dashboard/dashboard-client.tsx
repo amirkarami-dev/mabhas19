@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
-import { useProjects, useSubscription } from "@/lib/queries"
+import { useProjects } from "@/lib/queries"
 import type { ProjectDto } from "@/components/projects/project-types"
 import {
   Alert,
@@ -26,11 +26,8 @@ export default function DashboardClient() {
   const locale = useLocale()
 
   const projectsQuery = useProjects()
-  const subscriptionQuery = useSubscription()
 
-  // Subscription is non-fatal here — the dashboard still renders if it fails.
   const projects = (projectsQuery.data ?? []) as ProjectDto[]
-  const sub = subscriptionQuery.data ?? null
 
   const recent = [...projects]
     .sort((a, b) => (b.created ?? "").localeCompare(a.created ?? ""))
@@ -56,19 +53,6 @@ export default function DashboardClient() {
           value={fmt(locale, projects.length)}
           tone="brand"
         />
-        <StatCard
-          label={t("subscriptionUsage")}
-          value={
-            sub
-              ? t("usedOf", {
-                  used: fmt(locale, sub.usedProjects == null ? sub.usedProjects : Number(sub.usedProjects)),
-                  max: fmt(locale, sub.maxProjects == null ? sub.maxProjects : Number(sub.maxProjects)),
-                })
-              : "-"
-          }
-          tone="green"
-        />
-        <StatCard label={t("plan")} value={sub?.plan ?? "-"} tone="slate" />
       </div>
 
       {/* Recent projects */}

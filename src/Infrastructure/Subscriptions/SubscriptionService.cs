@@ -38,17 +38,14 @@ public class SubscriptionService : ISubscriptionService
     public async Task EnsureCanCreateProjectAsync(string userId, CancellationToken ct = default)
     {
         var sub = await GetOrCreateAsync(userId, ct);
-        var count = await _context.Projects.CountAsync(p => p.OwnerId == userId, ct);
 
         if (!sub.IsActive)
         {
-            Throw("اشتراک شما فعال نیست.");
+            Throw("حساب کاربری شما فعال نیست.");
         }
 
-        if (count >= sub.MaxProjects)
-        {
-            Throw($"به سقف تعداد پروژه‌های مجاز ({sub.MaxProjects}) رسیده‌اید. برای ایجاد پروژه بیشتر اشتراک خود را ارتقا دهید.");
-        }
+        // The per-user project cap has been removed — active users may create unlimited
+        // projects. (MaxProjects is kept on the record for admin display only.)
     }
 
     private static void Throw(string message)

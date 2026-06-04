@@ -16,8 +16,8 @@ export function Faq() {
     {
       q: fa ? "آیا استفاده از پلتفرم رایگان است؟" : "Is the platform free to use?",
       a: fa
-        ? "بله، پلن رایگان شامل ۵ پروژه با دسترسی کامل به چک‌لیست‌ها و خروجی PDF است."
-        : "Yes, the free plan includes 5 projects with full access to checklists and PDF export.",
+        ? "بله، استفاده از سامانه رایگان است و به همهٔ چک‌لیست‌ها و خروجی PDF فارسی دسترسی دارید."
+        : "Yes, the platform is free to use, with full access to all checklists and Persian PDF export.",
     },
     {
       q: fa ? "گزارش خروجی چه فرمتی دارد؟" : "What format is the report?",
@@ -36,12 +36,6 @@ export function Faq() {
       a: fa
         ? "بله، با انتخاب موقعیت پروژه، پهنه اقلیمی مناسب از میان ۶ پهنه کشور پیشنهاد می‌شود."
         : "Yes, after selecting the project location, the appropriate zone among the 6 regions is suggested.",
-    },
-    {
-      q: fa ? "آیا می‌توانم پلن خود را ارتقا دهم؟" : "Can I upgrade my plan?",
-      a: fa
-        ? "در هر زمان می‌توانید از پلن رایگان به Pro یا سازمانی ارتقا دهید."
-        : "You can upgrade from Free to Pro or Enterprise at any time.",
     },
   ]
 

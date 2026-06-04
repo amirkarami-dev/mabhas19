@@ -3,8 +3,9 @@ using Mabhas19.Domain.Enums;
 namespace Mabhas19.Domain.Entities;
 
 /// <summary>
-/// A user's subscription, which caps how many projects they may own.
-/// Every registered user gets a Free plan with 5 projects by default.
+/// A user's subscription record. The per-user project cap is no longer enforced —
+/// active users may create unlimited projects — so <see cref="MaxProjects"/> is retained
+/// for admin display/management only. Every registered user gets a Free plan by default.
 /// </summary>
 public class Subscription : BaseAuditableEntity
 {

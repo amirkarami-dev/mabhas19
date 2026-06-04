@@ -55,16 +55,6 @@ const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
           </svg>
         ),
       },
-      {
-        href: "/subscription",
-        labelKey: "subscription",
-        icon: (
-          <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <path d="M2 10h20" />
-          </svg>
-        ),
-      },
     ],
   },
 ]

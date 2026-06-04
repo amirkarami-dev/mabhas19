@@ -1,22 +1,12 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
-import { getQueryClient } from "@/lib/query-client"
-import { queryKeys } from "@/lib/query-keys"
-import { serverApiFetch } from "@/lib/api-server"
-import type { Subscription } from "@/lib/types"
-import SubscriptionClient from "./subscription-client"
+import { redirect } from "next/navigation"
 
-// Server Component: prefetch the subscription with the request's session token so the
-// page server-renders with data (auth enforced in middleware).
-export default async function SubscriptionPage() {
-  const queryClient = getQueryClient()
-  await queryClient.prefetchQuery({
-    queryKey: queryKeys.subscription,
-    queryFn: () => serverApiFetch<Subscription>("/api/Subscriptions/me"),
-  })
-
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <SubscriptionClient />
-    </HydrationBoundary>
-  )
+// Subscription is hidden from users — redirect any direct visit to the dashboard.
+export default async function SubscriptionPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  // as-needed locale prefix: fa is unprefixed, en is /en.
+  redirect(locale === "en" ? "/en/dashboard" : "/dashboard")
 }

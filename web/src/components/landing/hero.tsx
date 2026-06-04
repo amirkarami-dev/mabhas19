@@ -60,7 +60,7 @@ export function Hero() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            {fa ? "۵ پروژه رایگان، بدون نیاز به کارت بانکی." : "5 free projects, no credit card required."}
+            {fa ? "استفادهٔ رایگان، بدون نیاز به کارت بانکی." : "Free to use, no credit card required."}
           </p>
         </div>
 

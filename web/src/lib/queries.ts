@@ -76,9 +76,7 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (input: CreateProjectInput) => projectsApi.create(input),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.projects })
-      void qc.invalidateQueries({ queryKey: queryKeys.subscription })
-    },
+      void qc.invalidateQueries({ queryKey: queryKeys.projects })    },
   })
 }
 
@@ -99,9 +97,7 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: (id: string) => projectsApi.remove(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.projects })
-      void qc.invalidateQueries({ queryKey: queryKeys.subscription })
-    },
+      void qc.invalidateQueries({ queryKey: queryKeys.projects })    },
   })
 }
 
@@ -116,9 +112,7 @@ export function useImportProject() {
       externalId: string
     }) => projectsApi.importProject(source, externalId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.projects })
-      void qc.invalidateQueries({ queryKey: queryKeys.subscription })
-    },
+      void qc.invalidateQueries({ queryKey: queryKeys.projects })    },
   })
 }
 

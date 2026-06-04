@@ -43,21 +43,18 @@ public class CreateProjectTests : TestBase
     }
 
     [Test]
-    public async Task ShouldEnforceFreePlanProjectCap()
+    public async Task ShouldAllowCreatingBeyondDefaultProjectCount()
     {
         await RunAsDefaultUserAsync();
 
-        // A Free subscription is created on first use with DefaultMaxProjects (5).
-        for (var i = 0; i < Subscription.DefaultMaxProjects; i++)
+        // The per-user project cap was removed: an active user can create more projects
+        // than the (still-seeded) DefaultMaxProjects without a Subscription validation error.
+        var total = Subscription.DefaultMaxProjects + 2;
+        for (var i = 0; i < total; i++)
         {
             await SendAsync(new CreateProjectCommand { Title = $"پروژه {i}", City = "تهران" });
         }
 
-        var overLimit = new CreateProjectCommand { Title = "بیش از حد", City = "تهران" };
-
-        var ex = await Should.ThrowAsync<AppValidationException>(() => SendAsync(overLimit));
-        ex.Errors.ShouldContainKey("Subscription");
-
-        (await CountAsync<Project>()).ShouldBe(Subscription.DefaultMaxProjects);
+        (await CountAsync<Project>()).ShouldBe(total);
     }
 }

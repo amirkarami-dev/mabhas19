@@ -16,7 +16,6 @@ export function Navbar() {
   const anchors: Array<{ href: string; label: string }> = [
     { href: "#features", label: fa ? "امکانات" : "Features" },
     { href: "#how", label: fa ? "نحوه کار" : "How it works" },
-    { href: "#pricing", label: fa ? "تعرفه‌ها" : "Pricing" },
     { href: "#faq", label: fa ? "سوالات متداول" : "FAQ" },
     { href: "/help.html", label: fa ? "راهنما" : "Help" },
   ]

@@ -12,7 +12,6 @@ export function CtaFooter() {
   const footerLinks: Array<{ href: string; label: string }> = [
     { href: "#features", label: fa ? "امکانات" : "Features" },
     { href: "#how", label: fa ? "نحوه کار" : "How it works" },
-    { href: "#pricing", label: fa ? "تعرفه‌ها" : "Pricing" },
     { href: "#faq", label: fa ? "سوالات متداول" : "FAQ" },
   ]
 
@@ -26,8 +25,8 @@ export function CtaFooter() {
           </h2>
           <p className="max-w-xl text-primary-foreground/85">
             {fa
-              ? "۵ پروژه رایگان، خروجی PDF فارسی و تمام چک‌لیست‌های تخصصی مبحث ۱۹."
-              : "5 free projects, Persian PDF export, and all of Section 19's expert checklists."}
+              ? "ارزیابی رایگان، خروجی PDF فارسی و تمام چک‌لیست‌های تخصصی مبحث ۱۹."
+              : "Free assessments, Persian PDF export, and all of Section 19's expert checklists."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link href="/login">
