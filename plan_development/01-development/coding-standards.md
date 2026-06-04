@@ -112,7 +112,7 @@ using ValidationException = Mabhas19.Application.Common.Exceptions.ValidationExc
 ```
 
 `ValidationBehaviour` and `GenerateReport` already do this. To surface a field error
-(e.g. a quota or business rule) use the app exception and set a named key — the frontend
+(e.g. an inactive-account gate or a business rule) use the app exception and set a named key — the frontend
 reads errors by field:
 
 ```csharp

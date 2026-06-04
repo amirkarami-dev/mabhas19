@@ -209,4 +209,4 @@ const loginWithGoogle   = (idToken)         => authApi.google(...).then(saveToke
 ```
 
 See `frontend-web.md` / `mobile-expo.md` for the lib-layer details, `sms-otp.md` for the
-OTP backend, and `subscriptions.md` for quota enforcement on the first protected action.
+OTP backend, and `subscriptions.md` for the subscription account-gate on project creation.

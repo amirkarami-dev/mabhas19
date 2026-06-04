@@ -112,17 +112,17 @@ Global Entry criterion for phase 1: charter signed (`project-charter.template.md
 ---
 
 ## Phase 6 — Subscriptions + PDF / object storage
-**Goal.** Quota enforcement and downloadable server-rendered reports.
+**Goal.** Subscription record + active-account gate, and downloadable server-rendered reports.
 
 **Steps.**
-1. Backend: `ISubscriptionService.EnsureCanCreateProjectAsync` (Free = `<N>`), error surfaced under a `Subscription` field; call it on project create.
+1. Backend: `ISubscriptionService.EnsureCanCreateProjectAsync` (active-account gate — the project cap is **not enforced**, ADR-020), error surfaced under a `Subscription` field; call it on project create. To enforce a real cap instead, re-add a count check (see `subscriptions.md` §5).
 2. Backend: `IReportGenerator` (QuestPDF) renders the PDF from the **stored** result; `IFileStorage` (MinIO) uploads it; return a **presigned URL** against the public storage host.
-3. Web: show quota usage + the cap message on the create flow; "Download report" action opens the presigned URL.
+3. Web: "Download report" action opens the presigned URL. (No user-facing subscription/usage UI — it's hidden.)
 
 **Entry criteria.** Phases 1, 3, 4 done; MinIO running (compose).
 
 **Exit / verification.**
-- [ ] Creating beyond the cap is blocked with the `Subscription` field error (not a 500); admin raising the plan unblocks it.
+- [ ] An inactive account is blocked with the `Subscription` field error (not a 500); active users create unlimited projects (no cap — ADR-020).
 - [ ] A report PDF generates, uploads, and downloads via presigned URL; the RTL/script font renders correctly.
 
 ---

@@ -54,8 +54,8 @@ conventions, and reintroduces **none** of the known gotchas. You report; the bui
 - [ ] Endpoints are `IEndpointGroup` (auto-mapped `/api/{ClassName}`), handlers **static** + thin;
       `MapPut`/`MapPatch`/`MapDelete` carry a pattern; correct `RequireAuthorization` /
       `RequireRole(Administrator)` gating.
-- [ ] 404 via `Guard.Against.NotFound`, 403 via `ForbiddenAccessException`; quota breach is a
-      `Subscription`-field **400** (not a 500). **Auth: the API is a JWT resource server** —
+- [ ] 404 via `Guard.Against.NotFound`, 403 via `ForbiddenAccessException`; an inactive-account block is a
+      `Subscription`-field **400** (not a 500; the project cap was removed — ADR-020). **Auth: the API is a JWT resource server** —
       `AddJwtBearer` (authority `auth.myceo.ir`, audience `mabhas19.api`, `RoleClaimType="role"`,
       `NameClaimType="name"`), **no `MapIdentityApi` and no `/api/Auth/*` (OTP/Google)** endpoints
       (those live in the IdP `src/Auth`). It exposes only `GET /api/Users/me` (from JWT claims →

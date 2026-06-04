@@ -311,7 +311,7 @@ Complete every item before declaring the cutover done.
 - [ ] An existing user can log in with their existing password (password hash preserved).
 - [ ] An existing user's projects are visible (OwnerId links intact).
 - [ ] Project creation, assessment save, and PDF download all work.
-- [ ] Subscription cap still enforced (free users cannot exceed 5 projects).
+- [ ] Project creation is unlimited (the per-user project cap has been removed; only an inactive account is blocked).
 
 ### SSO across services (if `plan.myceo.ir` is live)
 - [ ] A user logged in to `mabhas19.myceo.ir` is not prompted to log in again at `plan.myceo.ir`.

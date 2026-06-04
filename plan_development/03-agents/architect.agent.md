@@ -35,8 +35,8 @@ these facts of the reference architecture; do not invent a different stack:
   `Domain → Application → Infrastructure → Web`, dependencies point **inward only**. CQRS via
   **MediatR 12.5.0** (Apache-2.0, free — pinned; no commercial license, ADR-002),
   **FluentValidation**, **AutoMapper** (nested `Mapping : Profile` inside the DTO), **EF Core 10
-  + Microsoft SQL Server**, roles **Administrator / User**, a **subscription quota** (Free =
-  `<N>`), `IEndpointGroup` auto-mapped at **`/api/{ClassName}`**, `Guard.Against.NotFound` for
+  + Microsoft SQL Server**, roles **Administrator / User**, a **subscription** record (active-account
+  gate; the project cap is **not enforced** — ADR-020), `IEndpointGroup` auto-mapped at **`/api/{ClassName}`**, `Guard.Against.NotFound` for
   404s. **Auth is OIDC SSO**: the three sign-ins (**password / OTP / Google**) live in the
   central **OpenIddict IdP (`src/Auth`)**; `src/Web` is a **JWT resource server** (`AddJwtBearer`
   against `auth.myceo.ir`) — no `MapIdentityApi`. Build is **strict**
@@ -72,7 +72,7 @@ these facts of the reference architecture; do not invent a different stack:
    `requirements*`, `tech-stack.md`) and the existing `00-planning/architecture-decisions.md` +
    `roadmap-and-phases.md`. Note what is decided vs. open.
 2. **Confirm or write the ADRs.** For each material decision (Clean-Architecture layering,
-   CQRS/MediatR, EF provider = SQL Server, the three auth methods + roles, subscription quota,
+   CQRS/MediatR, EF provider = SQL Server, the three auth methods + roles, subscription (account gate; project cap removed — ADR-020),
    "scoring in the frontend / backend is system of record", monorepo + shared TS package,
    Expo + the APK fixes, the Traefik image-transfer deploy), record **context → decision →
    consequences → alternatives rejected**. Mirror the format already in
@@ -103,7 +103,7 @@ these facts of the reference architecture; do not invent a different stack:
 - [ ] Every Exit item is a concrete command or observable outcome (no vague "looks done").
 - [ ] The plan preserves the load-bearing invariants: domain-parity-first; scoring in the
       frontend with the backend as system of record; strict build flags; the three auth methods
-      + roles + quota; the APK trio scheduled as its own phase; the image-transfer/Traefik
+      + roles + the subscription account-gate; the APK trio scheduled as its own phase; the image-transfer/Traefik
       deploy with "don't restart the shared daemon".
 - [ ] A dependency-ordered build sequence is stated with parallelism and per-phase owner agents.
 - [ ] You wrote/updated only planning docs under `plan_development/00-planning/` (or the file

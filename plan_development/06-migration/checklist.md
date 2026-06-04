@@ -11,7 +11,7 @@ Legend: each box is a command result or an observable outcome you must confirm.
 
 ## Phase 0 — Planning gate
 - [ ] Charter filled (`00-planning/project-charter.template.md`) and stack agreed (`tech-stack.md`).
-- [ ] ADRs recorded/appended in `00-planning/architecture-decisions.md` (layering, CQRS/MediatR, EF provider, central OIDC SSO + roles, subscription quota, scoring-in-frontend, monorepo + shared package, Expo/APK, Traefik image-transfer deploy).
+- [ ] ADRs recorded/appended in `00-planning/architecture-decisions.md` (layering, CQRS/MediatR, EF provider, central OIDC SSO + roles, subscription account-gate (project cap removed — ADR-020), scoring-in-frontend, monorepo + shared package, Expo/APK, Traefik image-transfer deploy).
 - [ ] `roadmap-and-phases.md` refreshed with concrete names and per-phase Exit gates.
 - [ ] DB provider decided (start on SQL Server to skip Phase 10).
 
@@ -57,7 +57,7 @@ authority = IdP, audience = `<API_AUDIENCE>`) — it has **no** `/api/Auth/*` (O
 - [ ] Quick a11y/Lighthouse pass acceptable; `npm run build` passes.
 
 ## Phase 6 — Subscriptions + PDF / object storage
-- [ ] Creating beyond the cap (Free = `<N>`) is blocked with a **`Subscription`-field 400** (not a 500); an admin raising the plan unblocks it.
+- [ ] An inactive account is blocked with a **`Subscription`-field 400** (not a 500); active users create unlimited projects (no cap — ADR-020); an admin re-activating the account unblocks it.
 - [ ] A report PDF **generates from the stored result**, **uploads** to object storage, and **downloads** via a presigned URL.
 - [ ] The RTL/script font renders correctly in the PDF.
 

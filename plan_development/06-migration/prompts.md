@@ -23,7 +23,7 @@ Use the `architect` agent. We are building `<APP_NAME>` on the reference bluepri
 2. Append ADRs for every material decision (Clean-Architecture layering, CQRS/MediatR pinned to free
    12.5.0, EF provider = SQL Server, central OIDC SSO [OpenIddict IdP owns password/OTP/Google; the
    API is a JWT resource server; web Auth.js v5; mobile expo-auth-session] + Administrator/User roles,
-   the subscription quota Free = <N>, scoring-in-the-frontend with the backend as system of record,
+   the subscription account-gate (project cap removed — ADR-020), scoring-in-the-frontend with the backend as system of record,
    npm-workspaces monorepo + shared TS package, Expo + the APK fixes, the Traefik image-transfer deploy).
 3. Refresh `roadmap-and-phases.md` with concrete names and make every Exit gate machine-checkable.
 4. State the dependency-ordered build sequence and the owner agent per phase.
@@ -157,16 +157,17 @@ Use the `backend-builder` agent for the API, then `frontend-builder` for the UI.
 `01-development/subscriptions.md` and `file-storage-pdf.md`.
 
 Backend:
-- `ISubscriptionService.EnsureCanCreateProjectAsync` (Free = <N>), error surfaced under a
-  `Subscription` field; call it on project create.
+- `ISubscriptionService.EnsureCanCreateProjectAsync` (active-account gate; the per-user project cap
+  was removed — ADR-020), inactive-account error surfaced under a `Subscription` field; call it on
+  project create.
 - `IReportGenerator` (QuestPDF) renders the PDF from the STORED result; `IFileStorage` (MinIO)
   uploads it; return a presigned URL against the public storage host.
 
-Frontend: show quota usage + the cap message on the create flow; "Download report" opens the
+Frontend: no user-facing subscription/usage UI (it's hidden); "Download report" opens the
 presigned URL.
 
-Gate (Phase 6): over-cap create returns a `Subscription`-field 400 (not 500), admin unblocks by
-raising the plan; a PDF generates/uploads/downloads via presigned URL; the script font renders.
+Gate (Phase 6): an inactive account returns a `Subscription`-field 400 (not 500), admin unblocks by
+setting `IsActive`; a PDF generates/uploads/downloads via presigned URL; the script font renders.
 ```
 
 ---
@@ -304,7 +305,7 @@ calculation/scoring lives today>.
 Preserve the invariants: domain-parity-first; scoring in the frontend/shared package with the
 backend as system of record; **central OIDC SSO** (OpenIddict IdP owns password/OTP/Google; the API is
 a JWT resource server with **no** `/api/Auth/*`; web Auth.js v5 — no manual refresh, no `<RequireAuth>`,
-server-seeded `AuthProvider`) + roles + the quota; strict build; the APK fixes as their own phase; the
+server-seeded `AuthProvider`) + roles + the subscription account-gate; strict build; the APK fixes as their own phase; the
 image-transfer/Traefik deploy that never restarts the shared daemon. Output the domain mapping, ADRs,
 phase plan, and the migration's first gate (the parity tests).
 ```

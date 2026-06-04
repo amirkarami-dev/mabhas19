@@ -107,7 +107,7 @@ MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not rece
 ---
 
 ## ADR-007 — Roles + server-side quota; client checks are cosmetic
-**Status:** Accepted
+**Status:** Accepted — the per-user **project-quota** portion is **superseded by ADR-020** (cap removed); the roles + server-side admin-gating portion still stands.
 
 **Context.** Two roles (`Administrator`, `User`) and a per-user project cap (Free = 5). Authorization must not be bypassable from the client.
 
@@ -292,3 +292,18 @@ MediatR 12.5.0 is actively maintained on the Apache-2.0 branch but will not rece
 - (+) Web gets edge caching/DDoS; dynamic/auth/storage avoid CDN-induced breakage; deterministic IdP resolution.
 - (−) The IP pin is a manual fragility (rotate ⇒ update `extra_hosts`).
 - (−) Web behind the CDN needs cache-busting discipline on deploys.
+
+---
+
+## ADR-020 — Remove the per-user project cap; subscription becomes an account gate
+**Status:** Accepted (2026-06-04) — supersedes the project-quota portion of ADR-007
+
+**Context.** The Free plan capped projects at 5 (ADR-007). The product decision is to neither limit nor advertise plans: hide all user-facing subscription UI (landing pricing, dashboard nav/cards, the `/subscription` page) and let users create projects freely. Keeping the cap while hiding the upgrade path would trap users at 5 with no recourse.
+
+**Decision.** Drop the project-count check in `EnsureCanCreateProjectAsync`; it now throws only when the account is **inactive** (`IsActive == false`). `MaxProjects` stays on the `Subscription` record for **admin display only** (not enforced). The subscription entity, `GET /api/Subscriptions/me`, and the admin `/api/Admin/users/{id}/subscription` tools are **kept** — only the user-facing UI is removed. Logic-only change (no DB migration), so existing users with a stored cap are freed immediately.
+
+**Consequences.**
+- (+) Users create unlimited projects; no dead-end at a hidden paywall.
+- (+) No schema/data migration; reversible (re-add the count check — see `subscriptions.md` §5).
+- (−) Admin's per-user `MaxProjects` field is now cosmetic; the `IsActive` toggle is the real gate.
+- (−) The "subscription quota" stays a documented blueprint pattern but is no longer the live default (docs frame it as opt-in).

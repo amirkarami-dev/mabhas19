@@ -1,9 +1,15 @@
-# Subscriptions (project quota)
+# Subscriptions (account gate; no enforced project cap)
 
-`<PLACEHOLDER>` caps how many top-level resources (projects) a user may own via a simple
-**subscription** model. Every registered user gets a **Free** plan with **5** projects by
-default; admins create/upgrade subscriptions. The quota is enforced server-side in one place
-and surfaced to the UI as a field-level validation error.
+`<PLACEHOLDER>` keeps a per-user **subscription** record, but the per-user **project cap is no
+longer enforced** — active users may create **unlimited** projects. Every registered user gets
+a **Free** plan; the only thing enforced server-side at create time is that the
+subscription/account is **active**. `MaxProjects` is retained on the record for **admin display
+only** (admins can still view/set it, but it is not used to block creation). The matching
+**user-facing subscription UI is hidden** in the clients.
+
+> Historically the Free plan capped projects at **5** (see ADR-007, superseded in part by the
+> "remove project cap" ADR). The cap was removed; the recipe in §5 shows how to re-introduce an
+> enforced quota if a future project needs one.
 
 ---
 
@@ -14,7 +20,7 @@ and surfaced to the UI as a field-level validation error.
 ```csharp
 public class Subscription : BaseAuditableEntity
 {
-    public const int DefaultMaxProjects = 5;          // Free plan default
+    public const int DefaultMaxProjects = 5;          // seeded value; NOT enforced
 
     public required string UserId { get; set; }
     public SubscriptionPlan Plan { get; set; } = SubscriptionPlan.Free;
@@ -25,12 +31,11 @@ public class Subscription : BaseAuditableEntity
 }
 ```
 
-- `MaxProjects` is the quota (number of projects the user may own).
+- `MaxProjects` is retained for **admin display only** — it no longer caps creation.
 - `Plan` is an enum (`Free`, …, `Enterprise`).
-- `IsActive` gates access; `ValidFrom`/`ValidTo` carry the validity window.
+- `IsActive` is the only gate enforced at create time; `ValidFrom`/`ValidTo` carry the validity window.
 
-The admin seed gives the administrator an unrestricted plan
-(`Plan = Enterprise, MaxProjects = 1000`) in `ApplicationDbContextInitialiser`.
+The admin seed gives the administrator an `Enterprise` plan in `ApplicationDbContextInitialiser`.
 
 ---
 
@@ -49,23 +54,21 @@ public interface ISubscriptionService
 `Infrastructure/Subscriptions/SubscriptionService.cs`:
 
 - **`GetOrCreateAsync`** — returns the user's subscription, **lazily creating** a default
-  Free plan (`MaxProjects = Subscription.DefaultMaxProjects`, `IsActive = true`) if none
-  exists. So a user never has "no subscription".
-- **`EnsureCanCreateProjectAsync`** — the guard. It loads (or creates) the subscription,
-  counts the user's projects, and **throws the app `ValidationException` under the
-  `"Subscription"` key** if the plan is inactive or the quota is reached:
+  Free plan (`IsActive = true`) if none exists. So a user never has "no subscription".
+- **`EnsureCanCreateProjectAsync`** — the guard. It loads (or creates) the subscription and
+  **throws the app `ValidationException` under the `"Subscription"` key only when the account
+  is inactive**. There is **no project-count check** — active users create unlimited projects:
 
 ```csharp
 public async Task EnsureCanCreateProjectAsync(string userId, CancellationToken ct = default)
 {
     var sub = await GetOrCreateAsync(userId, ct);
-    var count = await _context.Projects.CountAsync(p => p.OwnerId == userId, ct);
 
     if (!sub.IsActive)
-        Throw("اشتراک شما فعال نیست.");                       // "your subscription is not active"
-    if (count >= sub.MaxProjects)
-        Throw($"به سقف تعداد پروژه‌های مجاز ({sub.MaxProjects}) رسیده‌اید. ...");  // quota reached
+        Throw("حساب کاربری شما فعال نیست.");                  // "your account is not active"
 
+    // The per-user project cap has been removed — active users may create unlimited
+    // projects. (MaxProjects is kept on the record for admin display only.)
 }
 
 private static void Throw(string message)
@@ -77,20 +80,22 @@ private static void Throw(string message)
 ```
 
 > The `"Subscription"` field key is the contract with the frontend: a 400 response carries
-> `errors.Subscription = ["..."]`, which the UI shows next to the create action. Note this
-> uses the **app** `ValidationException` (with its `Errors` dictionary), not
-> FluentValidation's — alias it (`using ValidationException = ...Application.Common.Exceptions.ValidationException;`)
+> `errors.Subscription = ["..."]`, which the UI surfaces next to the create action (now only on
+> the rare inactive-account case). Note this uses the **app** `ValidationException` (with its
+> `Errors` dictionary), not FluentValidation's — alias it
+> (`using ValidationException = ...Application.Common.Exceptions.ValidationException;`)
 > if both are in scope (see `coding-standards.md`).
 
 ### Where it is called
 At the start of the create-project use case, **before** building the entity
-(`Application/Projects/Commands/CreateProject/CreateProject.cs`):
+(`Application/Projects/Commands/CreateProject/CreateProject.cs`), and likewise in the
+import-project handler:
 
 ```csharp
 public async Task<int> Handle(CreateProjectCommand request, CancellationToken ct)
 {
     var userId = _user.Id!;
-    await _subscriptions.EnsureCanCreateProjectAsync(userId, ct);   // ← quota check first
+    await _subscriptions.EnsureCanCreateProjectAsync(userId, ct);   // ← active-account gate
     // ... create & save the Project ...
 }
 ```
@@ -100,43 +105,48 @@ public async Task<int> Handle(CreateProjectCommand request, CancellationToken ct
 
 ---
 
-## 3. Reading the current subscription (UI)
+## 3. Reading the current subscription (API)
 
-`GET /api/Subscriptions/me` → `GetMySubscriptionQuery` returns a DTO with the plan, the cap,
-and **how many projects are used** so the UI can show "X of N":
+`GET /api/Subscriptions/me` → `GetMySubscriptionQuery` returns a DTO with the plan, the
+(unenforced) `MaxProjects`, and the current project count:
 
 ```csharp
 public record SubscriptionDto
 {
     public string Plan { get; init; } = "";
-    public int MaxProjects { get; init; }
-    public int UsedProjects { get; init; }    // current project count
+    public int MaxProjects { get; init; }     // retained for admin display; not enforced
+    public int UsedProjects { get; init; }     // current project count
     public bool IsActive { get; init; }
     public DateTimeOffset? ValidTo { get; init; }
 }
 ```
 
 The handler uses `GetOrCreateAsync` (so a brand-new user still gets a sensible response) and
-counts projects for `UsedProjects`. The frontend calls it via `subscriptionApi.me()`.
+counts projects for `UsedProjects`. The endpoint is **kept** (admin/diagnostic use) but the
+**user-facing subscription UI is hidden** — no dashboard subscription nav/cards, no
+`/subscription` page (it redirects to the dashboard), and no pricing/plans on the landing page.
 
 ---
 
-## 4. Admin: changing a user's plan/quota
+## 4. Admin: viewing/changing a user's plan
 
 Admins manage subscriptions through `/api/Admin/users/{id}/subscription`
 (`PUT`, `Administrator`-gated). `IUserAdminService.UpdateSubscriptionAsync` updates the
-user's `Plan`/`MaxProjects`/validity. Raising `MaxProjects` immediately lifts the cap on the
-next `EnsureCanCreateProjectAsync` call (no caching).
+user's `Plan`/`MaxProjects`/validity. **Note:** because the project cap is no longer enforced,
+changing `MaxProjects` is cosmetic; setting `IsActive = false` is the meaningful gate (it blocks
+that user's project creation on the next `EnsureCanCreateProjectAsync` call).
 
 ---
 
-## 5. Recipe: add a quota for a different resource
+## 5. Recipe: (re-)introduce an enforced quota
 
-1. Add a cap field to `Subscription` (e.g. `MaxReports`) + a migration (see
-   `backend-clean-architecture.md`).
-2. Add an `EnsureCanCreate<Resource>Async(userId, ct)` method on `ISubscriptionService` that
-   counts the resource and throws the app `ValidationException` under a stable field key
-   (`ex.Errors["Subscription"] = ...`) when over quota.
+The active-account gate is the only enforcement today. To add a real per-resource cap back:
+
+1. Use (or add) a cap field on `Subscription` (e.g. `MaxProjects`, `MaxReports`) + a migration
+   if new (see `backend-clean-architecture.md`).
+2. In `EnsureCanCreate<Resource>Async(userId, ct)`, count the resource and **throw the app
+   `ValidationException` under a stable field key** (`ex.Errors["Subscription"] = ...`) when the
+   count reaches the cap — e.g. `if (count >= sub.MaxProjects) Throw(...)`.
 3. Call it at the start of that resource's create command handler, before persisting.
-4. Surface the new field key in the client where the resource is created. Optionally extend
-   `SubscriptionDto` so the UI can show usage.
+4. Surface the field key in the client where the resource is created, and re-expose usage in the
+   UI (e.g. a dashboard "X of N" card) — these were removed when the cap was dropped.

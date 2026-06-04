@@ -35,13 +35,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified.
 - [ ] Admin-only endpoints gated server-side (`RequireRole(Administrator)` on `/api/Admin/*`).
 - [ ] `GET /api/Users/me` returns `{ roles, isAdmin }`.
 - [ ] Client hides admin UI unless `isAdmin` (defence in depth — server is the real gate).
-- [ ] Admin can **list users** and **change a user's role/plan/quota**.
+- [ ] Admin can **list users** and **change a user's role / plan / active status**.
 
-### A5. Subscriptions / quota
-- [ ] Each user has a plan with a **project cap** (Free = `<N, default 5>`).
-- [ ] Quota is enforced **server-side** before project creation (e.g. `EnsureCanCreateProjectAsync`).
-- [ ] Exceeding the cap returns a **validation error surfaced under a `Subscription` field**, not a 500.
-- [ ] Admin can raise/lower a user's plan or cap.
+### A5. Subscriptions (account gate; project cap optional)
+- [ ] Each user has a plan; `MaxProjects` is recorded but **not enforced** by default — active users create **unlimited** projects.
+- [ ] An **active-account gate** runs **server-side** before project creation (`EnsureCanCreateProjectAsync`). To enforce a real cap, re-add a count check (opt-in — see `subscriptions.md` §5).
+- [ ] An inactive account (or, if enabled, an exceeded cap) returns a **validation error surfaced under a `Subscription` field**, not a 500.
+- [ ] Admin can change a user's plan / active status (`MaxProjects` is cosmetic unless enforcement is re-enabled).
 
 ### A6. Reports / PDF
 - [ ] Server generates a **PDF from the stored result** (not from a live recompute).
@@ -126,7 +126,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done & verified.
 ## C. Mabhas19 reference (how the boxes were ticked)
 - A1–A2: scoring engine in `@mabhas19/assessment-core` (6 checklist modules under `src/scoring`), mirrored by `Domain/Services` (`BuildingGroupCalculator`, `ClimateData`); `Assessment.InputJson`/`ResultJson` = `nvarchar(max)` + `TotalScore`/`MaxScore`.
 - A3–A4: central OIDC SSO via the OpenIddict IdP `auth.myceo.ir` (password/OTP/Google live in `src/Auth`); the `src/Web` API is a JWT resource server (`AddJwtBearer`, `audience=mabhas19.api`); web uses Auth.js (httpOnly session cookie); roles `Administrator`/`User` come from the `role` claim; `/api/Admin/*` behind `RequireRole`. [ADR-013]
-- A5: `ISubscriptionService.EnsureCanCreateProjectAsync`, Free = 5, error under `Subscription`.
+- A5: `ISubscriptionService.EnsureCanCreateProjectAsync` — active-account gate only; the project cap was removed (ADR-020), error under `Subscription`.
 - A6–A7: `QuestPdfReportGenerator` + `MinioFileStorage`; presigned URLs against `s3.mabhas19.myceo.ir`.
 - A8: next-intl `fa-IR` (default RTL) + `en-US`; `localePrefix: "as-needed"`.
 - A9: Expo SDK 54 app consuming the shared package; release APK at `mobile/mabhas19.apk`.

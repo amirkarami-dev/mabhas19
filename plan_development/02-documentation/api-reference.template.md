@@ -22,18 +22,18 @@
 | Users | GET | `/api/Users/me` | Current user's claims (`CurrentUserDto`) | Yes |
 | Projects | GET | `/api/Projects` | List the current user's projects | Yes |
 | Projects | GET | `/api/Projects/{id}` | Fetch one project | Yes |
-| Projects | POST | `/api/Projects` | Create a project (checks subscription quota) | Yes |
+| Projects | POST | `/api/Projects` | Create a project (active-account gate; no project cap) | Yes |
 | Projects | POST | `/api/Projects/import` | Import a project from an external source | Yes |
 | Projects | PUT | `/api/Projects/{id}` | Update a project | Yes |
 | Projects | DELETE | `/api/Projects/{id}` | Delete a project | Yes |
 | Projects | GET | `/api/Projects/{id}/assessment` | Fetch the assessment (404 if none) | Yes |
 | Projects | PUT | `/api/Projects/{id}/assessment` | Save assessment input + result + scores | Yes |
 | Projects | POST | `/api/Projects/{id}/report` | Generate PDF; returns a presigned download URL | Yes |
-| Subscriptions | GET | `/api/Subscriptions/me` | Current user's subscription (plan, quota) | Yes |
+| Subscriptions | GET | `/api/Subscriptions/me` | Current user's subscription (plan, used count) | Yes |
 | Admin | GET | `/api/Admin/users` | List all users with subscription info | Admin |
 | Admin | GET | `/api/Admin/users/{id}` | Fetch one user (404 if missing) | Admin |
 | Admin | POST | `/api/Admin/users` | Create a user | Admin |
-| Admin | PUT | `/api/Admin/users/{id}/subscription` | Update a user's plan/quota | Admin |
+| Admin | PUT | `/api/Admin/users/{id}/subscription` | Update a user's plan / active status | Admin |
 | Admin | PUT | `/api/Admin/users/{id}/role` | Grant/revoke the Administrator role | Admin |
 | Admin | DELETE | `/api/Admin/users/{id}` | Delete a user | Admin |
 
@@ -57,7 +57,7 @@ Authentication is **OAuth2 / OIDC via the external IdP** (OpenIddict at `https:/
 |--------|------|---------|------|
 | GET | `/api/Projects` | List the current user's projects. | Yes |
 | GET | `/api/Projects/{id}` | Fetch one project. | Yes |
-| POST | `/api/Projects` | Create a project. Runs `EnsureCanCreateProjectAsync` (quota). | Yes |
+| POST | `/api/Projects` | Create a project. Runs `EnsureCanCreateProjectAsync` (active-account gate; no project cap). | Yes |
 | POST | `/api/Projects/import` | Import from an external registry (`<EXTERNAL_SOURCE>`). | Yes |
 | PUT | `/api/Projects/{id}` | Update a project. | Yes |
 | DELETE | `/api/Projects/{id}` | Delete a project. | Yes |
@@ -65,13 +65,13 @@ Authentication is **OAuth2 / OIDC via the external IdP** (OpenIddict at `https:/
 | PUT | `/api/Projects/{id}/assessment` | Save `inputJson` + `resultJson` + `totalScore` + `maxScore`. | Yes |
 | POST | `/api/Projects/{id}/report` | Render the PDF, store it in MinIO, return a presigned URL (valid ~1 hour). | Yes |
 
-> Quota: creating/importing beyond the plan limit throws a `ValidationException` surfaced under the `Subscription` field (`400`).
+> Gate: an **inactive account** blocks create/import with a `ValidationException` surfaced under the `Subscription` field (`400`). The per-user **project cap is not enforced** (ADR-020) — to re-enable a cap, see `subscriptions.md` §5.
 
 ## Subscriptions
 
 | Method | Path | Purpose | Auth |
 |--------|------|---------|------|
-| GET | `/api/Subscriptions/me` | Current user's subscription: plan, `maxProjects`, used count. | Yes |
+| GET | `/api/Subscriptions/me` | Current user's subscription: plan, `maxProjects` (display-only, not enforced), used count. | Yes |
 
 ## Admin (Administrator role only)
 
@@ -80,7 +80,7 @@ Authentication is **OAuth2 / OIDC via the external IdP** (OpenIddict at `https:/
 | GET | `/api/Admin/users` | List all users with subscription info. | Admin |
 | GET | `/api/Admin/users/{id}` | Fetch one user (404 if missing). | Admin |
 | POST | `/api/Admin/users` | Create a user. | Admin |
-| PUT | `/api/Admin/users/{id}/subscription` | Update a user's plan/quota. | Admin |
+| PUT | `/api/Admin/users/{id}/subscription` | Update a user's plan / active status. | Admin |
 | PUT | `/api/Admin/users/{id}/role` | Grant/revoke the Administrator role. | Admin |
 | DELETE | `/api/Admin/users/{id}` | Delete a user. | Admin |
 
@@ -89,9 +89,9 @@ Authentication is **OAuth2 / OIDC via the external IdP** (OpenIddict at `https:/
 ## Adapting this to your project
 
 1. **Rename the domain group.** `Projects` is the reference project's main resource. If yours is `<MainResource>`, the class `<MainResource>` in `src/Web/Endpoints` auto-maps to `/api/<MainResource>` — change the group name and its row paths accordingly.
-2. **Keep the cross-cutting groups as-is** unless you change the feature: `Users` (just `GET /me`, reading OIDC claims — sign-in lives in the external IdP, not the API), `Subscriptions` (quota), `Admin` (user/quota management). These are part of the blueprint.
+2. **Keep the cross-cutting groups as-is** unless you change the feature: `Users` (just `GET /me`, reading OIDC claims — sign-in lives in the external IdP, not the API), `Subscriptions` (read-only plan), `Admin` (user/plan management). These are part of the blueprint.
 3. **Nested resources** (like `/api/Projects/{id}/assessment` and `/.../report`) hang off the parent group — name them after your sub-resource and its action.
 4. **Auth column rule of thumb:** the API has no anonymous endpoints (sign-in is the IdP's job); everything user-scoped = **Yes** (valid OIDC JWT); everything under `/api/Admin/*` = **Admin**.
 5. **Add a request/response shape** in prose under each group where the body matters (see `CurrentUserDto` above). Don't duplicate the full Scalar schema — link to `/scalar`.
 
-> *Worked example values above (`/api/Projects`, `CurrentUserDto`, Free-quota validation, presigned report URL) are the reference project **Mabhas19**.*
+> *Worked example values above (`/api/Projects`, `CurrentUserDto`, active-account validation, presigned report URL) are the reference project **Mabhas19**.*

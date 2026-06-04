@@ -23,7 +23,7 @@
 - `<core domain workflow #1 — e.g. the interactive multi-checklist assessment>`
 - `<persistence: projects + saved assessments per user>`
 - `<auth: sign-in methods you commit to — e.g. password + OTP + Google>`
-- `<roles: Administrator + User; admin can manage users/quota>`
+- `<roles: Administrator + User; admin can manage users/plans>`
 - `<reports: server-rendered PDF of a stored result>`
 - `<file storage for generated artifacts>`
 - `<i18n / RTL if applicable>`
@@ -31,7 +31,7 @@
 - `<deployment target — e.g. single Docker host behind existing Traefik>`
 
 ### Out of scope (explicitly NOT this release)
-- `<payments / real billing — quota is enforced but not charged>`
+- `<payments / real billing — plans are recorded but not enforced/charged>`
 - `<multi-tenant orgs / team sharing>`
 - `<offline mode / sync>`
 - `<native push notifications>`
@@ -43,8 +43,8 @@
 - [ ] `<The domain calculation matches the reference source exactly (covered by unit tests).>`
 - [ ] `<A user can sign in with all committed methods and stay signed in across refresh.>`
 - [ ] `<A user can create a project, complete an assessment, save it, and download its PDF.>`
-- [ ] `<Quota is enforced: creating beyond the free limit is blocked with a clear message.>`
-- [ ] `<An admin can list users and change a user's quota/plan.>`
+- [ ] `<Project creation is unlimited for active users; an inactive account is blocked with a clear message.>`
+- [ ] `<An admin can list users and change a user's plan / active status.>`
 - [ ] `<Backend build passes with warnings-as-errors; web production build passes; all tests green.>`
 - [ ] `<The full stack runs from a clean checkout with the documented commands.>`
 - [ ] `<Production is reachable at the agreed domains over HTTPS.>`
@@ -93,7 +93,7 @@ A web app that lets building professionals run Iran's National Building Code **S
 - The interactive **6-checklist** Section 19 scoring engine (envelope-opaque, envelope-transparent, mechanical, electrical, monitoring, integrated).
 - Projects + saved assessments per user (backend is the system of record; stores input/result JSON + total/max score).
 - Auth: username/password, **mobile OTP**, **Google ID-token**; roles **Administrator** / **User**.
-- Subscription quota: **Free = 5 projects**, enforced server-side.
+- Subscriptions: recorded per user (Free plan by default); the project cap is **not enforced** (active users create unlimited projects). User-facing subscription UI is hidden.
 - Server-rendered **Persian PDF** report (QuestPDF) of a stored result.
 - Object storage (**MinIO/S3**) for generated PDFs, served via presigned URLs.
 - **Persian/RTL** default UI with an English (LTR) locale.
@@ -101,7 +101,7 @@ A web app that lets building professionals run Iran's National Building Code **S
 - Deployment: Docker Compose on a single Iran host **behind the existing Traefik**.
 
 ### Out of scope
-- Real billing/payments (quota is enforced but never charged).
+- Real billing/payments (plans are recorded but not enforced/charged).
 - Multi-tenant organizations / team sharing of projects.
 - Offline assessment on mobile.
 - The interactive scoring engine running on the backend (it runs in the frontend by design).
@@ -110,8 +110,8 @@ A web app that lets building professionals run Iran's National Building Code **S
 - [x] Scoring output is numerically identical to the legacy calculator (locked by unit tests on the shared package + Domain).
 - [x] Sign-in via the central OIDC IdP works (Authorization Code + PKCE); the session survives a refresh.
 - [x] A user can create a project → complete an assessment → save → download its PDF.
-- [x] Creating a 6th project on Free is blocked with a `Subscription`-field validation message.
-- [x] Admin can list users and change a user's plan/quota under `/api/Admin/*`.
+- [x] Project creation is unlimited for active users; only an inactive account is blocked (with a `Subscription`-field validation message).
+- [x] Admin can list users and change a user's plan / active status under `/api/Admin/*`.
 - [x] `dotnet build` passes with `TreatWarningsAsErrors=true`; `npm run build` (web) passes; `dotnet test` green.
 - [x] Web + mobile both build against `@mabhas19/assessment-core`.
 - [x] Live at `mabhas19.myceo.ir`, `api.mabhas19.myceo.ir`, `s3.mabhas19.myceo.ir` over HTTPS.

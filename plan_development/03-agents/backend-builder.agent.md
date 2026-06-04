@@ -21,7 +21,7 @@ You are the **Backend Builder** for a project on the `<PLACEHOLDER>` reference b
 - Adding an entity (+ EF config + migration), a CQRS command/query (+ validator + AutoMapper
   DTO), a service interface + Infrastructure implementation + DI, or an `IEndpointGroup`.
 - Wiring the API as a **JWT resource server** (`AddJwtBearer` against the OIDC IdP), role-based
-  admin gating, the subscription quota, and the PDF/object-storage path. (Login methods —
+  admin gating, the subscription account-gate, and the PDF/object-storage path. (Login methods —
   password/OTP/Google — live in the IdP `src/Auth`, NOT here.)
 
 ## Hard boundary: scoring lives in the frontend
@@ -74,8 +74,10 @@ Read `CLAUDE.md`, `plan_development/01-development/backend-clean-architecture.md
   (OTP/Google) endpoints**. The API exposes only `GET /api/Users/me` (reads the JWT claims →
   `{ id, email, phoneNumber, roles, isAdmin }`) and gates `/api/Admin/*` with
   `RequireRole(Administrator)` against the JWT `role` claim. (See ADR-013.)
-- **Subscription quota**: enforce in `ISubscriptionService.EnsureCanCreateProjectAsync` (Free =
-  `<N>`); on breach throw the app `ValidationException` surfaced under the **`Subscription`**
+- **Subscription gate**: `ISubscriptionService.EnsureCanCreateProjectAsync` enforces only the
+  **active-account** check — the per-user project cap was **removed** (ADR-020), so active users
+  create unlimited projects (`MaxProjects` is admin-display only). On an inactive account, throw the
+  app `ValidationException` surfaced under the **`Subscription`**
   field (a 400, never a 500). Call it on project create.
 - **Service registration** in `Infrastructure/DependencyInjection.cs` → `Add<...>Services`: bind
   options via a typed class with a `SectionName` const; `AddScoped` for DbContext/per-request
@@ -130,8 +132,8 @@ Run these and confirm output before claiming success — evidence, not assertion
       new endpoints, and the CRUD/auth path works against a real DB (dev compose up).
 - [ ] New `DbSet`s are on **both** `IApplicationDbContext` and `ApplicationDbContext`; mappings
       are nested `Mapping : Profile`; reads use `AsNoTracking().ProjectTo<>`.
-- [ ] 404 uses `Guard.Against.NotFound`, 403 uses `ForbiddenAccessException`, quota breaches
-      surface as a `Subscription`-field 400 (verified, not assumed).
+- [ ] 404 uses `Guard.Against.NotFound`, 403 uses `ForbiddenAccessException`, an inactive-account
+      block surfaces as a `Subscription`-field 400 (verified, not assumed).
 - [ ] No `jsonb`, no `KnownNetworks`, no un-aliased `ValidationException`; `dotnet-ef` matched
       EF Core 10 for any migration.
 - [ ] Final reply lists the files added/changed (absolute paths), the migration name (if any),

@@ -12,7 +12,7 @@ six-part energy assessment, store results, and export PDF reports.
 - **Storage** — **MinIO** (S3-compatible) for generated PDF reports.
 - **Reports** — QuestPDF, Persian/RTL.
 - **Auth** — ASP.NET Identity (username/password) + **mobile OTP** (SMS) + **Google** sign-in. Bearer tokens.
-- **Subscriptions** — every user gets a Free plan capped at **5 projects** by default.
+- **Subscriptions** — every user gets a Free plan; the per-project cap is **not enforced** (active users create unlimited projects). User-facing subscription UI is hidden; admins still manage plans.
 - **Import** — projects can be imported from external services (e.g. **نظام مهندسی ساختمان**).
 - **Deploy** — Docker Compose + Traefik (TLS) on `mabhas19.myceo.ir`. → `deploy/`
 

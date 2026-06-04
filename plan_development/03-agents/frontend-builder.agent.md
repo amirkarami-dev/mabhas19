@@ -95,7 +95,8 @@ Read `CLAUDE.md`, `plan_development/01-development/frontend-web.md`, `i18n-rtl.m
   `next.config.ts` must keep `output: "standalone"` (Docker) and
   `transpilePackages: ["@<PLACEHOLDER>/assessment-core"]` (the shared engine ships as TS source).
 - **Validation errors**: surface 400 `body.errors` field errors (e.g. the **`Subscription`**
-  field on quota breach) inline on the relevant form — don't show a generic toast for them.
+  field on an inactive-account block — the project cap was removed, ADR-020) inline on the relevant
+  form — don't show a generic toast for them. **No user-facing subscription/pricing UI** (hidden).
 
 ## Step-by-step approach
 1. **Read first.** `frontend-web.md` + `i18n-rtl.md` + `gotchas.md`. Find the nearest existing

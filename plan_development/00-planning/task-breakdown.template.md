@@ -67,26 +67,26 @@
 - **Branch:** `feat/subscriptions-and-reports`
 
 ## Definition of Done for this phase
-- [ ] Creating beyond the cap is blocked with a `Subscription` field error (not a 500); admin raising the plan unblocks it.
+- [ ] An inactive account is blocked with a `Subscription` field error (not a 500); active users create unlimited projects (no cap — ADR-020).
 - [ ] A report PDF generates, uploads, and downloads via a presigned URL; the Persian/RTL font renders correctly.
 
 ## Tasks
 
 ### Domain / Application
-- [ ] **`Subscription` entity + plan/cap** — model the per-user plan with a project cap (Free = 5).
+- [ ] **`Subscription` entity + plan** — model the per-user plan (Free default). `MaxProjects` is retained for admin display only (not enforced — see ADR-020).
   - Files: `src/Domain/Entities/Subscription.cs`
-  - Done when: entity compiles; default plan = Free, cap = 5.
-- [ ] **`ISubscriptionService` contract** — `EnsureCanCreateProjectAsync(userId)`.
+  - Done when: entity compiles; default plan = Free.
+- [ ] **`ISubscriptionService` contract** — `EnsureCanCreateProjectAsync(userId)` (active-account gate).
   - Files: `src/Application/Common/Interfaces/ISubscriptionService.cs`
   - Done when: interface defined; referenced by the create-project handler.
-- [ ] **Call the guard in CreateProject** — invoke `EnsureCanCreateProjectAsync` before persisting.
+- [ ] **Call the guard in CreateProject** — invoke `EnsureCanCreateProjectAsync` (active-account gate) before persisting.
   - Files: `src/Application/<Projects>/Commands/CreateProject/CreateProjectCommandHandler.cs`
-  - Done when: over-cap create throws the app `ValidationException` (aliased) with key `Subscription`.
+  - Done when: an inactive-account create throws the app `ValidationException` (aliased) with key `Subscription`; active users create unlimited projects.
 
 ### Infrastructure
-- [ ] **`SubscriptionService` implementation** — count user's projects vs. cap; throw with the `Subscription` field on breach.
+- [ ] **`SubscriptionService` implementation** — gate on the **active** account; throw with the `Subscription` field when inactive. (`MaxProjects` is display-only — no count check; see ADR-020 / `subscriptions.md` §5 to re-enable a cap.)
   - Files: `src/Infrastructure/<...>/SubscriptionService.cs`
-  - Done when: returns OK under cap, throws at/over cap.
+  - Done when: an active account creates unlimited projects; an inactive account throws.
 - [ ] **`QuestPdfReportGenerator` (IReportGenerator)** — render the PDF from the stored `ResultJson`, embedding the RTL font.
   - Files: `src/Infrastructure/<...>/QuestPdfReportGenerator.cs`, `deploy/fonts/*`
   - Done when: a sample result produces a valid PDF with correct Persian glyphs.
@@ -95,7 +95,7 @@
   - Done when: object uploads; presigned URL opens in a browser (prod host `s3.<domain>`, SSL).
 
 ### Web
-- [ ] **Quota UI** — show usage/cap on the create flow; render the `Subscription` field error.
+- [ ] **Subscription errors** — render the `Subscription` field error inline on the create flow. (No user-facing usage/quota UI — it's hidden.)
   - Files: `web/src/app/[locale]/(dashboard)/.../create`, `web/src/lib/endpoints.ts`
   - Done when: blocking message shows on the 6th create attempt for a Free user.
 - [ ] **Download report action** — call the report endpoint, open the presigned URL.
@@ -103,7 +103,7 @@
   - Done when: clicking "Download report" opens the PDF.
 
 ### Tests
-- [ ] **Subscription quota tests** — under-cap allowed, at/over cap throws with `Subscription`.
+- [ ] **Subscription gate tests** — an active user can create more than `DefaultMaxProjects` (unlimited); an inactive account throws with `Subscription`.
   - Files: `tests/Application.FunctionalTests/...`
   - Done when: tests pass.
 - [ ] **Report generation smoke** — generator produces a non-empty PDF for a known result.
@@ -125,6 +125,6 @@
 
 ## Verification
 - [ ] `dotnet build Mabhas19.slnx` (warnings-as-errors) passes.
-- [ ] `dotnet test` green (incl. new quota + report tests).
+- [ ] `dotnet test` green (incl. subscription-gate + report tests).
 - [ ] `npm run build` (web) passes.
 - [ ] Smoke test: Free user blocked on 6th project → admin raises plan → create succeeds → run assessment → **download PDF and confirm Persian renders**.

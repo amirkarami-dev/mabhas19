@@ -130,7 +130,7 @@ erDiagram
     int Id PK
     string UserId FK
     enum Plan "Free/Pro/Enterprise"
-    int MaxProjects "default <FREE_QUOTA>"
+    int MaxProjects "display-only; not enforced"
     bool IsActive
   }
 ```

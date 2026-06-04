@@ -98,7 +98,7 @@ on. The `architect` plans; the `reviewer` verifies every phase.
 | 3 — Scoring engine (frontend) | `frontend-builder` | — (see `01-development/frontend-web.md`) | Checklists update score live (no per-keystroke server calls); save persists + reload restores; **frontend<->backend parity tests pass**. |
 | 4 — Auth + roles + admin | `backend-builder` + `frontend-builder` | `add-endpoint-group`, `add-cqrs-usecase` | Central OIDC SSO: IdP owns password/OTP/Google; web Auth.js (Auth Code + PKCE) lands authenticated; the API (JWT resource server, no `/api/Auth/*`) accepts the IdP JWT; identity server-resolved (no client `<RequireAuth>`); non-admin gets 403 from `/api/Admin/*` and the `/admin` server-layout gate hides admin UI; `GET /api/Users/me` -> `{ id, email, phoneNumber, roles, isAdmin }` from JWT claims; `dotnet test` (mocks the OIDC JWT scheme) + `npm run build` pass. |
 | 5 — Landing page | `frontend-builder` | — | `/` renders for anonymous users in both locales with correct `dir`; `npm run build` passes. |
-| 6 — Subscriptions + PDF | `backend-builder` + `frontend-builder` | — (see `01-development/subscriptions.md`, `file-storage-pdf.md`) | Creating beyond the cap returns a **`Subscription`-field 400** (not 500); a report PDF generates, uploads, downloads via presigned URL; the script font renders. |
+| 6 — Subscriptions + PDF | `backend-builder` + `frontend-builder` | — (see `01-development/subscriptions.md`, `file-storage-pdf.md`) | An inactive account returns a **`Subscription`-field 400** (not 500); active users create unlimited projects (no cap — ADR-020); a report PDF generates, uploads, downloads via presigned URL; the script font renders. |
 | 7 — Shared package | `frontend-builder` (+ `mobile-builder` for Metro) | `setup-monorepo-shared-package` | `npm install` at root links the workspace; web imports from `@<SCOPE>/<CORE_PACKAGE>`; web build still passes; package Vitest tests pass; **scores unchanged** vs Phase 3. |
 | 8 — Mobile app | `mobile-builder` | `setup-monorepo-shared-package` | `expo start` runs; `tsc --noEmit` passes; sign-in works on device/emulator; assessment computes **identically to web**. |
 | 9 — Deploy behind Traefik | `devops-deployer` | `deploy-behind-traefik` | `https://<WEB_DOMAIN>`, `https://<API_DOMAIN>`, `https://<S3_DOMAIN>` serve over valid TLS; migrations applied + admin seeded; prod smoke test passes; **only `api`/`web` recreated**, other stacks untouched, shared daemon not restarted. |
@@ -159,7 +159,7 @@ client-side, with the backend as the **system of record**. To migrate an existin
 > Migration invariants to preserve: domain-parity-first; **scoring in the frontend/shared package**
 > with the backend as system of record; **central OIDC SSO** (OpenIddict IdP owns password/OTP/Google;
 > the API is a JWT resource server with **no** `/api/Auth/*`; web is an Auth.js v5 OIDC client) + roles
-> + the subscription quota; the strict build flags; the APK monorepo fixes scheduled as their own
+> + the subscription account-gate (project cap removed — ADR-020); the strict build flags; the APK monorepo fixes scheduled as their own
 > phase; and the image-transfer / existing-Traefik deploy that **never restarts the shared daemon**.
 
 ---
