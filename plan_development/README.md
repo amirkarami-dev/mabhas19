@@ -21,7 +21,7 @@ and a step-by-step **migration runbook**.
 
 | Folder | What it gives you | Start here when… |
 |---|---|---|
-| **`00-planning/`** | Charter + requirements templates, the reference tech stack & rationale, ADRs, the real phased **roadmap**, a task-breakdown template | You're scoping a new app and deciding what to build, in what order |
+| **`00-planning/`** | The **base scaffold plan** (project-agnostic skeleton), charter + requirements templates, the reference tech stack & rationale, ADRs, the real phased **roadmap**, a task-breakdown template | You're starting the skeleton, or scoping a new app and deciding what to build, in what order |
 | **`01-development/`** | "How to build it" guides per area (backend Clean Architecture, web, mobile, shared package, auth, i18n/RTL, storage/PDF, OTP, subscriptions), the **gotchas** list, and local **setup** | You're writing code and need the conventions + recipes ("how to add an entity / use case / endpoint") |
 | **`02-documentation/`** | Templates for `README`, `CLAUDE.md`, an API reference, a self-contained **HTML guide**, and a Mermaid **diagram guide** | You're documenting the new project |
 | **`03-agents/`** | Claude Code **subagent** definitions: `architect`, `backend-builder`, `frontend-builder`, `mobile-builder`, `devops-deployer`, `reviewer` | You want specialized agents to drive each phase |
@@ -45,15 +45,31 @@ plan_development/
 
 ## How to start a NEW project with this blueprint
 
-1. **Create an empty repo** and copy `plan_development/` into it.
-2. **Fill in the project context** in `00-planning/project-charter.template.md` and
-   `00-planning/requirements.template.md` (target app, domain, any stack changes).
-3. **Read** `00-planning/tech-stack.md` and `00-planning/architecture-decisions.md` to
-   confirm the stack (or note swaps, e.g. a different DB or dropping mobile).
-4. **Follow** `06-migration/migrate-runbook.md`, which walks the **11 phases** from
-   `00-planning/roadmap-and-phases.md`, invoking the matching **agent** (`03-agents/`) and
+There are **two kickoffs** — run them in order. First the reusable skeleton, then this app's
+features.
+
+### Step 1 — Base project structure (the *basic* plan, same for every project)
+
+Create an empty repo, copy `plan_development/` into it, and just tell Claude:
+
+> **"Implement the base project structure according to `plan_development`."**
+
+You get an **empty but running skeleton** — monorepo + .NET 4-layer API (`/scalar`) + web shell +
+shared package + auth/docker/Traefik wiring, all placeholders, **no domain features**. This follows
+**`00-planning/base-scaffold-plan.md`**; ready prompt: `06-migration/prompts.md` → **Base project
+structure**.
+
+### Step 2 — Project-specific build (the plan for *this* app)
+
+With the skeleton green:
+
+1. **Fill** `00-planning/project-charter.template.md` + `requirements.template.md` (target app,
+   domain, any stack changes), and confirm the stack in `00-planning/tech-stack.md` /
+   `architecture-decisions.md` (note swaps, e.g. a different DB or dropping mobile).
+2. **Follow** `06-migration/migrate-runbook.md`, which walks the phased **roadmap**
+   (`00-planning/roadmap-and-phases.md`), invoking the matching **agent** (`03-agents/`) and
    **skill** (`04-skills/`) per phase, and gating each with `06-migration/checklist.md`.
-5. **Paste** the per-phase prompts from `06-migration/prompts.md` to drive Claude.
+3. **Paste** the per-phase prompts from `06-migration/prompts.md` to drive Claude.
 
 ## How to MIGRATE an existing app onto this architecture
 

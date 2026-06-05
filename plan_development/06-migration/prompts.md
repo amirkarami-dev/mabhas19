@@ -11,6 +11,34 @@ to use, points at the blueprint docs, and ends by demanding the **verification g
 
 ---
 
+## Base project structure (the basic skeleton — run this FIRST) — `architect` → `backend-builder` + `frontend-builder`
+
+```
+Implement the **base project structure** for `<APP_NAME>` according to `plan_development/`.
+Read `00-planning/base-scaffold-plan.md` and follow it exactly. Build an **empty but running
+skeleton — NO domain features**:
+
+- Monorepo (npm workspaces: `packages/*`, `web/`).
+- .NET 10 solution with the 4 Clean-Architecture layers + the strict-build conventions
+  (use skill `04-skills/scaffold-clean-architecture` + `05-templates/`); serves `/scalar`.
+- Shared TS package (`packages/<CORE_PACKAGE>`): empty engine + a passing vitest.
+- Web app (`web/`): Next.js shell — next-intl (default locale + RTL if needed), design tokens,
+  landing + login only.
+- Auth: the API is a JWT resource server exposing only `GET /api/Users/me`; web OIDC client.
+- Local infra: `docker-compose.dev` (DB + MinIO), the `Dockerfile`s + Traefik labels.
+- `CLAUDE.md` + `README` from the `02-documentation/*` templates.
+
+Replace every `<PLACEHOLDER>` (see `05-templates/README.md`). Do NOT add business entities, use
+cases, endpoints, or feature pages. Stop at the verify gate in `base-scaffold-plan.md` §3 with
+evidence (real command output): `dotnet build` + `dotnet run` (`/scalar`, `/api/Users/me`),
+`npm run build` (web home + login), `npm test` (shared package), `docker compose ... dev up`.
+```
+
+> The prompts below are the **project-specific build** — run them after the skeleton is green
+> (Step 2 in `README.md`).
+
+---
+
 ## Kickoff / Planning (Phase 0) — `architect`
 
 ```
