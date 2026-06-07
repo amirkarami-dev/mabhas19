@@ -40,7 +40,13 @@ builder.Services.Configure<OtpOptions>(builder.Configuration.GetSection(OtpOptio
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection(SmsOptions.SectionName));
 builder.Services.Configure<GoogleAuthOptions>(builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
 builder.Services.AddScoped<IOtpService, OtpService>();
-builder.Services.AddHttpClient<ISmsSender, SmsSender>();
+// Pick the SMS implementation by configured provider: "direct" -> msgway (api.msgway.com),
+// otherwise the relay/kavenegar/log sender.
+if (string.Equals(builder.Configuration[$"{SmsOptions.SectionName}:Provider"], "direct",
+        StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddHttpClient<ISmsSender, SmsDirectSender>();
+else
+    builder.Services.AddHttpClient<ISmsSender, SmsSender>();
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 
 builder.Services.AddScoped<AuthDbInitialiser>();

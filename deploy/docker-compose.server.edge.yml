@@ -77,9 +77,13 @@ services:
       ConnectionStrings__Mabhas19AuthDb: "Server=sqlserver,1433;Database=Mabhas19AuthDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
       OpenIddict__SigningCertificatePath: /certs/openiddict.pfx
       OpenIddict__SigningCertificatePassword: ${OPENIDDICT_CERT_PASSWORD}
-      Sms__Provider: "relay"
+      Sms__Provider: ${SMS_PROVIDER:-direct}
       Sms__RelayBaseUrl: "https://sms.kurdnezambargh.ir"
       Sms__RelayToken: ${SMS_RELAY_TOKEN}
+      # Direct msgway.com sending (set SMS_PROVIDER=direct to use these)
+      Sms__MsgwayApiKey: ${MSGWAY_API_KEY:-}
+      Sms__MsgwayProvider: ${MSGWAY_PROVIDER:-0}
+      Sms__MsgwayTemplateId: ${MSGWAY_TEMPLATE_ID:-0}
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
       Otp__LogCode: "false"
       AdminUser__Email: ${ADMIN_EMAIL}
