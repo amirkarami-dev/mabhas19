@@ -13,4 +13,4 @@
 # See deploy/README.md → "Secrets (SOPS + age)".
 creation_rules:
   - path_regex: \.enc\.env$
-    age: age1qyjamsz4r7ntx0mn63y4gu0xkje5hvz09xst4vhr9jsw7dlefajq96ncv3
+    age: age1sr4j4affxux6zwr4rtknelg59udxcpeyj3ypn7vl8g6zs4q44gyq3njkwd
