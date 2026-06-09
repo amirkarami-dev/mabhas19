@@ -12,7 +12,7 @@ import { routing } from "./i18n/routing"
 // (dashboard)/admin/layout.tsx via auth().
 const intlMiddleware = createMiddleware(routing)
 
-const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|admin)(?:\/|$)/
+const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|admin|reports)(?:\/|$)/
 
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl

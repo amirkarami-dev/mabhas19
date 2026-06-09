@@ -19,3 +19,8 @@ export * from "./data/integratedDb"
 
 // Pure scoring engine (6 checklists) + dispatcher
 export * from "./scoring"
+
+// Report view-model derivation (printable per-section reports)
+export * from "./reporting/envReport"
+export * from "./reporting/windowsReport"
+export * from "./reporting/checklistReport"

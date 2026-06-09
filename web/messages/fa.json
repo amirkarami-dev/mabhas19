@@ -90,10 +90,27 @@
     "openProject": "مشاهده",
     "deleteConfirm": "آیا از حذف این پروژه مطمئن هستید؟",
     "detail": "جزئیات پروژه",
+    "groupIdentity": "هویت پروژه",
+    "groupLocation": "موقعیت",
+    "groupGeometry": "مشخصات هندسی",
     "assessment": "ارزیابی انرژی",
     "report": "خروجی PDF",
     "generatingReport": "در حال ساخت گزارش...",
-    "noClimate": "نامشخص"
+    "noClimate": "نامشخص",
+    "envReport": "خروجی پوسته (PDF)",
+    "sectionReports": "خروجی گزارش بخش‌ها",
+    "exportPdf": "خروجی PDF",
+    "sectionDone": "تکمیل شده",
+    "sectionPending": "ناقص",
+    "sectionComingSoon": "به‌زودی",
+    "sectionIncomplete": "ابتدا تکمیل کنید"
+  },
+  "report": {
+    "title": "گزارش پوسته خارجی",
+    "back": "بازگشت به پروژه",
+    "download": "دانلود / چاپ PDF",
+    "empty": "هنوز ارزیابی پوسته‌ای ذخیره نشده است. ابتدا چک‌لیست پوسته را تکمیل و ذخیره کنید.",
+    "emptyAction": "رفتن به ارزیابی"
   },
   "assessment": {
     "title": "ارزیابی انرژی - مبحث ۱۹",

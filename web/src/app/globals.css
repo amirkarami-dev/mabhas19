@@ -287,3 +287,63 @@
 .dark .border-amber-200 {
   border-color: color-mix(in oklch, var(--warning) 35%, transparent);
 }
+
+/* ------------------------------------------------------------------ *
+ * Report document — ALWAYS light/white, even in dark mode.
+ * The printable report (.report-page) is a paper artifact: it must read
+ * the same on screen, in dark mode, and on paper. Re-assert the fixed
+ * colors for the utilities it uses, outranking the legacy `.dark .x`
+ * remaps above (`.dark .report-page .x` = 3 classes beats 2).
+ * ------------------------------------------------------------------ */
+.dark .report-page,
+.dark .report-page.bg-white {
+  background-color: #fff;
+  color: #0f172a;
+}
+.dark .report-page .bg-white { background-color: #fff; }
+.dark .report-page .bg-slate-50 { background-color: #f8fafc; }
+.dark .report-page .bg-slate-100 { background-color: #f1f5f9; }
+.dark .report-page .bg-slate-700 { background-color: #334155; }
+.dark .report-page .bg-emerald-50 { background-color: #ecfdf5; }
+.dark .report-page .bg-red-50 { background-color: #fef2f2; }
+.dark .report-page .bg-amber-50 { background-color: #fffbeb; }
+.dark .report-page .text-slate-900 { color: #0f172a; }
+.dark .report-page .text-slate-800 { color: #1e293b; }
+.dark .report-page .text-slate-700 { color: #334155; }
+.dark .report-page .text-slate-600 { color: #475569; }
+.dark .report-page .text-slate-500 { color: #64748b; }
+.dark .report-page .text-slate-400 { color: #94a3b8; }
+.dark .report-page .text-emerald-700 { color: #047857; }
+.dark .report-page .text-red-600 { color: #dc2626; }
+.dark .report-page .text-white,
+.dark .report-page .text-white\/95 { color: #fff; }
+.dark .report-page .border-slate-200 { border-color: #e2e8f0; }
+.dark .report-page .border-slate-300 { border-color: #cbd5e1; }
+.dark .report-page .border-emerald-200 { border-color: #a7f3d0; }
+
+/* ---- print: export the report as a clean A4 PDF ---- */
+@media print {
+  .report-no-print { display: none !important; }
+  html,
+  body {
+    background: #fff !important;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .report-page {
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  /* Keep an assembly card / summary table from splitting across pages. */
+  .report-assembly {
+    break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

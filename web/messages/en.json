@@ -90,10 +90,27 @@
     "openProject": "View",
     "deleteConfirm": "Are you sure you want to delete this project?",
     "detail": "Project detail",
+    "groupIdentity": "Identity",
+    "groupLocation": "Location",
+    "groupGeometry": "Geometry",
     "assessment": "Energy assessment",
     "report": "Export PDF",
     "generatingReport": "Generating report...",
-    "noClimate": "Unknown"
+    "noClimate": "Unknown",
+    "envReport": "Envelope PDF",
+    "sectionReports": "Section reports",
+    "exportPdf": "Export PDF",
+    "sectionDone": "Completed",
+    "sectionPending": "Incomplete",
+    "sectionComingSoon": "Coming soon",
+    "sectionIncomplete": "Complete first"
+  },
+  "report": {
+    "title": "Envelope report",
+    "back": "Back to project",
+    "download": "Download / Print PDF",
+    "empty": "No envelope assessment saved yet. Complete and save the envelope checklist first.",
+    "emptyAction": "Go to assessment"
   },
   "assessment": {
     "title": "Energy Assessment - Section 19",
