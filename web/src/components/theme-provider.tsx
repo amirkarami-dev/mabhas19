@@ -73,24 +73,27 @@ export function useTheme(): ThemeState {
 }
 
 export function ThemeToggle() {
-  const { theme, toggle } = useTheme()
+  // Read only `toggle` (used in the click handler) — never branch the rendered
+  // markup on `theme`, so the server and the first client render are byte-identical
+  // (no hydration mismatch). Both icons are always in the DOM; CSS picks which is
+  // visible via the `.dark` class, which is already on <html> before paint.
+  const { toggle } = useTheme()
   return (
     <button
       type="button"
       onClick={toggle}
       aria-label="Toggle theme"
-      className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      className="relative inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
     >
-      {theme === "dark" ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      )}
+      {/* Sun — shown in dark mode (clicking switches to light) */}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="hidden size-4 dark:block">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </svg>
+      {/* Moon — shown in light mode (clicking switches to dark) */}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="block size-4 dark:hidden">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
     </button>
   )
 }

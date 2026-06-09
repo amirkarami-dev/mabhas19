@@ -35,8 +35,14 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className="min-h-screen antialiased">
+      <head>
+        {/* Rendered by this Server Component into <head>: the HTML parser runs it
+            synchronously before first paint (no FOUC, incl. hard reload), and React
+            does not re-materialize it during client reconciliation (no "script tag
+            while rendering React component" warning). */}
         <script dangerouslySetInnerHTML={{ __html: themeNoFlashScript }} />
+      </head>
+      <body className="min-h-screen antialiased">
         <SessionProvider>
           <QueryProvider>
             <NextIntlClientProvider messages={messages}>
