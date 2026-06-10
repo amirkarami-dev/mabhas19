@@ -76,6 +76,7 @@ public static class DependencyInjection
         // Options
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
         services.Configure<NezamMohandesiOptions>(config.GetSection(NezamMohandesiOptions.SectionName));
+        services.Configure<FarsNezamOptions>(config.GetSection(FarsNezamOptions.SectionName));
 
         // Object storage (MinIO / S3).
         services.AddSingleton<IMinioClient>(sp =>
@@ -98,7 +99,8 @@ public static class DependencyInjection
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
 
-        // External project import providers.
+        // External project import providers (collected as IEnumerable<IExternalProjectProvider>).
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();
+        services.AddScoped<IExternalProjectProvider, FarsNezamProjectProvider>();
     }
 }

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5000/"
+      "url": "http://localhost:5200/"
     }
   ],
   "paths": {
@@ -1024,6 +1024,18 @@
             "type": "string"
           },
           "externalId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "projectNo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "allowedSections": {
             "type": [
               "null",
               "string"

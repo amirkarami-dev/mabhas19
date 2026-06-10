@@ -2,6 +2,7 @@ using Mabhas19.Application.Common.Interfaces;
 using Mabhas19.Application.Common.Security;
 using Mabhas19.Domain.Entities;
 using Mabhas19.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using ValidationException = Mabhas19.Application.Common.Exceptions.ValidationException;
 
 namespace Mabhas19.Application.Projects.Commands.ImportProject;
@@ -37,7 +38,6 @@ public class ImportProjectCommandHandler : IRequestHandler<ImportProjectCommand,
     public async Task<int> Handle(ImportProjectCommand request, CancellationToken cancellationToken)
     {
         var userId = _user.Id!;
-        await _subscriptions.EnsureCanCreateProjectAsync(userId, cancellationToken);
 
         if (!Enum.TryParse<ProjectSource>(request.Source, ignoreCase: true, out var source))
         {
@@ -48,6 +48,28 @@ public class ImportProjectCommandHandler : IRequestHandler<ImportProjectCommand,
 
         var provider = _providers.FirstOrDefault(p => p.Source == source)
             ?? throw new ValidationExceptionFor("Source", $"No import provider registered for '{request.Source}'.");
+
+        // Idempotent: re-importing the same external record (e.g. re-clicking the SSO link)
+        // returns the existing project instead of creating a duplicate — but refreshes the
+        // editable-section allowlist so a changed external typ list propagates.
+        if (!string.IsNullOrWhiteSpace(request.ExternalId))
+        {
+            var existing = await _context.Projects.FirstOrDefaultAsync(
+                p => p.OwnerId == userId && p.Source == source && p.ExternalId == request.ExternalId,
+                cancellationToken);
+            if (existing is not null)
+            {
+                var refreshed = await provider.FetchAsync(request.ExternalId, cancellationToken);
+                if (refreshed is not null && refreshed.AllowedSections != existing.AllowedSections)
+                {
+                    existing.AllowedSections = refreshed.AllowedSections;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                return existing.Id;
+            }
+        }
+
+        await _subscriptions.EnsureCanCreateProjectAsync(userId, cancellationToken);
 
         var data = await provider.FetchAsync(request.ExternalId, cancellationToken);
         if (data is null)
@@ -75,7 +97,8 @@ public class ImportProjectCommandHandler : IRequestHandler<ImportProjectCommand,
             SystemId = data.SystemId,
             OwnerId = userId,
             Source = source,
-            ExternalId = request.ExternalId
+            ExternalId = request.ExternalId,
+            AllowedSections = data.AllowedSections
         };
 
         _context.Projects.Add(entity);

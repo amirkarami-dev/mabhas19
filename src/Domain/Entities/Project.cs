@@ -37,8 +37,13 @@ public class Project : BaseAuditableEntity
 
     public ProjectSource Source { get; set; } = ProjectSource.Manual;
 
-    /// <summary>External reference id when imported (e.g. نظام مهندسی ساختمان record id).</summary>
+    /// <summary>External reference id when imported (نظام مهندسی ساختمان record id, or FarsNezam ProjectNo).</summary>
     public string? ExternalId { get; set; }
+
+    /// <summary>Comma-separated assessment section keys the owner may EDIT, e.g. "env,elec".
+    /// Null/empty means all sections are editable (manually-created projects). Derived from
+    /// the external typ list at FarsNezam import time.</summary>
+    public string? AllowedSections { get; set; }
 
     public Assessment? Assessment { get; set; }
 

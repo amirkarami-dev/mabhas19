@@ -40,6 +40,11 @@ export default function AssessmentPage() {
   }
   const climateCode = project.climateCode || "4"
 
+  // Section keys the user may edit (from the FarsNezam typ list). Null = all editable.
+  const editableSections = project.allowedSections
+    ? project.allowedSections.split(",").map((s) => s.trim()).filter(Boolean)
+    : null
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6">
       <div>
@@ -65,7 +70,12 @@ export default function AssessmentPage() {
         </CardBody>
       </Card>
 
-      <AssessmentWorkspace projectId={id} meta={meta} climateCode={climateCode} />
+      <AssessmentWorkspace
+        projectId={id}
+        meta={meta}
+        climateCode={climateCode}
+        editableSections={editableSections}
+      />
     </div>
   )
 }

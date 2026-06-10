@@ -1,9 +1,11 @@
+using System.Threading.RateLimiting;
 using Mabhas19.Auth.Data;
 using Mabhas19.Auth.External;
 using Mabhas19.Auth.Otp;
 using Mabhas19.Auth.Sms;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,6 +50,22 @@ if (string.Equals(builder.Configuration[$"{SmsOptions.SectionName}:Provider"], "
 else
     builder.Services.AddHttpClient<ISmsSender, SmsSender>();
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddScoped<IFarsNezamDirectory, FarsNezamDirectory>();
+
+// The FarsNezam magic-link is unsigned (accepted risk), so the auto-provisioning page gets
+// a per-IP rate limit to blunt enumeration of membership codes.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.AddPolicy("fars-login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
 
 builder.Services.AddScoped<AuthDbInitialiser>();
 
@@ -111,6 +129,7 @@ app.UseForwardedHeaders();
 await app.InitialiseAuthAsync();
 
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

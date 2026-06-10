@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
 using Mabhas19.Auth.Data;
+using Mabhas19.Auth.External;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -13,22 +14,60 @@ namespace Mabhas19.Auth;
 
 public class AuthorizationController(
     SignInManager<AuthUser> signInManager,
-    UserManager<AuthUser> userManager) : Controller
+    UserManager<AuthUser> userManager,
+    IFarsNezamDirectory farsDirectory) : Controller
 {
+    private const string FarsHintPrefix = "fars:";
+
     [HttpGet("connect/authorize"), HttpPost("connect/authorize")]
     public async Task<IActionResult> Authorize()
     {
         var request = HttpContext.GetOpenIddictServerRequest()!;
         var result = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+
+        var farsCo = !string.IsNullOrEmpty(request.LoginHint) &&
+                     request.LoginHint.StartsWith(FarsHintPrefix, StringComparison.OrdinalIgnoreCase)
+            ? request.LoginHint[FarsHintPrefix.Length..]
+            : null;
+
+        var returnUrl = Request.PathBase + Request.Path + QueryString.Create(
+            Request.HasFormContentType ? Request.Form : Request.Query);
+
         if (!result.Succeeded)
         {
+            // FarsNezam magic-link: an unauthenticated authorize carrying login_hint=fars:<CodeOzveyat>
+            // is routed to the auto-provisioning page instead of the interactive login.
+            if (farsCo is not null)
+            {
+                return RedirectToFarsLogin(farsCo, returnUrl);
+            }
+
             return Challenge(
                 authenticationSchemes: IdentityConstants.ApplicationScheme,
-                properties: new AuthenticationProperties
-                {
-                    RedirectUri = Request.PathBase + Request.Path + QueryString.Create(
-                        Request.HasFormContentType ? Request.Form : Request.Query)
-                });
+                properties: new AuthenticationProperties { RedirectUri = returnUrl });
+        }
+
+        // Magic-link while ALREADY signed in (possibly as someone else): the link's engineer
+        // must win. Loop-safe: once FarsLogin signs the engineer in, usernames match and we
+        // fall through.
+        if (farsCo is not null)
+        {
+            var current = await userManager.GetUserAsync(result.Principal!);
+            var engineer = await farsDirectory.GetByCodeOzveyatAsync(farsCo, HttpContext.RequestAborted);
+
+            // Invalid code: don't silently proceed as the current user — route to FarsLogin so
+            // the user sees the "not found" error instead of getting someone else's session.
+            if (engineer is null)
+            {
+                return RedirectToFarsLogin(farsCo, returnUrl);
+            }
+
+            // Different engineer than the current session → switch identity via FarsLogin.
+            if (!string.Equals(current?.UserName, engineer.CodeMeli, StringComparison.OrdinalIgnoreCase))
+            {
+                await signInManager.SignOutAsync();
+                return RedirectToFarsLogin(farsCo, returnUrl);
+            }
         }
 
         var user = await userManager.GetUserAsync(result.Principal!)
@@ -76,6 +115,9 @@ public class AuthorizationController(
             authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
             properties: new AuthenticationProperties { RedirectUri = "/" });
     }
+
+    private RedirectResult RedirectToFarsLogin(string co, string returnUrl) =>
+        Redirect($"/Account/FarsLogin?co={Uri.EscapeDataString(co)}&returnUrl={Uri.EscapeDataString(returnUrl)}");
 
     private async Task<ClaimsPrincipal> BuildPrincipalAsync(AuthUser user, IEnumerable<string> scopes)
     {

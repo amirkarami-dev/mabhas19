@@ -105,6 +105,17 @@
     "sectionComingSoon": "Coming soon",
     "sectionIncomplete": "Complete first"
   },
+  "sso": {
+    "connecting": "Signing you in from FarsNezam…",
+    "connectingHint": "Authenticating; please wait.",
+    "provisioning": "Preparing your project…",
+    "provisioningHint": "Fetching project {pno} from FarsNezam",
+    "missingParams": "Invalid link; membership code or project number is missing.",
+    "importError": "Failed to fetch the project",
+    "importErrorHint": "No project found for number {pno}, or the connection failed.",
+    "goProjects": "Go to projects",
+    "backHome": "Home"
+  },
   "report": {
     "title": "Envelope report",
     "back": "Back to project",
@@ -125,7 +136,10 @@
     "saveSuccess": "Assessment saved successfully",
     "saveError": "Failed to save assessment",
     "score": "Score",
-    "notImplemented": "This checklist is not implemented yet"
+    "notImplemented": "This checklist is not implemented yet",
+    "readOnly": "Read only",
+    "readOnlyNotice": "This section is outside your discipline and is available for viewing only.",
+    "view": "View"
   },
   "import": {
     "title": "Import project from external service",

@@ -20,6 +20,13 @@ public class ProjectDto
     public string? SystemId { get; init; }
     public string Source { get; init; } = string.Empty;
     public string? ExternalId { get; init; }
+
+    /// <summary>External project number (e.g. FarsNezam ProjectNo) — alias of ExternalId for UI display.</summary>
+    public string? ProjectNo { get; init; }
+
+    /// <summary>Comma-separated section keys the owner may edit (e.g. "env,elec").
+    /// Null/empty = all sections editable. Clients split on ','.</summary>
+    public string? AllowedSections { get; init; }
     public string BuildingGroupCode { get; init; } = string.Empty;
     public string BuildingGroupLabel { get; init; } = string.Empty;
     public bool HasAssessment { get; init; }
@@ -33,6 +40,7 @@ public class ProjectDto
         {
             CreateMap<Project, ProjectDto>()
                 .ForMember(d => d.Source, o => o.MapFrom(s => s.Source.ToString()))
+                .ForMember(d => d.ProjectNo, o => o.MapFrom(s => s.ExternalId))
                 .ForMember(d => d.BuildingGroupCode, o => o.MapFrom(s => s.BuildingGroup.ToString()))
                 .ForMember(d => d.BuildingGroupLabel, o => o.MapFrom(s => BuildingGroupCalculator.PersianLabel(s.BuildingGroup)))
                 .ForMember(d => d.HasAssessment, o => o.MapFrom(s => s.Assessment != null))

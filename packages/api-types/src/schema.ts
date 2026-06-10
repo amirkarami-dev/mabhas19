@@ -268,6 +268,8 @@ export interface components {
             systemId?: null | string;
             source?: string;
             externalId?: null | string;
+            projectNo?: null | string;
+            allowedSections?: null | string;
             buildingGroupCode?: string;
             buildingGroupLabel?: string;
             hasAssessment?: boolean;

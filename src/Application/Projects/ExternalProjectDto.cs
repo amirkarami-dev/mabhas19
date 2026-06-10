@@ -15,4 +15,8 @@ public record ExternalProjectDto
     public string? Deed { get; init; }
     public string? Parcel { get; init; }
     public string? SystemId { get; init; }
+
+    /// <summary>Comma-separated assessment section keys editable for this project
+    /// (FarsNezam typ list → env/elec/mech). Null when the source has no such concept.</summary>
+    public string? AllowedSections { get; init; }
 }

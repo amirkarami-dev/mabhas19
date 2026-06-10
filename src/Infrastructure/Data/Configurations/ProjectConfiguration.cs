@@ -19,6 +19,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.SystemId).HasMaxLength(100);
         builder.Property(p => p.OwnerId).HasMaxLength(450).IsRequired();
         builder.Property(p => p.ExternalId).HasMaxLength(200);
+        builder.Property(p => p.AllowedSections).HasMaxLength(100);
         builder.Property(p => p.Source).HasConversion<int>();
 
         builder.HasIndex(p => p.OwnerId);
