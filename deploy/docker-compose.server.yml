@@ -53,6 +53,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19AuthDb: "Server=sqlserver,1433;Database=Mabhas19AuthDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # FarsNezam (نظام مهندسی فارس) external read-only DB — engineer auto-provisioning (empty = disabled).
+      ConnectionStrings__FarsNezamDb: "${FARSNEZAM_DB_CONN}"
       # OpenIddict signing certificate (PFX) — mounted from ./certs on the host.
       OpenIddict__SigningCertificatePath: /certs/openiddict.pfx
       OpenIddict__SigningCertificatePassword: ${OPENIDDICT_CERT_PASSWORD}
@@ -98,6 +100,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19Db: "Server=sqlserver,1433;Database=Mabhas19Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # FarsNezam external read-only DB — project provisioning + typ list (empty = disabled).
+      ConnectionStrings__FarsNezamDb: "${FARSNEZAM_DB_CONN}"
       # MinIO is reached via its public host so presigned signatures are valid for browsers.
       Minio__Endpoint: ${MINIO_DOMAIN}
       Minio__AccessKey: ${MINIO_ROOT_USER}
