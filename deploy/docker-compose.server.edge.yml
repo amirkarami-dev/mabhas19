@@ -75,6 +75,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19AuthDb: "Server=sqlserver,1433;Database=Mabhas19AuthDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # FarsNezam (نظام مهندسی فارس) external read-only DB — engineer auto-provisioning (empty = disabled).
+      ConnectionStrings__FarsNezamDb: "${FARSNEZAM_DB_CONN:-}"
       OpenIddict__SigningCertificatePath: /certs/openiddict.pfx
       OpenIddict__SigningCertificatePassword: ${OPENIDDICT_CERT_PASSWORD}
       Sms__Provider: ${SMS_PROVIDER:-direct}
@@ -122,6 +124,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Mabhas19Db: "Server=sqlserver,1433;Database=Mabhas19Db;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      # FarsNezam external read-only DB — project provisioning + typ list (empty = disabled).
+      ConnectionStrings__FarsNezamDb: "${FARSNEZAM_DB_CONN:-}"
       Minio__Endpoint: ${MINIO_DOMAIN}
       Minio__AccessKey: ${MINIO_ROOT_USER}
       Minio__SecretKey: ${MINIO_ROOT_PASSWORD}
