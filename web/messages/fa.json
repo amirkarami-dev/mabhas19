@@ -103,7 +103,18 @@
     "sectionDone": "تکمیل شده",
     "sectionPending": "ناقص",
     "sectionComingSoon": "به‌زودی",
-    "sectionIncomplete": "ابتدا تکمیل کنید"
+    "sectionIncomplete": "ابتدا تکمیل کنید",
+    "subtitle": "مدیریت و ارزیابی پروژه‌های انرژی ساختمان مطابق مبحث ۱۹",
+    "statTotal": "کل پروژه‌ها",
+    "statAssessed": "ارزیابی‌شده",
+    "statArea": "متراژ کل",
+    "assessed": "ارزیابی شده",
+    "notAssessed": "بدون ارزیابی",
+    "sourceFars": "نظام فارس",
+    "score": "امتیاز",
+    "areaShort": "متراژ (m²)",
+    "floorsShort": "طبقات",
+    "unitsShort": "واحد"
   },
   "sso": {
     "connecting": "در حال ورود از سامانه نظام مهندسی فارس…",

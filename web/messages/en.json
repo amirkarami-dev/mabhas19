@@ -103,7 +103,18 @@
     "sectionDone": "Completed",
     "sectionPending": "Incomplete",
     "sectionComingSoon": "Coming soon",
-    "sectionIncomplete": "Complete first"
+    "sectionIncomplete": "Complete first",
+    "subtitle": "Manage and assess building-energy projects under Section 19",
+    "statTotal": "Total projects",
+    "statAssessed": "Assessed",
+    "statArea": "Total area",
+    "assessed": "Assessed",
+    "notAssessed": "Not assessed",
+    "sourceFars": "FarsNezam",
+    "score": "Score",
+    "areaShort": "Area (m²)",
+    "floorsShort": "Floors",
+    "unitsShort": "Units"
   },
   "sso": {
     "connecting": "Signing you in from FarsNezam…",
