@@ -36,7 +36,10 @@ export function AuthProvider({
     qc.clear() // drop all cached private data so nothing leaks to the next user
     const issuer = process.env.NEXT_PUBLIC_AUTH_ISSUER
     if (issuer) {
-      window.location.href = `${issuer}/connect/logout`
+      // End the IdP session too, then come back to the app's home page. OpenIddict validates
+      // post_logout_redirect_uri against the client's registered PostLogoutRedirectUris.
+      const back = encodeURIComponent(window.location.origin)
+      window.location.href = `${issuer}/connect/logout?post_logout_redirect_uri=${back}`
     } else {
       window.location.href = "/login"
     }
