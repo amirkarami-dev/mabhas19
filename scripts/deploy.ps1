@@ -52,6 +52,11 @@ Write-Host "==> 4/6  Generating .env + signing cert (idempotent)"
 Remote "cd $AppPath && bash scripts/remote-provision.sh"
 
 Write-Host "==> 5/6  Building images from source (no cache, one at a time — 4 GB box)"
+# Reclaim build-cache space FIRST: Docker's containerd image store lives on the small ~23 GB
+# root disk (not the 49 GB /data), so a --no-cache build otherwise fails with
+# "no space left on device". (Moving containerd's root to /data would fix it permanently but
+# needs a containerd+docker restart = every container on the shared box restarts.)
+Remote "docker builder prune -af"
 foreach ($svc in @("api", "auth", "web")) {
   Write-Host "    building $svc ..."
   Remote "cd $AppPath && docker compose -f $Compose --env-file deploy/.env build --no-cache $svc"
