@@ -69,6 +69,14 @@
     "usedOf": "{used} از {max}",
     "recentProjects": "پروژه‌های اخیر",
     "noProjects": "هنوز پروژه‌ای ندارید",
+    "welcome": "خوش آمدید",
+    "subtitle": "نمای کلی پروژه‌ها و ارزیابی انرژی ساختمان شما",
+    "assessed": "ارزیابی‌شده",
+    "totalArea": "متراژ کل",
+    "avgScore": "میانگین امتیاز",
+    "viewProjects": "مشاهده پروژه‌ها",
+    "viewAll": "مشاهده همه",
+    "createFirst": "ایجاد اولین پروژه",
     "plan": "طرح اشتراک"
   },
   "projects": {

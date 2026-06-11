@@ -69,6 +69,14 @@
     "usedOf": "{used} of {max}",
     "recentProjects": "Recent projects",
     "noProjects": "You have no projects yet",
+    "welcome": "Welcome",
+    "subtitle": "An overview of your building-energy projects and assessments",
+    "assessed": "Assessed",
+    "totalArea": "Total area",
+    "avgScore": "Avg. score",
+    "viewProjects": "View projects",
+    "viewAll": "View all",
+    "createFirst": "Create your first project",
     "plan": "Plan"
   },
   "projects": {
