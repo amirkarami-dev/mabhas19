@@ -8,6 +8,7 @@
   "workspaces": [
     "packages/*",
     "web",
-    "mobile"
+    "mobile",
+    "report-web"
   ]
 }
