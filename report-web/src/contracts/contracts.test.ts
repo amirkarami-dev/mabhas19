@@ -89,6 +89,27 @@ describe("contracts/rbac mapLegacyRoles (§10.8)", () => {
   });
 });
 
+describe("contracts/rbac mapLegacyRoles guard (fix #1)", () => {
+  it("unknown report.* suffix is silently dropped; result falls back to Viewer", () => {
+    // "HackerRole" is not a real AppRole — the unsafe cast would have let it through
+    expect(mapLegacyRoles(["report.HackerRole"])).toEqual(["Viewer"]);
+  });
+
+  it("known report.* suffix (AIManager) is accepted", () => {
+    expect(mapLegacyRoles(["report.AIManager"])).toContain("AIManager");
+  });
+});
+
+describe("contracts/common type-guards (R1 negative)", () => {
+  it('"dimension" is NOT assignable to FieldType', () => {
+    expectTypeOf<"dimension">().not.toMatchTypeOf<FieldType>();
+  });
+
+  it('"measure" is NOT assignable to FieldType', () => {
+    expectTypeOf<"measure">().not.toMatchTypeOf<FieldType>();
+  });
+});
+
 describe("contracts shapes type-check (R2/R3/R6)", () => {
   it("a fully-formed ReportDefinition literal satisfies the contract", () => {
     const def: ReportDefinition = {

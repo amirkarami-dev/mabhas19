@@ -171,8 +171,9 @@ export interface Drilldown {
   targetReportId?: string; // open another saved report
   /** OR an inline definition (no separate saved report needed). */
   targetDefinition?: ReportDefinition;
-  /** which field's clicked value becomes the drill filter. */
-  paramField: string; // e.g. "province"
+  /** which field's clicked value becomes the drill filter.
+   *  Optional so `{ enabled: false }` is a valid no-op drilldown literal. */
+  paramField?: string; // e.g. "province"
   /** operator used when injecting the value (default "eq"). */
   operator?: FilterOperator;
 }

@@ -80,8 +80,12 @@ export interface SessionUser {
 export function mapLegacyRoles(claimRoles: string[]): AppRole[] {
   const mapped: AppRole[] = [];
   for (const r of claimRoles) {
-    if (r.startsWith("report.")) mapped.push(r.slice("report.".length) as AppRole);
-    else if (r === "Administrator") mapped.push("SuperAdmin"); // or "TenantAdmin" per deployment
+    if (r.startsWith("report.")) {
+      const sliced = r.slice("report.".length);
+      // Runtime membership check — only accept values that are real AppRoles.
+      // An unsafe `as AppRole` cast would silently inject arbitrary strings.
+      if (sliced in ROLE_PERMISSIONS) mapped.push(sliced as AppRole);
+    } else if (r === "Administrator") mapped.push("SuperAdmin"); // or "TenantAdmin" per deployment
     else if (r === "User") mapped.push("PowerUser"); // or "Viewer"
   }
   return mapped.length ? Array.from(new Set(mapped)) : ["Viewer"]; // safe default

@@ -18,6 +18,13 @@ export interface Field {
   /** the actual key in the dataset row (v1) / column mapping (later). */
   column: string;
   type: FieldType;
+  /**
+   * Discriminant used by the query engine for grouping/time-bucketing
+   * ("dimension" → GROUP BY, "date" → time-series grain, "measure" → aggregation).
+   * Independent of `type` (the data primitive — string/number/date/boolean):
+   * e.g. a `type:"number"` field can have `role:"dimension"` if it is a category code,
+   * while a `type:"string"` status field is also a "dimension".
+   */
   role: FieldRole;
   /** business labels — the mapper matches prompt terms against these. */
   label: { "fa-IR": string; "en-US": string };
