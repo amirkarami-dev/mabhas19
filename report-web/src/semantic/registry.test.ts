@@ -31,6 +31,11 @@ describe("semantic registry", () => {
   it("pairs a dataset source back to its owning model", () => {
     expect(getModelForDataset("sales").id).toBe("model-sales");
     expect(getModelForDataset("projects").id).toBe("model-project");
+    expect(getModelForDataset("finance").id).toBe("model-finance");
+  });
+
+  it("throws on an unknown dataset source when pairing to a model", () => {
+    expect(() => getModelForDataset("nope")).toThrow(/unknown dataset source/i);
   });
 
   it("exposes the maps keyed correctly", () => {
