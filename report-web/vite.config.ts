@@ -1,10 +1,13 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyPlugin = any;
 
 export default defineConfig({
-  plugins: [react()],
+  // Cast needed: monorepo root has vite@5 alongside report-web's vite@6;
+  // tsc resolves types from root node_modules causing a dual-instance mismatch.
+  plugins: [react() as AnyPlugin],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
