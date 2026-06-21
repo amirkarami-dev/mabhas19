@@ -291,16 +291,26 @@ function fieldById(entity: ReturnType<typeof entityOf>, id: string): Field | und
   return entity.fields.find((f) => f.id === id);
 }
 
-function matchesFilter(row: Record<string, CellValue>, f: Filter): boolean {
+function matchesFilter(
+  row: Record<string, CellValue>,
+  f: Filter,
+  colLookup: Map<string, string>,
+): boolean {
+  const col = colLookup.get(f.field) ?? f.field;
   const v = resolveFilterValue(f.value, f.dynamic);
-  return applyOperator(f.operator, row[f.field] ?? null, v, f.value2);
+  const v2 = f.dynamic ? resolveFilterValue(f.value2, f.dynamic) : f.value2;
+  return applyOperator(f.operator, row[col] ?? null, v, v2);
 }
 
-function matchesGroup(row: Record<string, CellValue>, g: FilterGroup): boolean {
+function matchesGroup(
+  row: Record<string, CellValue>,
+  g: FilterGroup,
+  colLookup: Map<string, string>,
+): boolean {
   const results = g.conditions.map((c) =>
     "logic" in c
-      ? matchesGroup(row, c as FilterGroup)
-      : matchesFilter(row, c as Filter),
+      ? matchesGroup(row, c as FilterGroup, colLookup)
+      : matchesFilter(row, c as Filter, colLookup),
   );
   return g.logic === "or" ? results.some(Boolean) : results.every(Boolean);
 }
@@ -316,11 +326,16 @@ function bucketValue(
   return v;
 }
 
-function computeMetric(m: Metric, bucketRows: Record<string, CellValue>[]): number {
+function computeMetric(
+  m: Metric,
+  bucketRows: Record<string, CellValue>[],
+  colLookup: Map<string, string>,
+): number {
+  const col = m.field === "*" ? "*" : (colLookup.get(m.field) ?? m.field);
   const values =
-    m.field === "*"
+    col === "*"
       ? bucketRows.map(() => 1 as CellValue)
-      : bucketRows.map((r) => (r[m.field] ?? null) as CellValue);
+      : bucketRows.map((r) => (r[col] ?? null) as CellValue);
   return aggregate(m.aggregation, values);
 }
 
@@ -428,11 +443,13 @@ function resolveColumns(
 function projectFlatRow(
   r: Record<string, CellValue>,
   def: ReportDefinition,
+  colLookup: Map<string, string>,
 ): ResultRow {
   const out: ResultRow = {};
   for (const c of def.columns) {
     if (c.visible === false) continue;
-    const v = r[c.field] ?? null;
+    const col = colLookup.get(c.field) ?? c.field;
+    const v = r[col] ?? null;
     out[c.field] = typeof v === "boolean" ? String(v) : (v as string | number | null);
   }
   for (const cf of (def.calculatedFields ?? []).filter((x) => (x.scope ?? "row") === "row")) {
@@ -448,12 +465,40 @@ export function runQuery(
 ): QueryResult {
   const entity = entityOf(semantic, def.dataset);
 
+  // ── Build id→column lookup ──────────────────────────────────
+  const colLookup = new Map<string, string>(
+    entity.fields.map((f) => [f.id, f.column]),
+  );
+
+  // ── Validate field references (Bug 3) ──────────────────────
+  const collectFilterFields = (cond: Filter | FilterGroup): string[] => {
+    if ("logic" in cond) {
+      return (cond as FilterGroup).conditions.flatMap(collectFilterFields);
+    }
+    return [(cond as Filter).field];
+  };
+
+  const filterFields = def.filterGroup
+    ? collectFilterFields(def.filterGroup)
+    : (def.filters ?? []).map((f) => f.field);
+
+  for (const id of filterFields) {
+    if (!colLookup.has(id)) throw new Error(`Unknown field: ${id}`);
+  }
+  for (const g of def.groupBy ?? []) {
+    if (!colLookup.has(g.field)) throw new Error(`Unknown field: ${g.field}`);
+  }
+  for (const m of def.metrics ?? []) {
+    if (m.field !== "*" && !colLookup.has(m.field)) throw new Error(`Unknown field: ${m.field}`);
+  }
+  // calculatedFields reference metric aliases — NOT validated against model fields
+
   // ── 1. FILTER ──────────────────────────────────────────────
   let rows: Record<string, CellValue>[] = dataset.map((r) => ({ ...r }));
   if (def.filterGroup) {
-    rows = rows.filter((r) => matchesGroup(r, def.filterGroup!));
+    rows = rows.filter((r) => matchesGroup(r, def.filterGroup!, colLookup));
   } else if (def.filters?.length) {
-    rows = rows.filter((r) => def.filters!.every((f) => matchesFilter(r, f)));
+    rows = rows.filter((r) => def.filters!.every((f) => matchesFilter(r, f, colLookup)));
   }
 
   // ── 2. ROW-LEVEL calculated fields ─────────────────────────
@@ -479,13 +524,13 @@ export function runQuery(
       // Aggregate over the whole filtered set → single row
       const row: ResultRow = {};
       for (const m of def.metrics) {
-        row[m.alias ?? `${m.aggregation}_${m.field}`] = computeMetric(m, rows);
+        row[m.alias ?? `${m.aggregation}_${m.field}`] = computeMetric(m, rows, colLookup);
       }
       applyAggCalcs(row, aggCalcs);
       out = [row];
     } else {
       // Flat projection
-      out = rows.map((r) => projectFlatRow(r, def));
+      out = rows.map((r) => projectFlatRow(r, def, colLookup));
     }
   } else {
     // Build group buckets preserving insertion order (Map)
@@ -493,7 +538,10 @@ export function runQuery(
 
     const keyOf = (r: Record<string, CellValue>) =>
       def.groupBy!
-        .map((g) => String(bucketValue(r[g.field] ?? null, g, fieldById(entity, g.field))))
+        .map((g) => {
+          const col = colLookup.get(g.field) ?? g.field;
+          return String(bucketValue(r[col] ?? null, g, fieldById(entity, g.field)));
+        })
         .join(GROUP_SEP);
 
     for (const r of rows) {
@@ -509,17 +557,18 @@ export function runQuery(
     out = [];
     for (const [k, bucketRows] of buckets) {
       const row: ResultRow = {};
-      // Dimension values (bucketed)
+      // Dimension values (bucketed) — output key is the field id, data is read via column
       for (const g of def.groupBy!) {
+        const col = colLookup.get(g.field) ?? g.field;
         row[g.field] = bucketValue(
-          bucketRows[0][g.field] ?? null,
+          bucketRows[0][col] ?? null,
           g,
           fieldById(entity, g.field),
         ) as string | number;
       }
       // Metrics
       for (const m of def.metrics ?? []) {
-        row[m.alias ?? `${m.aggregation}_${m.field}`] = computeMetric(m, bucketRows);
+        row[m.alias ?? `${m.aggregation}_${m.field}`] = computeMetric(m, bucketRows, colLookup);
       }
       // Post-aggregate calculated fields
       applyAggCalcs(row, aggCalcs);
