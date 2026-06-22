@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mockApi, type AIProviderRow, type UserRow, type AuditRow } from "./mockApi";
+import { reportsHttpApi } from "./reportsHttpApi";
 import type { ReportDefinition } from "../contracts/report-definition";
 import type { Tenant, TenantUsage, TenantStatus } from "../contracts/tenant";
 import type { TenantAIConfig } from "../contracts/ai";
@@ -8,6 +9,11 @@ import type { DashboardWidget, GridLayoutItem } from "../dashboard/widget";
 import { useTenantStore } from "../store/tenant-store";
 import { semanticModels } from "../semantic/registry";
 import type { SystemSettings } from "../admin/system/types";
+
+// When VITE_USE_MOCK_API is explicitly "false" the report hooks use the real
+// HTTP backend; all other values (including the default "true" and undefined)
+// keep the localStorage mock path so offline dev and tests are unaffected.
+const USE_REAL_API = (import.meta.env.VITE_USE_MOCK_API as string | undefined) === "false";
 
 // ----- Canonical persisted shapes (the single definitions; other tasks import from here) -----
 
@@ -60,14 +66,18 @@ export const useReports = () => {
   const t = useTid();
   return useQuery({
     queryKey: rk.reports(t),
-    queryFn: () => mockApi.reports.list(t ?? undefined),
+    queryFn: USE_REAL_API
+      ? () => reportsHttpApi.list()
+      : () => mockApi.reports.list(t ?? undefined),
   });
 };
 
 export const useReport = (id: string) =>
   useQuery<SavedReport | null>({
     queryKey: rk.report(id),
-    queryFn: () => mockApi.reports.get(id),
+    queryFn: USE_REAL_API
+      ? () => reportsHttpApi.get(id)
+      : () => mockApi.reports.get(id),
     enabled: !!id,
   });
 
@@ -79,15 +89,18 @@ export const useSaveReport = () => {
     Error,
     { definition: ReportDefinition; name?: string; visibility?: "private" | "tenant" }
   >({
-    mutationFn: ({ definition, name, visibility }) =>
-      mockApi.reports.save({
-        id: definition.id ?? "",
-        tenantId: t ?? "",
-        definition: name ? { ...definition, name } : definition,
-        ownerName: "",
-        visibility: visibility ?? "private",
-        updatedAt: "",
-      }),
+    mutationFn: USE_REAL_API
+      ? ({ definition, name, visibility }) =>
+          reportsHttpApi.save({ definition, name, visibility })
+      : ({ definition, name, visibility }) =>
+          mockApi.reports.save({
+            id: definition.id ?? "",
+            tenantId: t ?? "",
+            definition: name ? { ...definition, name } : definition,
+            ownerName: "",
+            visibility: visibility ?? "private",
+            updatedAt: "",
+          }),
     onSuccess: () => qc.invalidateQueries({ queryKey: rk.reports(t) }),
   });
 };
@@ -102,6 +115,7 @@ export const useDeleteReport = () => {
 };
 
 // ----- Dashboard hooks -----
+// TODO(v2): no backend endpoint yet — stays on mockApi
 
 export const useDashboards = () => {
   const t = useTid();
@@ -156,6 +170,7 @@ export const useDeleteDashboard = () => {
 };
 
 // ----- Admin/meta hooks -----
+// TODO(v2): no backend endpoint yet for Providers/Users/Tenants/Audit — stays on mockApi
 
 export const useProviders = () => {
   const t = useTid();
