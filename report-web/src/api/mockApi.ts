@@ -94,13 +94,10 @@ function collection<T extends Scoped>(key: string, seed: T[], idPrefix: string) 
         write(key, [...rows, created]);
         return created;
       }
-      const next = rows.map((r) =>
-        r.id === entity.id
-          ? ({ ...entity, createdAt: withCreated.createdAt, updatedAt: ts } as T)
-          : r,
-      );
+      const stamped = { ...entity, createdAt: withCreated.createdAt, updatedAt: ts } as T;
+      const next = rows.map((r) => (r.id === entity.id ? stamped : r));
       write(key, next);
-      return entity;
+      return stamped;
     },
     async remove(id: string): Promise<void> {
       await sleep();

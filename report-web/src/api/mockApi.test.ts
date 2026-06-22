@@ -37,6 +37,25 @@ describe("mockApi", () => {
     expect(await mockApi.reports.get(created.id)).toBeNull();
   });
 
+  it("save() update branch returns stamped entity (non-empty updatedAt matching stored record)", async () => {
+    // Insert
+    const created = await mockApi.reports.save({
+      id: "",
+      tenantId: "tenant-acme",
+      ownerName: "تست",
+      visibility: "tenant",
+      updatedAt: "",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      definition: { id: "", schemaVersion: "1.0", name: "اولیه", dataset: "projects", columns: [], presentation: { views: [] } } as any,
+    });
+    // Update with stale/empty updatedAt — the returned value MUST have a fresh stamp
+    const updated = await mockApi.reports.save({ ...created, updatedAt: "" });
+    expect(updated.updatedAt).not.toBe("");
+    // The returned stamp must equal what is actually stored
+    const stored = await mockApi.reports.get(created.id);
+    expect(updated.updatedAt).toBe(stored?.updatedAt);
+  });
+
   it("tenants/users/providers/audit collections seed", async () => {
     expect((await mockApi.tenants.list()).length).toBe(2);
     expect((await mockApi.users.list("tenant-acme")).length).toBeGreaterThan(0);
