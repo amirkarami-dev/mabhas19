@@ -184,7 +184,7 @@ export const useSetUserActive = () => {
   const t = useTid();
   return useMutation<UserRow, Error, { id: string; active: boolean }>({
     mutationFn: async ({ id, active }) => {
-      const all = await mockApi.users.list();
+      const all = await mockApi.users.list(t ?? undefined);
       const existing = all.find((u) => u.id === id);
       if (!existing) throw new Error("User not found");
       return mockApi.users.save({

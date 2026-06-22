@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Table, Checkbox, Tag, Alert } from "antd";
 import { useTranslation } from "react-i18next";
 import { ROLE_PERMISSIONS, isGlobal, type AppRole, type Permission } from "../../contracts";
@@ -36,16 +36,22 @@ export function RolePermissionMatrix() {
     return m;
   });
 
-  const granted = (r: AppRole, p: Permission) => overrides[r].has(p);
+  const granted = useCallback(
+    (r: AppRole, p: Permission) => overrides[r].has(p),
+    [overrides],
+  );
 
-  const toggle = (r: AppRole, p: Permission) => {
-    if (!editable) return;
-    setOverrides((prev) => {
-      const next = { ...prev, [r]: new Set(prev[r]) };
-      if (next[r].has(p)) { next[r].delete(p); } else { next[r].add(p); }
-      return next;
-    });
-  };
+  const toggle = useCallback(
+    (r: AppRole, p: Permission) => {
+      if (!editable) return;
+      setOverrides((prev) => {
+        const next = { ...prev, [r]: new Set(prev[r]) };
+        if (next[r].has(p)) { next[r].delete(p); } else { next[r].add(p); }
+        return next;
+      });
+    },
+    [editable],
+  );
 
   const columns = useMemo(
     () => [
@@ -72,8 +78,7 @@ export function RolePermissionMatrix() {
         ),
       })),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, editable, overrides],
+    [t, editable, granted, toggle],
   );
 
   return (

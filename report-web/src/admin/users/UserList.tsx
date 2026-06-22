@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Table, Tag, Button, Space, Switch, Skeleton, Empty, Modal, Input } from "antd";
 import { useTranslation } from "react-i18next";
 import { isGlobal, type AppRole } from "../../contracts";
@@ -66,36 +66,39 @@ export function UserList() {
     [users],
   );
 
-  const toggleActive = (u: AdminUser, next: boolean) => {
-    const isLastAdmin =
-      !next &&
-      u.roles.some((r) => ADMIN_ROLES.includes(r)) &&
-      activeAdmins.length <= 1;
-    const isSelf = u.id === me?.id;
-    const proceed = () => setActive.mutate({ id: u.id, active: next });
+  const toggleActive = useCallback(
+    (u: AdminUser, next: boolean) => {
+      const isLastAdmin =
+        !next &&
+        u.roles.some((r) => ADMIN_ROLES.includes(r)) &&
+        activeAdmins.length <= 1;
+      const isSelf = u.id === me?.id;
+      const proceed = () => setActive.mutate({ id: u.id, active: next });
 
-    if (isLastAdmin) {
-      Modal.confirm({
-        title: t("admin.users.lastAdminTitle"),
-        content: t("admin.users.lastAdminWarn"),
-        okButtonProps: { disabled: true },
-        okText: t("common.ok"),
-        cancelText: t("common.cancel"),
-      });
-      return;
-    }
-    if (isSelf && !next) {
-      Modal.confirm({
-        title: t("admin.users.selfDeactivateTitle"),
-        content: t("admin.users.selfDeactivateWarn"),
-        okText: t("common.confirm"),
-        cancelText: t("common.cancel"),
-        onOk: proceed,
-      });
-      return;
-    }
-    proceed();
-  };
+      if (isLastAdmin) {
+        Modal.confirm({
+          title: t("admin.users.lastAdminTitle"),
+          content: t("admin.users.lastAdminWarn"),
+          okButtonProps: { disabled: true },
+          okText: t("common.ok"),
+          cancelText: t("common.cancel"),
+        });
+        return;
+      }
+      if (isSelf && !next) {
+        Modal.confirm({
+          title: t("admin.users.selfDeactivateTitle"),
+          content: t("admin.users.selfDeactivateWarn"),
+          okText: t("common.confirm"),
+          cancelText: t("common.cancel"),
+          onOk: proceed,
+        });
+        return;
+      }
+      proceed();
+    },
+    [t, activeAdmins.length, me?.id, setActive],
+  );
 
   const columns = useMemo(
     () => [
@@ -133,8 +136,7 @@ export function UserList() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, activeAdmins.length, me?.id],
+    [t, toggleActive],
   );
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
