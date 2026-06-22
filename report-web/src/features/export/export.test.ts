@@ -75,13 +75,10 @@ describe("buildExportMenuItems", () => {
 
   it("CSV/JSON click handlers trigger a download (Blob + anchor)", () => {
     const click = vi.fn();
-    const createEl = vi.spyOn(document, "createElement").mockReturnValue({
-      click,
-      setAttribute: vi.fn(),
-      style: {},
-      href: "",
-      download: "",
-    } as unknown as HTMLAnchorElement);
+    const realAnchor = Object.assign(document.createElement("a"), { click });
+    const createEl = vi.spyOn(document, "createElement").mockReturnValue(
+      realAnchor as unknown as HTMLAnchorElement,
+    );
     const items = buildExportMenuItems(def, result) as Array<{
       key: string;
       onClick?: () => void;

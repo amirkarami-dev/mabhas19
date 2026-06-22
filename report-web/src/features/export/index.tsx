@@ -1,4 +1,4 @@
-﻿import type { MenuProps } from "antd";
+import type { MenuProps } from "antd";
 import type { QueryResult, ReportDefinition } from "@/contracts";
 import { toCsv } from "./csv";
 import { toJson } from "./json";
@@ -18,7 +18,7 @@ function baseName(def: ReportDefinition): string {
 
 export function exportCsv(def: ReportDefinition, result: QueryResult): void {
   // Prepend UTF-8 BOM so Excel opens Persian text correctly.
-  downloadBlob("﻿" + toCsv(result), `${baseName(def)}.csv`, "text/csv");
+  downloadBlob("\uFEFF" + toCsv(result), `${baseName(def)}.csv`, "text/csv");
 }
 
 export function exportJson(def: ReportDefinition, result: QueryResult): void {

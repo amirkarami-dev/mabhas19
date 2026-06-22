@@ -6,6 +6,8 @@ export function downloadBlob(content: string, fileName: string, mime: string): v
   a.href = url;
   a.download = fileName;
   a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 }
