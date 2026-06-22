@@ -1,0 +1,62 @@
+/* DashboardList grid */
+.dash-list__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dash-list__toolbar {
+  margin-bottom: 16px;
+}
+
+.dash-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary, #888);
+}
+
+/* DashboardBuilder */
+.dash-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.dash-toolbar {
+  align-items: center;
+}
+
+/* Empty state placeholder */
+.dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border: 2px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 8px;
+  min-height: 200px;
+  color: var(--ant-color-text-secondary, #888);
+  margin-top: 16px;
+}
+
+/* DashboardCanvas wrapper */
+.dashboard-canvas {
+  width: 100%;
+  min-height: 400px;
+}
+
+/* Add widget list item hover */
+.add-widget-item {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.add-widget-item:hover {
+  background: var(--ant-color-bg-text-hover, rgba(0, 0, 0, 0.04));
+}

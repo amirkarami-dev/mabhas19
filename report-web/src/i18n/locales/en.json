@@ -67,6 +67,29 @@
   "dashboards": {
     "title": "Dashboards", "new": "New dashboard", "edit": "Edit", "addWidget": "Add widget"
   },
+  "dash": {
+    "widget": "Widget",
+    "widgetMenu": "Widget menu",
+    "removeWidget": "Remove widget",
+    "widgetError": "Error loading widget",
+    "addWidget": "Add widget",
+    "noReports": "No reports available",
+    "notFound": "Dashboard not found",
+    "forbidden": "Access denied",
+    "editMode": "Edit mode",
+    "saved": "Dashboard saved",
+    "saveError": "Error saving dashboard",
+    "dropHere": "Drop a widget here",
+    "untitled": "Untitled dashboard",
+    "search": "Search dashboards…",
+    "new": "New dashboard",
+    "create": "Create dashboard",
+    "emptyList": "No dashboards found",
+    "open": "Open",
+    "delete": "Delete",
+    "cardMenu": "Card menu",
+    "widgetCount": "{{count}} widget(s)"
+  },
   "tenant": { "switcher": "Select tenant", "current": "Current tenant" },
   "admin": { "overview": "Admin Overview", "noAccess": "Access denied" },
   "rbac": {

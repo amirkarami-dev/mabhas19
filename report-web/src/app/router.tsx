@@ -14,6 +14,7 @@ import { PagePlaceholder } from "./PagePlaceholder";
 import { AskAiBuilder } from "../features/ask-ai";
 import { ReportLibrary } from "../features/library";
 import { ReportViewer } from "../features/viewer";
+import { DashboardList, DashboardBuilder } from "../features/dashboards";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -56,7 +57,7 @@ export const router = createBrowserRouter([
             ),
           },
           { path: "reports/:reportId/history", element: P("ReportRunHistory") },
-          { path: "dashboards", element: P("DashboardLibrary") },
+          { path: "dashboards", element: <DashboardList /> },
           {
             element: (
               <RequireRole
@@ -64,11 +65,11 @@ export const router = createBrowserRouter([
               />
             ),
             children: [
-              { path: "dashboards/new", element: P("DashboardBuilder (new)") },
-              { path: "dashboards/:dashId/edit", element: P("DashboardBuilder") },
+              { path: "dashboards/new", element: <DashboardBuilder /> },
+              { path: "dashboards/:dashId/edit", element: <DashboardBuilder /> },
             ],
           },
-          { path: "dashboards/:dashId", element: P("DashboardViewer") },
+          { path: "dashboards/:dashId", element: <DashboardList /> },
           {
             element: (
               <RequireRole

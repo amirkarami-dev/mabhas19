@@ -202,3 +202,16 @@ export function seedReports(): void {
 export function firstSeededReportId(): string {
   return SEED_REPORTS[0].id;
 }
+
+/**
+ * Seeds dashboards into the mock DB.
+ * Provided separately so tests can call resetMockDb() + seedDashboards() idiomatically.
+ */
+export function seedDashboards(): void {
+  localStorage.setItem("report.db.dashboards", JSON.stringify(SEED_DASHBOARDS));
+}
+
+/** Returns the id of the first seeded dashboard (stable across test runs). */
+export function firstSeededDashboardId(): string {
+  return SEED_DASHBOARDS[0].id;
+}
