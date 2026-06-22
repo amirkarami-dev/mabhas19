@@ -4,7 +4,7 @@ import { Button, Result, Spin } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./useAuth";
 import type { AppRole, Permission } from "@/contracts/rbac";
-import { userManager, sessionUserFromOidc } from "./oidc";
+import { getUserManager } from "./oidc";
 
 const useMock = (import.meta.env.VITE_AUTH_MODE ?? "mock") === "mock";
 
@@ -33,10 +33,10 @@ export function OidcCallback() {
       navigate("/ask", { replace: true });
       return;
     }
-    userManager
+    getUserManager()
       .signinRedirectCallback()
-      .then((u) => {
-        sessionUserFromOidc(u); // primes oidc store; AuthProvider reads on next mount
+      .then(() => {
+        // userManager stored the session internally; AuthProvider reads it on next mount
         navigate("/ask", { replace: true });
       })
       .catch(() => setError(t("auth.callbackError")));

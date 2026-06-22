@@ -4,7 +4,7 @@ import type { AuthValue } from "./useAuth";
 import type { SessionUser } from "@/contracts";
 import { permissionsFor, type AppRole, type Permission } from "@/contracts/rbac";
 import { getMockUser, setMockUser } from "./mock-user";
-import { userManager, sessionUserFromOidc } from "./oidc";
+import { getUserManager, sessionUserFromOidc } from "./oidc";
 
 const ADMIN_ROLES: AppRole[] = ["SuperAdmin", "TenantAdmin", "AIManager"];
 const ADMIN_PERMS: Permission[] = ["ai:manage", "datasources:manage", "users:manage", "audit:read"];
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
-      const u = await userManager.getUser();
+      const u = await getUserManager().getUser();
       if (!alive) return;
       setUser(u && !u.expired ? sessionUserFromOidc(u) : null);
       setReady(true);
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (useMock) {
       setUser(getMockUser());
     } else {
-      void userManager.signinRedirect();
+      void getUserManager().signinRedirect();
     }
   }, []);
 
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("report.mockUser");
       setUser(null);
     } else {
-      void userManager.signoutRedirect();
+      void getUserManager().signoutRedirect();
     }
   }, []);
 
