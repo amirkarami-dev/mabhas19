@@ -1,0 +1,16 @@
+@import "@fontsource/vazirmatn/400.css";
+@import "@fontsource/vazirmatn/500.css";
+@import "@fontsource/vazirmatn/700.css";
+
+:root { --rw-primary: #10b981; --rw-accent: #0ea5e9; }
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--rw-bg, #f8fafc);
+  color: var(--rw-text, #1f2937);
+  font-family: "Vazirmatn", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+*, *::before, *::after { box-sizing: border-box; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--rw-border, #e2e8f0); border-radius: 8px; }

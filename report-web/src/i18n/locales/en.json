@@ -1,0 +1,55 @@
+{
+  "common": {
+    "appName": "AI Reporting", "save": "Save", "cancel": "Cancel", "delete": "Delete",
+    "edit": "Edit", "create": "Create", "search": "Search", "loading": "Loading…",
+    "empty": "No items found", "retry": "Retry", "back": "Back", "confirm": "Confirm",
+    "yes": "Yes", "no": "No", "actions": "Actions"
+  },
+  "nav": {
+    "ask": "Ask AI", "reports": "Reports", "dashboards": "Dashboards", "favorites": "Favorites",
+    "data": "Data", "exports": "Exports", "profile": "Profile", "settings": "Settings",
+    "admin": "Admin", "backToWorkspace": "Back to Workspace", "groupContent": "Content",
+    "groupData": "Data", "groupOutput": "Output", "adminOverview": "Overview",
+    "groupAccess": "Access", "users": "Users", "roles": "Roles",
+    "groupDataSemantics": "Data & Semantics", "dataSources": "Data Sources",
+    "semanticModels": "Semantic Models", "groupAi": "AI", "aiProviders": "Providers",
+    "aiRouting": "Routing", "aiPrompts": "Prompts", "aiUsage": "Usage & Cost",
+    "groupTenant": "Tenant", "tenantSettings": "Settings", "quota": "Quota",
+    "groupGovernance": "Governance", "audit": "Audit Log", "groupPlatform": "Platform",
+    "tenants": "Tenants", "system": "System Settings"
+  },
+  "auth": {
+    "login": "Sign in", "logout": "Sign out", "signingIn": "Signing in…",
+    "callbackError": "Sign-in failed", "mockMode": "Mock mode", "selectRole": "Select role",
+    "loggedOut": "You have signed out"
+  },
+  "ask": {
+    "title": "Ask AI", "placeholder": "Describe what you want to see…",
+    "generate": "Generate report", "explanation": "Explanation"
+  },
+  "reports": {
+    "title": "Report Library", "new": "New report", "run": "Run", "export": "Export",
+    "viewer": "Report Viewer", "name": "Name", "updated": "Updated"
+  },
+  "dashboards": {
+    "title": "Dashboards", "new": "New dashboard", "edit": "Edit", "addWidget": "Add widget"
+  },
+  "tenant": { "switcher": "Select tenant", "current": "Current tenant" },
+  "admin": { "overview": "Admin Overview", "noAccess": "Access denied" },
+  "rbac": {
+    "role": {
+      "SuperAdmin": "Super Admin", "TenantAdmin": "Tenant Admin", "AIManager": "AI Manager",
+      "ReportDesigner": "Report Designer", "DashboardDesigner": "Dashboard Designer",
+      "PowerUser": "Power User", "Viewer": "Viewer"
+    },
+    "perm": {
+      "reports:write": "Create/Edit Reports", "reports:delete": "Delete Reports",
+      "reports:execute": "Execute Reports", "data:export": "Export Data",
+      "ai:manage": "Manage AI Providers", "datasources:manage": "Manage Data Sources",
+      "users:manage": "Manage Users", "audit:read": "View Audit Logs"
+    },
+    "forbiddenTitle": "Forbidden",
+    "forbiddenMsg": "You do not have permission to access this area."
+  },
+  "errors": { "notFoundTitle": "Page not found", "notFoundMsg": "The requested page does not exist." }
+}

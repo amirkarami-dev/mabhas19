@@ -1,0 +1,68 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "./ThemeProvider";
+import { applyLocale, i18n } from "@/i18n";
+import { tokens } from "./theme";
+
+const defaultBrand = { primary: tokens.primary };
+
+describe("ThemeProvider", () => {
+  it("renders children", () => {
+    render(
+      <ThemeProvider mode="light" brand={defaultBrand} dir="rtl" locale="fa">
+        <span data-testid="child">hello</span>
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("child")).toBeInTheDocument();
+  });
+
+  it("accepts dark mode without error", () => {
+    render(
+      <ThemeProvider mode="dark" brand={defaultBrand} dir="ltr" locale="en">
+        <span data-testid="dark-child">dark</span>
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("dark-child")).toBeInTheDocument();
+  });
+});
+
+describe("applyLocale", () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute("lang");
+    document.documentElement.removeAttribute("dir");
+  });
+
+  it("sets dir=rtl and lang=fa for fa locale", () => {
+    applyLocale("fa");
+    expect(document.documentElement.lang).toBe("fa");
+    expect(document.documentElement.dir).toBe("rtl");
+  });
+
+  it("sets dir=ltr and lang=en for en locale", () => {
+    applyLocale("en");
+    expect(document.documentElement.lang).toBe("en");
+    expect(document.documentElement.dir).toBe("ltr");
+  });
+});
+
+describe("i18n key resolution", () => {
+  it("resolves common.appName in fa", async () => {
+    await i18n.changeLanguage("fa");
+    expect(i18n.t("common.appName")).toBe("گزارش‌ساز هوشمند");
+  });
+
+  it("resolves common.appName in en", async () => {
+    await i18n.changeLanguage("en");
+    expect(i18n.t("common.appName")).toBe("AI Reporting");
+  });
+
+  it("resolves nav.ask in fa", async () => {
+    await i18n.changeLanguage("fa");
+    expect(i18n.t("nav.ask")).toBe("پرسش از هوش مصنوعی");
+  });
+
+  it("resolves nav.ask in en", async () => {
+    await i18n.changeLanguage("en");
+    expect(i18n.t("nav.ask")).toBe("Ask AI");
+  });
+});
