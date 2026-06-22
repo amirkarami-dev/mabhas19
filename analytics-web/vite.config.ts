@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 type AnyPlugin = any;
 
 export default defineConfig({
-  // Cast needed: monorepo root has vite@5 alongside report-web's vite@6;
+  // Cast needed: monorepo root has vite@5 alongside analytics-web's vite@6;
   // tsc resolves types from root node_modules causing a dual-instance mismatch.
   plugins: [react() as AnyPlugin],
   resolve: {

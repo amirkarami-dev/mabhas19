@@ -9,6 +9,6 @@
     "packages/*",
     "web",
     "mobile",
-    "report-web"
+    "analytics-web"
   ]
 }

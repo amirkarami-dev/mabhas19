@@ -9,9 +9,9 @@
       "autoPort": false
     },
     {
-      "name": "report-web",
+      "name": "analytics-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "report-web", "run", "dev", "--", "--port", "5273", "--strictPort"],
+      "runtimeArgs": ["--prefix", "analytics-web", "run", "dev", "--", "--port", "5273", "--strictPort"],
       "port": 5273,
       "autoPort": false
     }

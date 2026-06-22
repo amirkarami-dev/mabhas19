@@ -1,8 +1,8 @@
-# report-web — AI-Powered Reporting & Analytics Platform (v1 prototype)
+# analytics-web — AI-Powered Reporting & Analytics Platform (v1 prototype)
 
 A standalone **React 19 + Vite + TypeScript** single-page app — the v1 **frontend prototype**
 of an AI-native, multi-tenant BI/reporting product, hosted (later) at `report.myceo.ir`.
-It lives in the `mabhas19` monorepo at `report-web/` and is **deliberately not Next.js**
+It lives in the `mabhas19` monorepo at `analytics-web/` and is **deliberately not Next.js**
 (the existing `web/` app stays on Next.js).
 
 > **What v1 is.** A high-fidelity, **fully offline-capable** prototype: a *real* in-browser
@@ -15,7 +15,7 @@ It lives in the `mabhas19` monorepo at `report-web/` and is **deliberately not N
 ## Quick start
 
 ```bash
-cd report-web
+cd analytics-web
 npm install
 npm run dev        # http://localhost:5173  (Vite dev server)
 ```
@@ -27,7 +27,7 @@ No network, no IdP, no API are required to click through the entire product.
 ### Build & preview the production bundle
 
 ```bash
-npm run build      # typecheck → Vite → report-web/dist/  (hashed, immutable JS/CSS + index.html)
+npm run build      # typecheck → Vite → analytics-web/dist/  (hashed, immutable JS/CSS + index.html)
 npm run preview    # serve the built bundle on http://localhost:4173 for a sanity check
 ```
 
@@ -213,10 +213,10 @@ fa-IR RTL default.
 v1 is **local-only**; deployment is a *design* that bridges to production. None of it is required
 to demo v1 on a laptop.
 
-- **Build & serve:** Vite produces a static `dist/`; served by **nginx** (`report-web/deploy/nginx.conf`)
+- **Build & serve:** Vite produces a static `dist/`; served by **nginx** (`analytics-web/deploy/nginx.conf`)
   with SPA history fallback (deep links → `index.html`), immutable caching for `/assets/`,
   `no-store` for `index.html`, and gzip. Image: multi-stage `node:24-alpine` build →
-  `nginx:1.27-alpine` final, runs non-root on `:8080` (`report-web/deploy/Dockerfile.report-web`,
+  `nginx:1.27-alpine` final, runs non-root on `:8080` (`analytics-web/deploy/Dockerfile.analytics-web`,
   build context = monorepo root). For production the image is built with `VITE_USE_MOCK_API=false`,
   `VITE_AUTH_MODE=oidc`.
 - **Compose + Traefik:** a `report-web` service attaches to the **same external `traefik` network**
@@ -229,10 +229,10 @@ to demo v1 on a laptop.
 - **API CORS:** add `https://report.myceo.ir` to `Cors:AllowedOrigins` (baked into the API image →
   requires an API rebuild/redeploy).
 - **Iran build/transfer constraint:** the server (`10.249.52.216`, Iran) cannot reach Docker Hub's
-  blob CDN or `mcr.microsoft.com`, so `report-web` follows the same **build-locally →
+  blob CDN or `mcr.microsoft.com`, so `analytics-web` follows the same **build-locally →
   `docker save | gzip` → `pscp` transfer → `docker load`** path as `api`/`web`. Tag `:rollback`
   before load for instant revert; deploy **only** this service with
-  `up -d --no-deps report-web` (the shared daemon also runs mailcow/supabase — never restart it).
+  `up -d --no-deps analytics-web` (the shared daemon also runs mailcow/supabase — never restart it).
 
 See the monorepo `deploy/README.md` for the canonical build-locally / `docker save | gzip` / `pscp` /
 `docker load` and SOPS + age secrets flow.
@@ -241,7 +241,7 @@ See the monorepo `deploy/README.md` for the canonical build-locally / `docker sa
 
 ## Final verification results (v1 build gate)
 
-Run from `report-web/`:
+Run from `analytics-web/`:
 
 | Check | Command | Result |
 |-------|---------|--------|
