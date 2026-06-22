@@ -1,4 +1,5 @@
 ﻿using Mabhas19.Application.Common.Interfaces;
+using Mabhas19.Infrastructure.Analytics;
 using Mabhas19.Infrastructure.Data;
 using Mabhas19.Infrastructure.Data.Interceptors;
 using Mabhas19.Infrastructure.External;
@@ -102,5 +103,8 @@ public static class DependencyInjection
         // External project import providers (collected as IEnumerable<IExternalProjectProvider>).
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();
         services.AddScoped<IExternalProjectProvider, FarsNezamProjectProvider>();
+
+        // Analytics module (query engine + stub services for v2 features).
+        services.AddAnalyticsServices();
     }
 }
