@@ -1,0 +1,149 @@
+import ReactECharts from "echarts-for-react";
+import type { ReportView } from "../../contracts/presentation";
+import type { ReportDefinition } from "../../contracts/report-definition";
+import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
+import { formatNumber, type Dir } from "../format";
+
+export type RendererProps = {
+  view: ReportView;
+  def: ReportDefinition;
+  result: QueryResult;
+  /** Optional drill callback (Task 13 canonical prop): fired with the clicked
+   *  group node so the consumer can re-run `drillInto`. */
+  onDrill?: (node: GroupNode) => void;
+};
+
+function currentDir(): Dir {
+  if (typeof document !== "undefined" && document.documentElement.dir === "rtl") {
+    return "rtl";
+  }
+  return "ltr";
+}
+
+function uniq(values: (string | number | null)[]): (string | number)[] {
+  const seen = new Set<string>();
+  const out: (string | number)[] = [];
+  for (const v of values) {
+    if (v === null) continue;
+    const k = String(v);
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push(v);
+    }
+  }
+  return out;
+}
+
+export default function EChartsRenderer({ view, result, onDrill }: RendererProps) {
+  const dir = currentDir();
+  const rows = result.rows as ResultRow[];
+  // Map an ECharts click (by dataIndex on the category axis) back to its group node.
+  const onEvents = onDrill
+    ? { click: (p: { dataIndex?: number }) => {
+        const node = typeof p?.dataIndex === "number" ? result.groups?.[p.dataIndex] : undefined;
+        if (node) onDrill(node);
+      } }
+    : undefined;
+  const x = view.mapping.x ?? "";
+  const seriesField = view.mapping.series;
+  const measure =
+    view.mapping.measure ??
+    (Array.isArray(view.mapping.y) ? view.mapping.y[0] : view.mapping.y) ??
+    result.columns.find((c) => c.isMetric)?.key ??
+    "";
+  const valueFormatter = (v: number | string) =>
+    formatNumber(typeof v === "number" ? v : Number(v), dir);
+
+  const legend: Record<string, unknown> = dir === "rtl" ? { right: 8 } : { left: 8 };
+  const tooltip: Record<string, unknown> = {
+    trigger: "item",
+    textStyle: { align: dir === "rtl" ? "right" : "left" },
+    valueFormatter,
+  };
+
+  const xCats = uniq(rows.map((r) => r[x]));
+
+  // 2 dimensions x 1 measure -> heatmap matrix (the ECharts trigger from 8.6).
+  if (seriesField && view.component === "heatmap") {
+    const yCats = uniq(rows.map((r) => r[seriesField]));
+    const data: [number, number, number][] = [];
+    rows.forEach((r) => {
+      const xi = xCats.indexOf(r[x] as string | number);
+      const yi = yCats.indexOf(r[seriesField] as string | number);
+      const val = Number(r[measure] ?? 0);
+      if (xi >= 0 && yi >= 0) data.push([xi, yi, val]);
+    });
+    const maxVal = Math.max(1, ...data.map((d) => d[2]));
+    const option = {
+      tooltip: { ...tooltip, position: "top" },
+      legend,
+      xAxis: { type: "category", data: xCats.map(String), inverse: dir === "rtl" },
+      yAxis: { type: "category", data: yCats.map(String) },
+      visualMap: {
+        min: 0,
+        max: maxVal,
+        calculable: true,
+        orient: "horizontal",
+        left: dir === "rtl" ? "right" : "left",
+        bottom: 0,
+      },
+      series: [
+        {
+          name: measure,
+          type: "heatmap",
+          data,
+          label: { show: false },
+        },
+      ],
+    };
+    return <ReactECharts option={option} style={{ height: 360, width: "100%" }} notMerge onEvents={onEvents} />;
+  }
+
+  // Otherwise: grouped bar (one ECharts series per series-field value, or a
+  // single series when no series-field). Handles big-category sets via dataZoom.
+  let series: Record<string, unknown>[];
+  if (seriesField) {
+    const seriesVals = uniq(rows.map((r) => r[seriesField]));
+    series = seriesVals.map((sv) => ({
+      name: String(sv),
+      type: "bar",
+      data: xCats.map((xc) => {
+        const match = rows.find(
+          (r) => r[x] === xc && r[seriesField] === sv,
+        );
+        return match ? Number(match[measure] ?? 0) : 0;
+      }),
+    }));
+  } else {
+    series = [
+      {
+        name: measure,
+        type: "bar",
+        data: xCats.map((xc) => {
+          const match = rows.find((r) => r[x] === xc);
+          return match ? Number(match[measure] ?? 0) : 0;
+        }),
+      },
+    ];
+  }
+
+  const option = {
+    tooltip: { ...tooltip, trigger: "axis" },
+    legend,
+    grid: { left: 48, right: 48, bottom: 64, top: 32 },
+    xAxis: {
+      type: "category",
+      data: xCats.map(String),
+      inverse: dir === "rtl",
+      axisLabel: { interval: 0, rotate: xCats.length > 8 ? 30 : 0 },
+    },
+    yAxis: {
+      type: "value",
+      position: dir === "rtl" ? "right" : "left",
+      axisLabel: { formatter: (v: number) => valueFormatter(v) },
+    },
+    dataZoom: xCats.length > 25 ? [{ type: "slider" }] : undefined,
+    series,
+  };
+  return <ReactECharts option={option} style={{ height: 360, width: "100%" }} notMerge onEvents={onEvents} />;
+}
