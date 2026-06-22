@@ -1,35 +1,25 @@
-// report-web/src/features/export/csv.ts
-import type { QueryResult } from "@/contracts";
+import type { QueryResult, ResultRow } from "@/contracts";
 
-/**
- * Serialise a QueryResult to CSV and trigger a browser download.
- * Column order matches result.columns. Cells are double-quote escaped.
- */
-export function exportCsv(result: QueryResult, filename: string): void {
-  const escape = (v: string | number | null | undefined): string => {
-    const s = v == null ? "" : String(v);
-    // Wrap in double-quotes and escape embedded double-quotes.
+/** RFC 4180 field escaping: wrap in quotes if it contains a quote, comma,
+ *  CR or LF; double any embedded quote. */
+function escapeField(value: string | number | null): string {
+  if (value === null || value === undefined) return "";
+  const s = String(value);
+  if (/[",\r\n]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
-  };
-
-  const header = result.columns.map((c) => escape(c.label ?? c.key)).join(",");
-  const body = result.rows
-    .map((row) => result.columns.map((c) => escape(row[c.key])).join(","))
-    .join("\r\n");
-  const csv = `${header}\r\n${body}`;
-
-  triggerDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${filename}.csv`);
+  }
+  return s;
 }
 
-function triggerDownload(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Small delay before revoking so the browser can start the download.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+/** Serialize a QueryResult to CSV: header (column labels) + one line per row.
+ *  Cells are taken by column key; missing/null → empty. CRLF line endings. */
+export function toCsv(result: QueryResult): string {
+  const header = result.columns.map((c) => escapeField(c.label)).join(",");
+  if (result.rows.length === 0) return header;
+  const body = result.rows
+    .map((row: ResultRow) =>
+      result.columns.map((c) => escapeField(row[c.key] ?? null)).join(","),
+    )
+    .join("\r\n");
+  return `${header}\r\n${body}`;
 }

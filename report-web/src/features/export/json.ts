@@ -1,29 +1,20 @@
-// report-web/src/features/export/json.ts
-import type { ReportDefinition, QueryResult } from "@/contracts";
+import type { QueryResult, ReportDefinition } from "@/contracts";
 
-/**
- * Serialise a ReportDefinition + QueryResult to JSON and trigger a browser download.
- * The payload is `{ definition, result }` so the consumer has the full picture.
- */
-export function exportJson(
-  def: ReportDefinition,
-  result: QueryResult,
-  filename: string,
-): void {
-  const payload = { definition: def, result };
-  const json = JSON.stringify(payload, null, 2);
-  const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-  triggerDownload(blob, `${filename}.json`);
-}
-
-function triggerDownload(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+/** Serialize the full Report Definition + the computed result so the JSON
+ *  export is self-describing (definition is the single source of truth). */
+export function toJson(def: ReportDefinition, result: QueryResult): string {
+  return JSON.stringify(
+    {
+      definition: def,
+      result: {
+        columns: result.columns,
+        rows: result.rows,
+        total: result.total,
+        ...(result.groups ? { groups: result.groups } : {}),
+      },
+      exportedAt: new Date().toISOString(),
+    },
+    null,
+    2,
+  );
 }
