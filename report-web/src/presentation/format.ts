@@ -57,8 +57,13 @@ export function formatCell(
       return formatNumber(typeof value === "number" ? value : Number(value), dir);
     case "date":
       return formatDate(value, dir);
-    case "boolean":
-      return value ? (dir === "rtl" ? "بله" : "Yes") : dir === "rtl" ? "خیر" : "No";
+    case "boolean": {
+      // ResultRow values are string|number|null, but callers may pass a real boolean
+      // (e.g. from Dataset rows before aggregation). Cast through unknown to allow it.
+      const v = value as unknown;
+      const truthy = v === true || v === 1 || v === "true";
+      return truthy ? (dir === "rtl" ? "بله" : "Yes") : dir === "rtl" ? "خیر" : "No";
+    }
     default:
       return String(value);
   }

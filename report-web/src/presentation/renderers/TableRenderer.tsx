@@ -78,10 +78,6 @@ export default function TableRenderer({ view, result, onDrill }: RendererProps) 
       ? {
           expandedRowRender: (_record: ResultRow, index: number) => {
             const group: GroupNode | undefined = result.groups?.[index];
-            // If onDrill is provided, call it with the group node
-            if (onDrill && group) {
-              onDrill(group);
-            }
             const childRows = group?.rows ?? [];
             return (
               <Table<ResultRow>
@@ -92,6 +88,11 @@ export default function TableRenderer({ view, result, onDrill }: RendererProps) 
                 dataSource={childRows}
               />
             );
+          },
+          onExpand: (expanded: boolean, record: ResultRow) => {
+            const idx = result.rows.indexOf(record);
+            const group = result.groups?.[idx];
+            if (expanded && onDrill && group) onDrill(group);
           },
           rowExpandable: (record: ResultRow) => {
             const idx = result.rows.indexOf(record);
@@ -106,6 +107,7 @@ export default function TableRenderer({ view, result, onDrill }: RendererProps) 
       columns={antdColumns}
       dataSource={result.rows}
       expandable={expandable}
+      scroll={{ x: "max-content" }}
       pagination={{
         pageSize: 25,
         showSizeChanger: true,
