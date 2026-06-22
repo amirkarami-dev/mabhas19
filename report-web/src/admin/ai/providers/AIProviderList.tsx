@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Table, Tag, Button, Space, Alert, Skeleton, Empty, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { ProviderConfig } from "../../../contracts";
@@ -23,38 +23,46 @@ export function AIProviderList() {
     setModal({ open: false });
   };
 
-  const remove = (id: string) => {
-    if (!cfg) return;
-    update.mutate({
-      ...cfg,
-      providers: cfg.providers.filter((x) => x.id !== id),
-      fallbackChain: cfg.fallbackChain.filter((f) => f !== id),
-    });
-  };
-
-  const runTest = async (id: string) => {
-    const r = await test.mutateAsync(id);
-    setTestResult({ id, ...r });
-    if (r.ok) void message.success(t("admin.ai.testOk", { ms: r.latencyMs }));
-  };
-
-  const columns = useMemo(() => ([
-    { title: t("admin.ai.colType"), dataIndex: "type", render: (v: string) => t(`admin.ai.type.${v}`) },
-    { title: t("admin.ai.model"), dataIndex: "model" },
-    { title: t("admin.ai.apiKey"), dataIndex: "keyRef", render: (k: string | null) => (k ? "•••••" : <Tag>{t("admin.ai.noKey")}</Tag>) },
-    { title: t("admin.ai.status"), dataIndex: "enabled", render: (e: boolean) => <Tag color={e ? "green" : "default"}>{e ? t("admin.ai.enabled") : t("admin.ai.disabled")}</Tag> },
-    {
-      title: t("common.actions"),
-      render: (_: unknown, r: ProviderConfig) => (
-        <Space>
-          <Button size="small" loading={test.isPending} onClick={() => void runTest(r.id)}>{t("admin.ai.testConnection")}</Button>
-          <Button size="small" onClick={() => setModal({ open: true, initial: r })}>{t("common.edit")}</Button>
-          <Button size="small" danger onClick={() => remove(r.id)}>{t("common.delete")}</Button>
-        </Space>
-      ),
+  const remove = useCallback(
+    (id: string) => {
+      if (!cfg) return;
+      update.mutate({
+        ...cfg,
+        providers: cfg.providers.filter((x) => x.id !== id),
+        fallbackChain: cfg.fallbackChain.filter((f) => f !== id),
+      });
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ]), [t, test.isPending]);
+    [cfg, update],
+  );
+
+  const runTest = useCallback(
+    async (id: string) => {
+      const r = await test.mutateAsync(id);
+      setTestResult({ id, ...r });
+      if (r.ok) void message.success(t("admin.ai.testOk", { ms: r.latencyMs }));
+    },
+    [test, t],
+  );
+
+  const columns = useMemo(
+    () => [
+      { title: t("admin.ai.colType"), dataIndex: "type", render: (v: string) => t(`admin.ai.type.${v}`) },
+      { title: t("admin.ai.model"), dataIndex: "model" },
+      { title: t("admin.ai.apiKey"), dataIndex: "keyRef", render: (k: string | null) => (k ? "•••••" : <Tag>{t("admin.ai.noKey")}</Tag>) },
+      { title: t("admin.ai.status"), dataIndex: "enabled", render: (e: boolean) => <Tag color={e ? "green" : "default"}>{e ? t("admin.ai.enabled") : t("admin.ai.disabled")}</Tag> },
+      {
+        title: t("common.actions"),
+        render: (_: unknown, r: ProviderConfig) => (
+          <Space>
+            <Button size="small" loading={test.isPending} onClick={() => void runTest(r.id)}>{t("admin.ai.testConnection")}</Button>
+            <Button size="small" onClick={() => setModal({ open: true, initial: r })}>{t("common.edit")}</Button>
+            <Button size="small" danger onClick={() => remove(r.id)}>{t("common.delete")}</Button>
+          </Space>
+        ),
+      },
+    ],
+    [t, test.isPending, runTest, remove],
+  );
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
 

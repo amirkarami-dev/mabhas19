@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { EChartsCoreOption } from "echarts";
 import { Card, Row, Col, Skeleton, Statistic } from "antd";
@@ -17,7 +17,6 @@ function useEChart(option: EChartsCoreOption | null) {
       window.removeEventListener("resize", onResize);
       chart.dispose();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [option]);
   return ref;
 }
@@ -28,40 +27,47 @@ export function AIUsageCost() {
   const totalTokens = (data?.perDay ?? []).reduce((s, d) => s + d.tokens, 0);
   const totalCost = (data?.perModel ?? []).reduce((s, m) => s + m.costUsd, 0);
 
-  const tokensRef = useEChart(
-    data
-      ? {
-          tooltip: { trigger: "axis" },
-          xAxis: { type: "category", data: data.perDay.map((d) => d.date) },
-          yAxis: { type: "value" },
-          series: [
-            {
-              type: "line",
-              smooth: true,
-              data: data.perDay.map((d) => d.tokens),
-              name: t("admin.ai.tokens"),
-            },
-          ],
-        }
-      : null,
+  const tokensOption = useMemo<EChartsCoreOption | null>(
+    () =>
+      data
+        ? {
+            tooltip: { trigger: "axis" },
+            xAxis: { type: "category", data: data.perDay.map((d) => d.date) },
+            yAxis: { type: "value" },
+            series: [
+              {
+                type: "line",
+                smooth: true,
+                data: data.perDay.map((d) => d.tokens),
+                name: t("admin.ai.tokens"),
+              },
+            ],
+          }
+        : null,
+    [data, t],
   );
 
-  const costRef = useEChart(
-    data
-      ? {
-          tooltip: { trigger: "axis" },
-          xAxis: { type: "category", data: data.perModel.map((m) => m.model) },
-          yAxis: { type: "value" },
-          series: [
-            {
-              type: "bar",
-              data: data.perModel.map((m) => m.costUsd),
-              name: t("admin.ai.costUsd"),
-            },
-          ],
-        }
-      : null,
+  const costOption = useMemo<EChartsCoreOption | null>(
+    () =>
+      data
+        ? {
+            tooltip: { trigger: "axis" },
+            xAxis: { type: "category", data: data.perModel.map((m) => m.model) },
+            yAxis: { type: "value" },
+            series: [
+              {
+                type: "bar",
+                data: data.perModel.map((m) => m.costUsd),
+                name: t("admin.ai.costUsd"),
+              },
+            ],
+          }
+        : null,
+    [data, t],
   );
+
+  const tokensRef = useEChart(tokensOption);
+  const costRef = useEChart(costOption);
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
 

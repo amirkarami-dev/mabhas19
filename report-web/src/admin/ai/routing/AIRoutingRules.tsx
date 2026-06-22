@@ -1,4 +1,4 @@
-import { Form, Select, Switch, InputNumber, List, Button, Space, Card, Skeleton } from "antd";
+import { Form, Select, Switch, InputNumber, List, Button, Space, Card, Skeleton, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { TenantAIConfig } from "../../../contracts";
 import { useTenantAIConfig, useUpdateTenantAIConfig } from "../../../api/queries";
@@ -100,7 +100,7 @@ export function AIRoutingRules() {
             style={{ width: "100%", marginTop: 12 }}
             placeholder={t("admin.ai.addToChain")}
             value={null}
-            onChange={(v) => { if (v) addToChain(v); }}
+            onChange={(v) => { if (v) { addToChain(v); void message.success(t("admin.ai.added")); } }}
             options={notInChain.map((p) => ({ value: p.id, label: p.model }))}
           />
         )}
