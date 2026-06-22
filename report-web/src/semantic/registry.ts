@@ -7,6 +7,10 @@ import { projectData } from "./datasets/project";
 import { salesData } from "./datasets/sales";
 import { financeData } from "./datasets/finance";
 
+// Named re-exports so tests and UI code can import models directly:
+// import { salesModel, projectModel } from "../semantic/registry"
+export { projectModel, salesModel, financeModel };
+
 /** All bundled semantic models, keyed by model id. */
 export const semanticModels: Record<string, SemanticModel> = {
   [projectModel.id]: projectModel,
