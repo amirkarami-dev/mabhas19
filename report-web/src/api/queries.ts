@@ -236,6 +236,8 @@ export const useAuditEvents = (filter: AuditFilter = {}) => {
         if (filter.from && r.ts < filter.from) return false;
         if (filter.to && r.ts > filter.to) return false;
         if (filter.actorId && r.actorId !== filter.actorId) return false;
+        const ext = r as AuditRow & { status?: string };
+        if (filter.status && ext.status !== filter.status) return false;
         return true;
       });
     },

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuditEvents, type AuditFilter } from "../../api/queries";
 import { AuditEventDrawer, type AuditRowExt } from "./AuditEventDrawer";
 import { AuditCostChart } from "./AuditCostChart";
+import { downloadBlob } from "../../features/export/download";
 
 const KNOWN_TYPES = [
   "ai.generate",
@@ -35,15 +36,6 @@ function rowsToCsv(
   return rows.length ? `${head}\r\n${body}` : head;
 }
 
-function downloadCsv(filename: string, csv: string): void {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export function AuditLog() {
   const { t } = useTranslation();
@@ -54,16 +46,18 @@ export function AuditLog() {
   const list = (events ?? []) as AuditRowExt[];
 
   const exportCsv = () => {
-    const headers = ["id", "ts", "actorId", "type", "tokens", "cost"];
+    const headers = ["id", "ts", "actorId", "actorName", "type", "status", "tokens", "cost"];
     const rows = list.map((e) => ({
       id: e.id,
       ts: e.ts,
       actorId: e.actorId,
+      actorName: e.actorName ?? null,
       type: e.type,
+      status: e.status ?? null,
       tokens: e.tokens ?? null,
       cost: e.cost ?? null,
     }));
-    downloadCsv(`audit-${Date.now()}.csv`, rowsToCsv(headers, rows));
+    downloadBlob(rowsToCsv(headers, rows), `audit-${Date.now()}.csv`, "text/csv");
   };
 
   const columns = useMemo(
@@ -84,6 +78,19 @@ export function AuditLog() {
         render: (ty: string) => (
           <Tag>{t(`admin.audit.type.${ty}`, { defaultValue: ty })}</Tag>
         ),
+      },
+      {
+        title: t("admin.audit.status"),
+        dataIndex: "status",
+        render: (s?: string) => {
+          if (!s) return "—";
+          const color = s === "ok" ? "green" : s === "error" ? "red" : undefined;
+          return (
+            <Tag color={color}>
+              {t(`admin.audit.statusValue.${s}`, { defaultValue: s })}
+            </Tag>
+          );
+        },
       },
       {
         title: t("admin.audit.tokens"),
@@ -120,6 +127,16 @@ export function AuditLog() {
             label: t(`admin.audit.type.${ty}`, { defaultValue: ty }),
           }))}
           onChange={(ty: string | undefined) => setFilter((f) => ({ ...f, type: ty }))}
+        />
+        <Select
+          allowClear
+          placeholder={t("admin.audit.status")}
+          style={{ width: 140 }}
+          options={[
+            { value: "ok", label: t("admin.audit.statusValue.ok") },
+            { value: "error", label: t("admin.audit.statusValue.error") },
+          ]}
+          onChange={(s: string | undefined) => setFilter((f) => ({ ...f, status: s }))}
         />
         <Button onClick={exportCsv} disabled={list.length === 0}>
           {t("admin.audit.exportCsv")}
