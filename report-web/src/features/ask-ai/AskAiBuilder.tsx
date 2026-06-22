@@ -2,11 +2,11 @@
 import { Alert, Breadcrumb, Button, Dropdown, Empty, Space, Spin } from "antd";
 import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReportViewRenderer } from "@/presentation/ReportView";
 import { buildExportMenuItems } from "@/features/export";
-import { AuthContext } from "@/auth/useAuth";
+import { useAuth } from "@/auth/useAuth";
 import { PromptHero } from "./PromptHero";
 import { DefinitionPanel } from "./DefinitionPanel";
 import { ViewSwitcher } from "./ViewSwitcher";
@@ -22,9 +22,7 @@ const THINKING_STEPS = [
 export function AskAiBuilder() {
   const { t } = useTranslation();
 
-  // Use the context directly so we don't throw when AuthProvider is absent in tests.
-  const auth = useContext(AuthContext);
-  const roles = auth?.roles ?? [];
+  const { roles } = useAuth();
   // AI Manager can run/preview but cannot save (execute-only, no reports:write — §3.1).
   const canSave = !roles.includes("AIManager");
 

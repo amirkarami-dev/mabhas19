@@ -1,5 +1,5 @@
 // report-web/src/features/ask-ai/DefinitionPanel.tsx
-import { Button, Collapse, Tooltip } from "antd";
+import { Button, Collapse, Tooltip, message } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,7 @@ export function DefinitionPanel({ def }: Props) {
 
   const copy = async () => {
     await navigator.clipboard.writeText(json);
+    void message.success(t("ask.copied"));
   };
 
   return (

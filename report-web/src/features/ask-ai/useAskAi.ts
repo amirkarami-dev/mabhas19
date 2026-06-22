@@ -9,7 +9,7 @@ import type {
   SemanticModel,
   ViewType,
 } from "@/contracts";
-import { createAIService } from "@/ai/mock-ai-service";
+import { createAIService } from "@/ai";
 import { runQuery } from "@/query/engine";
 import { drillInto } from "@/query/drilldown";
 import { chooseView } from "@/presentation/auto-viz";
@@ -68,12 +68,11 @@ export function useAskAi() {
       setState((s) => ({ ...s, phase: "thinking", datasetKey: key, errorKey: undefined }));
       try {
         const semantic: SemanticModel = getSemanticModel(key);
-        // The dataset source lives in the first entity of the model.
-        const datasetSource = semantic.entities[0].source;
-        const dataset: Dataset = getDataset(datasetSource);
         const res = await ai.generate({ prompt, semanticModel: semantic, locale: "fa" });
         if (seq !== reqSeq.current) return; // stale
         const def = res.definition;
+        // Use the definition's own dataset key (def.dataset) as the source of truth.
+        const dataset: Dataset = getDataset(def.dataset);
         const result = runQuery(def, dataset, semantic);
         // Prefer AI-pinned views; if empty, fall back to auto-viz.
         const views =
@@ -140,8 +139,8 @@ export function useAskAi() {
       setState((s) => {
         if (!s.def) return s;
         const semantic = getSemanticModel(s.datasetKey);
-        const datasetSource = semantic.entities[0].source;
-        const dataset = getDataset(datasetSource);
+        // Use the definition's own dataset key as the source of truth.
+        const dataset = getDataset(s.def.dataset);
         const { def, result } = drillInto(s.def, node, dataset, semantic);
         const views = chooseView(def, result, semantic);
         const crumb: DrillCrumb = {
