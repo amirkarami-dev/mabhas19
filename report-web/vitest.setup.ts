@@ -15,3 +15,13 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => false,
   }),
 });
+
+// Recharts ResponsiveContainer (and some other libraries) use ResizeObserver
+// which jsdom does not implement. Provide a minimal stub globally.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

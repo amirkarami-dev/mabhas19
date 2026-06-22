@@ -84,5 +84,40 @@
     "forbiddenTitle": "Forbidden",
     "forbiddenMsg": "You do not have permission to access this area."
   },
-  "errors": { "notFoundTitle": "Page not found", "notFoundMsg": "The requested page does not exist." }
+  "errors": { "notFoundTitle": "Page not found", "notFoundMsg": "The requested page does not exist." },
+  "viewer": {
+    "notFound": "Report not found",
+    "invalid": "Error loading report",
+    "owner": "Owner",
+    "model": "Data model",
+    "updated": "Last updated",
+    "refresh": "Refresh",
+    "openInAsk": "Edit in Ask AI",
+    "export": "Export",
+    "emptyFilters": "No data matches the current filters",
+    "filterHint": "Adjust filters"
+  },
+  "library": {
+    "colName": "Report name",
+    "colOwner": "Owner",
+    "colModel": "Data model",
+    "colTags": "Tags",
+    "colVisibility": "Visibility",
+    "colLastRun": "Last run",
+    "run": "Run / Open",
+    "edit": "Edit",
+    "delete": "Delete",
+    "actions": "Actions",
+    "searchPlaceholder": "Search reports…",
+    "filterModel": "Filter model",
+    "filterTag": "Filter tag",
+    "newReport": "New report",
+    "empty": "No reports found",
+    "askFirst": "Build your first report",
+    "loadError": "Failed to load reports",
+    "vis": {
+      "private": "Private",
+      "tenant": "Tenant-wide"
+    }
+  }
 }

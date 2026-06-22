@@ -91,5 +91,40 @@
     "forbiddenTitle": "دسترسی غیرمجاز",
     "forbiddenMsg": "شما اجازه دسترسی به این بخش را ندارید."
   },
-  "errors": { "notFoundTitle": "صفحه یافت نشد", "notFoundMsg": "آدرس مورد نظر وجود ندارد." }
+  "errors": { "notFoundTitle": "صفحه یافت نشد", "notFoundMsg": "آدرس مورد نظر وجود ندارد." },
+  "viewer": {
+    "notFound": "گزارش یافت نشد",
+    "invalid": "خطا در بارگذاری گزارش",
+    "owner": "مالک",
+    "model": "مدل داده",
+    "updated": "آخرین بروزرسانی",
+    "refresh": "به‌روزرسانی",
+    "openInAsk": "ویرایش در Ask AI",
+    "export": "خروجی",
+    "emptyFilters": "داده‌ای با این فیلترها یافت نشد",
+    "filterHint": "فیلترها را تغییر دهید"
+  },
+  "library": {
+    "colName": "نام گزارش",
+    "colOwner": "مالک",
+    "colModel": "مدل داده",
+    "colTags": "برچسب‌ها",
+    "colVisibility": "دید",
+    "colLastRun": "آخرین اجرا",
+    "run": "اجرا / مشاهده",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "actions": "عملیات",
+    "searchPlaceholder": "جستجو در گزارش‌ها…",
+    "filterModel": "فیلتر مدل",
+    "filterTag": "فیلتر برچسب",
+    "newReport": "گزارش جدید",
+    "empty": "گزارشی یافت نشد",
+    "askFirst": "اولین گزارش را بسازید",
+    "loadError": "خطا در بارگذاری گزارش‌ها",
+    "vis": {
+      "private": "خصوصی",
+      "tenant": "سازمانی"
+    }
+  }
 }

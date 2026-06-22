@@ -110,18 +110,6 @@ export const SEED_PROVIDERS: AIProviderRow[] = [
   { id: "prov-azure", tenantId: "tenant-beta", type: "Azure", model: "gpt-4o", status: "active" },
 ];
 
-// Helper: build a minimal valid ReportDefinition for seeding.
-function makeDef(id: string, name: string, dataset: string) {
-  return {
-    id,
-    schemaVersion: "1.0",
-    name,
-    dataset,
-    columns: [],
-    presentation: { views: [] },
-  };
-}
-
 // Each report is a SavedReport envelope (+ internal tenantId for scoped listing).
 export const SEED_REPORTS: StoredReport[] = [
   {
@@ -130,8 +118,20 @@ export const SEED_REPORTS: StoredReport[] = [
     ownerName: "آرش مدیری",
     visibility: "tenant",
     updatedAt: now,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    definition: makeDef("rep-delayed", "پروژه‌های با تاخیر بیش از ۳۰ روز", "projects") as any,
+    definition: {
+      id: "rep-delayed",
+      schemaVersion: "1.0",
+      name: "پروژه‌های با تاخیر بیش از ۳۰ روز",
+      dataset: "projects",
+      columns: [
+        { field: "province", label: "استان" },
+        { field: "status", label: "وضعیت" },
+        { field: "delayDays", label: "تأخیر (روز)" },
+      ],
+      groupBy: [{ field: "province" }],
+      metrics: [{ field: "delayDays", aggregation: "avg", alias: "avg_delay", label: "میانگین تأخیر" }],
+      presentation: { views: [] },
+    },
   },
   {
     id: "rep-revenue",
@@ -139,8 +139,19 @@ export const SEED_REPORTS: StoredReport[] = [
     ownerName: "آرش مدیری",
     visibility: "tenant",
     updatedAt: now,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    definition: makeDef("rep-revenue", "درآمد ماهانه به تفکیک استان", "sales") as any,
+    definition: {
+      id: "rep-revenue",
+      schemaVersion: "1.0",
+      name: "درآمد ماهانه به تفکیک استان",
+      dataset: "sales",
+      columns: [
+        { field: "province", label: "استان" },
+        { field: "amount", label: "درآمد" },
+      ],
+      groupBy: [{ field: "province" }],
+      metrics: [{ field: "amount", aggregation: "sum", alias: "sum_amount", label: "مجموع درآمد" }],
+      presentation: { views: [] },
+    },
   },
 ];
 
@@ -162,3 +173,32 @@ export const SEED_AUDIT: AuditRow[] = [
   { id: "ev-2", tenantId: "tenant-acme", actorId: "u-2", type: "report.run", ts: now },
   { id: "ev-3", tenantId: "tenant-acme", actorId: "u-2", type: "export.csv", ts: now },
 ];
+
+// ─── Test helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Resets the mock localStorage DB back to the seeded data.
+ * Call in beforeEach to give each test a clean slate.
+ */
+export function resetMockDb(): void {
+  localStorage.clear();
+  localStorage.setItem("report.db.reports", JSON.stringify(SEED_REPORTS));
+  localStorage.setItem("report.db.dashboards", JSON.stringify(SEED_DASHBOARDS));
+  localStorage.setItem("report.db.providers", JSON.stringify(SEED_PROVIDERS));
+  localStorage.setItem("report.db.users", JSON.stringify(SEED_USERS));
+  localStorage.setItem("report.db.tenants", JSON.stringify(SEED_TENANTS));
+  localStorage.setItem("report.db.audit", JSON.stringify(SEED_AUDIT));
+}
+
+/**
+ * Seeds reports into the mock DB (same as resetMockDb for reports slice).
+ * Provided separately so tests can call resetMockDb() + seedReports() idiomatically.
+ */
+export function seedReports(): void {
+  localStorage.setItem("report.db.reports", JSON.stringify(SEED_REPORTS));
+}
+
+/** Returns the id of the first seeded report (stable across test runs). */
+export function firstSeededReportId(): string {
+  return SEED_REPORTS[0].id;
+}

@@ -12,6 +12,8 @@ import {
 } from "../auth/routes";
 import { PagePlaceholder } from "./PagePlaceholder";
 import { AskAiBuilder } from "../features/ask-ai";
+import { ReportLibrary } from "../features/library";
+import { ReportViewer } from "../features/viewer";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -36,7 +38,7 @@ export const router = createBrowserRouter([
           // User Area
           { path: "ask", element: <AskAiBuilder /> },
           { path: "ask/:threadId", element: P("AskAIThread") },
-          { path: "reports", element: P("ReportLibrary") },
+          { path: "reports", element: <ReportLibrary /> },
           {
             element: <RequireRole allow={["ReportDesigner", "TenantAdmin", "SuperAdmin"]} />,
             children: [
@@ -44,7 +46,7 @@ export const router = createBrowserRouter([
               { path: "reports/:reportId/edit", element: P("ReportDesigner (edit)") },
             ],
           },
-          { path: "reports/:reportId", element: P("ReportViewer") },
+          { path: "reports/:reportId", element: <ReportViewer /> },
           {
             path: "reports/:reportId/run",
             element: (
