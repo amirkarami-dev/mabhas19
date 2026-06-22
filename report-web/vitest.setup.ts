@@ -25,3 +25,10 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   };
 }
+
+// antd v5 Table / rc-table calls getComputedStyle for scrollbar width detection;
+// jsdom marks this as not-implemented. Stub it out so tests don't print warnings.
+const _origGetComputedStyle = window.getComputedStyle.bind(window);
+window.getComputedStyle = (elt: Element, pseudoElt?: string | null) => {
+  try { return _origGetComputedStyle(elt, pseudoElt); } catch { return {} as CSSStyleDeclaration; }
+};

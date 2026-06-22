@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mockApi, type AIProviderRow, type UserRow, type AuditRow } from "./mockApi";
 import type { ReportDefinition } from "../contracts/report-definition";
-import type { Tenant } from "../contracts/tenant";
+import type { Tenant, TenantUsage, TenantStatus } from "../contracts/tenant";
 import type { TenantAIConfig } from "../contracts/ai";
 import type { SemanticModel } from "../contracts/semantic";
 import type { DashboardWidget, GridLayoutItem } from "../dashboard/widget";
 import { useTenantStore } from "../store/tenant-store";
 import { semanticModels } from "../semantic/registry";
+import type { SystemSettings } from "../admin/system/types";
 
 // ----- Canonical persisted shapes (the single definitions; other tasks import from here) -----
 
@@ -203,6 +204,123 @@ export const useTenants = () =>
     queryKey: rk.tenants(),
     queryFn: () => mockApi.tenants.list(),
   });
+
+// ─── Tenant CRUD hooks (Task 22) ─────────────────────────────────────────────
+
+/** Active tenant — scoped to currentTenantId (falls back to first seed tenant). */
+export const useTenant = () => {
+  const t = useTid();
+  return useQuery<Tenant | null>({
+    queryKey: ["tenant", t],
+    queryFn: async () => {
+      const list = await mockApi.tenants.list();
+      return list.find((tn) => tn.id === t) ?? list[0] ?? null;
+    },
+  });
+};
+
+export const useUpdateTenant = () => {
+  const qc = useQueryClient();
+  const t = useTid();
+  return useMutation<Tenant, Error, Tenant>({
+    mutationFn: (tn: Tenant) => mockApi.tenants.save(tn),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: rk.tenants() });
+      void qc.invalidateQueries({ queryKey: ["tenant", t] });
+    },
+  });
+};
+
+/** Per-tenant usage data (mock — static for now). */
+const MOCK_TENANT_USAGE: TenantUsage = {
+  tenantId: "tenant-acme",
+  period: "2026-06",
+  users: 12,
+  reports: 90,
+  dashboards: 8,
+  dataSources: 3,
+  aiTokens: 4_200_000,
+  aiCost: 168,
+  exports: 120,
+  storageMb: 512,
+};
+
+export const useTenantUsage = () =>
+  useQuery<TenantUsage>({
+    queryKey: ["tenantUsage"],
+    queryFn: async () => {
+      await new Promise<void>((r) => setTimeout(r, 80));
+      return MOCK_TENANT_USAGE;
+    },
+    initialData: MOCK_TENANT_USAGE,
+  });
+
+export const useUpsertTenant = () => {
+  const qc = useQueryClient();
+  return useMutation<Tenant, Error, Tenant>({
+    mutationFn: (tn: Tenant) => mockApi.tenants.save(tn),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: rk.tenants() }),
+  });
+};
+
+export const useSetTenantStatus = () => {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; status: TenantStatus }>({
+    mutationFn: async ({ id, status }) => {
+      const list = await mockApi.tenants.list();
+      const tn = list.find((t) => t.id === id);
+      if (!tn) throw new Error("Tenant not found");
+      await mockApi.tenants.save({ ...tn, status, updatedAt: new Date().toISOString() });
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: rk.tenants() }),
+  });
+};
+
+// ─── System Settings hooks (Task 22) ─────────────────────────────────────────
+
+const SYSTEM_SETTINGS_KEY = "report.db.systemSettings";
+
+function readSystemSettings(): SystemSettings | null {
+  const raw = localStorage.getItem(SYSTEM_SETTINGS_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as SystemSettings; } catch { return null; }
+}
+
+function writeSystemSettings(s: SystemSettings): void {
+  localStorage.setItem(SYSTEM_SETTINGS_KEY, JSON.stringify(s));
+}
+
+const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+  defaultLocale: "fa-IR",
+  defaultTheme: "light",
+  dateSystem: "jalali",
+  flags: { advancedECharts: true, dashboardSharing: false, exportFormats: true },
+  ai: { defaultProvider: "openai", defaultModel: "gpt-4o-mini", globalTokenBudget: 10_000_000, defaultCacheTtl: 86400, promptVersionPin: "report-gen@3" },
+  security: { sessionPolicy: "8h", allowedExportFormats: ["pdf", "csv"], piiRedaction: true },
+  integrations: { oidcIssuer: "https://auth.myceo.ir" },
+};
+
+export const useSystemSettings = () =>
+  useQuery<SystemSettings>({
+    queryKey: ["systemSettings"],
+    queryFn: async () => {
+      await new Promise<void>((r) => setTimeout(r, 80));
+      return readSystemSettings() ?? DEFAULT_SYSTEM_SETTINGS;
+    },
+    initialData: readSystemSettings() ?? DEFAULT_SYSTEM_SETTINGS,
+  });
+
+export const useUpdateSystemSettings = () => {
+  const qc = useQueryClient();
+  return useMutation<SystemSettings, Error, SystemSettings>({
+    mutationFn: async (s) => {
+      await new Promise<void>((r) => setTimeout(r, 100));
+      writeSystemSettings(s);
+      return s;
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["systemSettings"] }),
+  });
+};
 
 export const useAudit = () => {
   const t = useTid();
