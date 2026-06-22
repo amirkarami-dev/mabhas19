@@ -15,6 +15,11 @@ import { AskAiBuilder } from "../features/ask-ai";
 import { ReportLibrary } from "../features/library";
 import { ReportViewer } from "../features/viewer";
 import { DashboardList, DashboardBuilder } from "../features/dashboards";
+import AIAdminShell from "../admin/ai/AIAdminShell";
+import { AIProviderList } from "../admin/ai/providers/AIProviderList";
+import { AIRoutingRules } from "../admin/ai/routing/AIRoutingRules";
+import { PromptVersions } from "../admin/ai/prompts/PromptVersions";
+import { AIUsageCost } from "../admin/ai/usage/AIUsageCost";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -171,50 +176,20 @@ export const router = createBrowserRouter([
                   </RequirePermission>
                 ),
               },
-              // NOTE: Task 18 REPLACES this whole `/admin/ai` subtree with the AIAdminShell route.
+              // Task 18: AI admin zone — tabbed shell + 4 deep-linkable routes
               {
                 path: "ai",
+                element: (
+                  <RequirePermission perm="ai:manage">
+                    <AIAdminShell />
+                  </RequirePermission>
+                ),
                 children: [
-                  {
-                    path: "providers",
-                    element: (
-                      <RequirePermission perm="ai:manage">
-                        {P("AIProviderList")}
-                      </RequirePermission>
-                    ),
-                  },
-                  {
-                    path: "providers/:id",
-                    element: (
-                      <RequirePermission perm="ai:manage">
-                        {P("AIProviderDetail")}
-                      </RequirePermission>
-                    ),
-                  },
-                  {
-                    path: "routing",
-                    element: (
-                      <RequirePermission perm="ai:manage">
-                        {P("AIRoutingRules")}
-                      </RequirePermission>
-                    ),
-                  },
-                  {
-                    path: "prompts",
-                    element: (
-                      <RequirePermission perm="ai:manage">
-                        {P("PromptVersions")}
-                      </RequirePermission>
-                    ),
-                  },
-                  {
-                    path: "usage",
-                    element: (
-                      <RequirePermission perm="ai:manage">
-                        {P("AIUsageCost")}
-                      </RequirePermission>
-                    ),
-                  },
+                  { index: true, element: <Navigate to="providers" replace /> },
+                  { path: "providers", element: <AIProviderList /> },
+                  { path: "routing", element: <AIRoutingRules /> },
+                  { path: "prompts", element: <PromptVersions /> },
+                  { path: "usage", element: <AIUsageCost /> },
                 ],
               },
               {

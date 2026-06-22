@@ -1,6 +1,44 @@
 import type { ReportDefinition } from "./report-definition";
 import type { SemanticModel } from "./semantic";
 
+// ─── AI Provider / TenantAIConfig (Task 18) ────────────────────────────────
+
+export type ProviderType =
+  | "openai"
+  | "azure-openai"
+  | "ollama"
+  | "deepseek"
+  | "glm"
+  | "claude"
+  | "gemini"
+  | "openrouter"
+  | "custom";
+
+export interface ProviderConfig {
+  id: string;
+  type: ProviderType;
+  model: string;
+  baseUrl?: string;
+  deployment?: string;
+  apiVersion?: string;
+  /** secret reference — never the raw key. null for local/keyless providers. */
+  keyRef: string | null;
+  headers?: Record<string, string>;
+  params: { temperature: number; maxTokens: number; responseFormat?: string };
+  pricing?: { inputPer1k: number; outputPer1k: number };
+  enabled: boolean;
+}
+
+export interface TenantAIConfig {
+  tenantId: string;
+  defaultModelId: string;
+  fallbackChain: string[];
+  promptVersion: string;
+  cache: { enabled: boolean; ttlSeconds: number };
+  quota: { monthlyTokenLimit: number; monthlyCostUsdLimit: number };
+  providers: ProviderConfig[];
+}
+
 // R2: the AI seam. ONE method: generate(req). The spec §7.4 multi-method
 // interface (generateReport/refineReport/suggestPrompts/stream) is collapsed
 // to this single canonical signature.
