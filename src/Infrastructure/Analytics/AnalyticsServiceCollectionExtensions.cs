@@ -35,6 +35,9 @@ internal static class AnalyticsServiceCollectionExtensions
         // Reads tenant context from the current user's claims.
         services.AddScoped<ITenantContext, TenantContext>();
 
+        // Audit logger — writes AuditEvent rows; swallows exceptions so callers are never interrupted.
+        services.AddScoped<IAuditLogger, AuditLogger>();
+
         return services;
     }
 }
