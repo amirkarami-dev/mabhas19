@@ -1,7 +1,6 @@
 // report-web/src/features/ask-ai/useAskAi.ts
 import { useCallback, useMemo, useRef, useState } from "react";
 import type {
-  Dataset,
   GroupNode,
   QueryResult,
   ReportDefinition,
@@ -10,10 +9,10 @@ import type {
   ViewType,
 } from "@/contracts";
 import { createAIService } from "@/ai";
-import { runQuery } from "@/query/engine";
-import { drillInto } from "@/query/drilldown";
+import { drillIntoAsync } from "@/query/drilldown";
 import { chooseView } from "@/presentation/auto-viz";
-import { getDataset, getSemanticModel } from "@/semantic/registry";
+import { getSemanticModel } from "@/semantic/registry";
+import { executeReport } from "@/api/executeApi";
 
 export type DrillCrumb = {
   label: string;
@@ -71,9 +70,8 @@ export function useAskAi() {
         const res = await ai.generate({ prompt, semanticModel: semantic, locale: "fa" });
         if (seq !== reqSeq.current) return; // stale
         const def = res.definition;
-        // Use the definition's own dataset key (def.dataset) as the source of truth.
-        const dataset: Dataset = getDataset(def.dataset);
-        const result = runQuery(def, dataset, semantic);
+        // Execute via the gated executeReport (server-side in real mode, in-browser in mock).
+        const result = await executeReport(def);
         // Prefer AI-pinned views; if empty, fall back to auto-viz.
         const views =
           def.presentation?.views?.length > 0
@@ -151,29 +149,42 @@ export function useAskAi() {
   );
 
   const drill = useCallback(
-    (node: GroupNode) => {
+    async (node: GroupNode) => {
+      // Capture the current def synchronously before any async work.
+      let parentDef: ReportDefinition | undefined;
+      let parentResult: QueryResult | undefined;
+      let parentViews: ReportView[] | undefined;
+      let parentDatasetKey: string | undefined;
       setState((s) => {
-        if (!s.def) return s;
-        const semantic = getSemanticModel(s.datasetKey);
-        // Use the definition's own dataset key as the source of truth.
-        const dataset = getDataset(s.def.dataset);
-        const { def, result } = drillInto(s.def, node, dataset, semantic);
+        parentDef = s.def;
+        parentResult = s.result;
+        parentViews = s.views;
+        parentDatasetKey = s.datasetKey;
+        return s;
+      });
+      if (!parentDef) return;
+
+      try {
+        const semantic = getSemanticModel(parentDatasetKey!);
+        const { def, result } = await drillIntoAsync(parentDef, node);
         const views = chooseView(def, result, semantic);
         const crumb: DrillCrumb = {
           label: String(node.value),
-          def: s.def,
-          result: s.result!,
-          views: s.views,
+          def: parentDef,
+          result: parentResult!,
+          views: parentViews!,
         };
-        return {
+        setState((s) => ({
           ...s,
           def,
           result,
           views,
           activeViewIndex: 0,
           drillPath: [...s.drillPath, crumb],
-        };
-      });
+        }));
+      } catch {
+        // drilldown config missing or execute failed — silently skip
+      }
     },
     [],
   );

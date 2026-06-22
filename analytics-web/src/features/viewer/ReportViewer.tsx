@@ -11,7 +11,7 @@ import {
   Typography,
 } from "antd";
 import { DownloadOutlined, EditOutlined, ReloadOutlined } from "@ant-design/icons";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import type {
@@ -23,10 +23,10 @@ import type {
   ReportView,
 } from "@/contracts";
 import { useReport } from "@/api/queries";
-import { runQuery } from "@/query/engine";
-import { drillInto } from "@/query/drilldown";
+import { buildDrilldownDefinition } from "@/query/drilldown";
 import { chooseView } from "@/presentation/auto-viz";
-import { getDataset, getModelForDataset } from "@/semantic/registry";
+import { getModelForDataset } from "@/semantic/registry";
+import { executeReport } from "@/api/executeApi";
 import { ReportViewRenderer } from "@/presentation/ReportView";
 import { buildExportMenuItems } from "@/features/export";
 import { ViewSwitcher, type SwitchTarget } from "@/features/ask-ai/ViewSwitcher";
@@ -46,20 +46,13 @@ export function ReportViewer() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [drillPath, setDrillPath] = useState<Crumb[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [computed, setComputed] = useState<{ result: QueryResult; views: ReportView[] } | undefined>();
+  const [execError, setExecError] = useState(false);
 
   const semantic = useMemo(() => {
     if (!data) return undefined;
     try {
       return getModelForDataset(data.definition.dataset);
-    } catch {
-      return undefined;
-    }
-  }, [data]);
-
-  const dataset = useMemo(() => {
-    if (!data) return undefined;
-    try {
-      return getDataset(data.definition.dataset);
     } catch {
       return undefined;
     }
@@ -77,34 +70,69 @@ export function ReportViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, filterValues, refreshKey]);
 
-  const computed = useMemo(() => {
-    if (!liveDef || !dataset || !semantic) return undefined;
-    try {
-      const result = runQuery(liveDef, dataset, semantic);
-      const views =
-        liveDef.presentation?.views?.length > 0
-          ? liveDef.presentation.views
-          : chooseView(liveDef, result, semantic);
-      return { result, views };
-    } catch {
-      return undefined;
+  // Execute asynchronously via the gated executeReport (real or mock).
+  useEffect(() => {
+    if (!liveDef || !semantic) {
+      setComputed(undefined);
+      return;
     }
-  }, [liveDef, dataset, semantic]);
+    let cancelled = false;
+    setExecError(false);
+    executeReport(liveDef)
+      .then((result) => {
+        if (cancelled) return;
+        const views =
+          liveDef.presentation?.views?.length > 0
+            ? liveDef.presentation.views
+            : chooseView(liveDef, result, semantic);
+        setComputed({ result, views });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setComputed(undefined);
+          setExecError(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [liveDef, semantic]);
+
+  // Derived values for the render — computed below the hooks (safe since hooks are unconditional).
+  const activeResult = drillPath.length ? drillPath[drillPath.length - 1].result : computed?.result;
+  const activeViews = drillPath.length ? drillPath[drillPath.length - 1].views : computed?.views ?? [];
+  const activeDef = drillPath.length ? drillPath[drillPath.length - 1].def : (liveDef ?? data?.definition);
+
+  const drill = useCallback(
+    async (node: GroupNode) => {
+      if (!semantic || !activeDef) return;
+      try {
+        const childDef = buildDrilldownDefinition(activeDef, node);
+        const r = await executeReport(childDef);
+        const drillViews = chooseView(childDef, r, semantic);
+        setDrillPath((p) => [
+          ...p,
+          { label: String(node.value), def: childDef, result: r, views: drillViews },
+        ]);
+        setActiveIdx(0);
+      } catch {
+        // drilldown config missing or execute failed — silently skip
+      }
+    },
+    [activeDef, semantic],
+  );
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
   if (isError || (data === null && !isLoading)) {
     return <Result status="404" title={t("viewer.notFound")} />;
   }
   if (!data) return <Skeleton active paragraph={{ rows: 8 }} />;
-  if (!computed || !liveDef || !semantic) {
+  // While waiting for executeReport to resolve (liveDef loaded but computed not yet ready)
+  if (!computed && !execError) return <Skeleton active paragraph={{ rows: 8 }} />;
+  if (execError || !liveDef || !semantic || !activeResult || !activeDef) {
     return <Result status="error" title={t("viewer.invalid")} />;
   }
 
-  const { result, views } = drillPath.length
-    ? { result: drillPath[drillPath.length - 1].result, views: drillPath[drillPath.length - 1].views }
-    : computed;
-
-  const activeDef = drillPath.length ? drillPath[drillPath.length - 1].def : liveDef;
+  const result = activeResult;
+  const views = activeViews;
   const activeView = views[Math.min(activeIdx, views.length - 1)] ?? views[0];
 
   const canEdit =
@@ -112,21 +140,6 @@ export function ReportViewer() {
     roles.includes("PowerUser") ||
     roles.includes("TenantAdmin") ||
     roles.includes("SuperAdmin");
-
-  const drill = (node: GroupNode) => {
-    if (!dataset) return;
-    try {
-      const { def, result: r } = drillInto(activeDef, node, dataset, semantic);
-      const drillViews = chooseView(def, r, semantic);
-      setDrillPath((p) => [
-        ...p,
-        { label: String(node.value), def, result: r, views: drillViews },
-      ]);
-      setActiveIdx(0);
-    } catch {
-      // drilldown config missing — silently skip
-    }
-  };
 
   const drillUp = (toRoot = false) => {
     setDrillPath((p) => (toRoot ? [] : p.slice(0, -1)));

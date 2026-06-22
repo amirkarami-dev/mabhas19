@@ -7,6 +7,7 @@ import type {
 import type { Dataset, GroupNode } from "../contracts/dataset";
 import type { SemanticModel } from "../contracts/semantic";
 import { runQuery, type QueryResult } from "./engine";
+import { executeReport } from "../api/executeApi";
 
 /** The drilled dimension is always the first groupBy of the parent;
  *  the pinned value comes from the clicked node. */
@@ -49,6 +50,7 @@ export function buildDrilldownDefinition(parentDef: ReportDefinition, node: Grou
   };
 }
 
+/** Synchronous drilldown — kept for backward compatibility (mock mode, tests). */
 export function drillInto(
   parentDef: ReportDefinition,
   node: GroupNode,
@@ -57,4 +59,17 @@ export function drillInto(
 ): { def: ReportDefinition; result: QueryResult } {
   const def = buildDrilldownDefinition(parentDef, node);
   return { def, result: runQuery(def, dataset, semantic) };
+}
+
+/**
+ * Async drilldown — uses executeReport so both mock and real modes share one
+ * path. The caller (useAskAi) uses this for the drill action.
+ */
+export async function drillIntoAsync(
+  parentDef: ReportDefinition,
+  node: GroupNode,
+): Promise<{ def: ReportDefinition; result: QueryResult }> {
+  const def = buildDrilldownDefinition(parentDef, node);
+  const result = await executeReport(def);
+  return { def, result };
 }

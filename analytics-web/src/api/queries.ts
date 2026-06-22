@@ -4,6 +4,7 @@ import { reportsHttpApi } from "./reportsHttpApi";
 import { dashboardsHttpApi } from "./dashboardsHttpApi";
 import { aiProvidersHttpApi } from "./aiProvidersHttpApi";
 import { auditHttpApi } from "./auditHttpApi";
+import { semanticModelsHttpApi } from "./semanticModelsHttpApi";
 import type { ReportDefinition } from "../contracts/report-definition";
 import type { Tenant, TenantUsage, TenantStatus } from "../contracts/tenant";
 import type { TenantAIConfig } from "../contracts/ai";
@@ -605,11 +606,14 @@ export const useDataSources = () => {
 export const useSemanticModels = () => {
   return useQuery<SemanticModel[]>({
     queryKey: ["semanticModels"],
-    queryFn: async () => {
-      await new Promise<void>((r) => setTimeout(r, 80));
-      return Object.values(semanticModels);
-    },
-    initialData: Object.values(semanticModels),
+    queryFn: USE_REAL_API
+      ? () => semanticModelsHttpApi.list()
+      : async () => {
+          await new Promise<void>((r) => setTimeout(r, 80));
+          return Object.values(semanticModels);
+        },
+    // Only seed initialData in mock mode; in real mode we always fetch from backend.
+    initialData: USE_REAL_API ? undefined : Object.values(semanticModels),
   });
 };
 
