@@ -153,8 +153,12 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
         <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} />
         <Tooltip formatter={(v: number) => numFmt(v)} />
         <Legend align={legendAlign} />
-        {ys.map((yk, i) => (
-          <Bar key={yk} dataKey={yk} fill={PALETTE[i % PALETTE.length]} />
+        {ys.map((yk, si) => (
+          <Bar key={yk} dataKey={yk} fill={PALETTE[si % PALETTE.length]}>
+            {data.map((_row, ri) => (
+              <Cell key={`${yk}-${ri}`} fill={PALETTE[si % PALETTE.length]} />
+            ))}
+          </Bar>
         ))}
       </BarChart>
     </ResponsiveContainer>
