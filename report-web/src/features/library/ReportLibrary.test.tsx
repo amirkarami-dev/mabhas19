@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
@@ -37,17 +38,29 @@ describe("ReportLibrary", () => {
     expect(screen.getAllByTestId("report-row").length).toBeGreaterThan(0);
   });
 
-  it("filters rows by the search box", async () => {
+  it("filters rows by the search box — no-match hides all rows", async () => {
+    const user = userEvent.setup();
     renderLib();
     await screen.findByRole("table");
-    const before = screen.getAllByTestId("report-row").length;
     const search = screen.getByRole("searchbox");
-    search.focus();
-    // typing a string that matches nothing collapses the list
-    (search as HTMLInputElement).value = "zzz-no-match";
-    search.dispatchEvent(new Event("input", { bubbles: true }));
+
+    // typing a string that matches nothing should collapse to 0 rows
+    await user.type(search, "zzz-no-match");
     await waitFor(() =>
-      expect(screen.queryAllByTestId("report-row").length).toBeLessThanOrEqual(before),
+      expect(screen.queryAllByTestId("report-row").length).toBe(0),
+    );
+  });
+
+  it("filters rows by the search box — positive case keeps matching row", async () => {
+    const user = userEvent.setup();
+    renderLib();
+    await screen.findByRole("table");
+    const search = screen.getByRole("searchbox");
+
+    // "درآمد" is a substring of "درآمد ماهانه به تفکیک استان" (rep-revenue only)
+    await user.type(search, "درآمد");
+    await waitFor(() =>
+      expect(screen.getAllByTestId("report-row").length).toBeGreaterThanOrEqual(1),
     );
   });
 });

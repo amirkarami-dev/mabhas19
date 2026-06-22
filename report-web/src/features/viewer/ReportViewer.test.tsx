@@ -15,7 +15,7 @@ function renderViewer(id: string) {
         <AuthProvider>
           <MemoryRouter initialEntries={[`/reports/${id}`]}>
             <Routes>
-              <Route path="/reports/:id" element={<ReportViewer />} />
+              <Route path="/reports/:reportId" element={<ReportViewer />} />
             </Routes>
           </MemoryRouter>
         </AuthProvider>

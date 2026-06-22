@@ -37,10 +37,10 @@ type Crumb = { label: string; def: ReportDefinition; result: QueryResult; views:
 
 export function ReportViewer() {
   const { t } = useTranslation();
-  const { id = "" } = useParams<{ id: string }>();
+  const { reportId = "" } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const { roles } = useAuth();
-  const { data, isLoading, isError } = useReport(id);
+  const { data, isLoading, isError } = useReport(reportId);
 
   const [filterValues, setFilterValues] = useState<Record<number, FilterValue>>({});
   const [activeIdx, setActiveIdx] = useState(0);
@@ -170,7 +170,7 @@ export function ReportViewer() {
           {t("viewer.refresh")}
         </Button>
         {canEdit && (
-          <Button icon={<EditOutlined />} onClick={() => navigate(`/ask?from=${id}`)}>
+          <Button icon={<EditOutlined />} onClick={() => navigate(`/ask?from=${reportId}`)}>
             {t("viewer.openInAsk")}
           </Button>
         )}
