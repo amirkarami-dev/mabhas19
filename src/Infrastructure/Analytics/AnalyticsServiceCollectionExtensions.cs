@@ -1,8 +1,11 @@
 using Mabhas19.Application.Common.Interfaces.Analytics;
 using Mabhas19.Infrastructure.Analytics.Ai;
 using Mabhas19.Infrastructure.Analytics.Query;
+using Mabhas19.Infrastructure.Analytics.Sql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Mabhas19.Infrastructure.Analytics;
 
@@ -15,12 +18,28 @@ internal static class AnalyticsServiceCollectionExtensions
         // Bind ArvanCloud AI gateway options (BaseUrl/ApiKey must come from user-secrets / env / SOPS).
         services.Configure<ArvanAiOptions>(configuration.GetSection(ArvanAiOptions.SectionName));
 
-        // Real query engine — in-memory pipeline ported from analytics-web/src/query/engine.ts.
-        // SampleDataStore is a static class (no registration needed).
-        services.AddScoped<IQueryEngine, QueryEngine>();
+        // ── SQL analytics path (config-gated) ────────────────────────────────
+        // If ConnectionStrings:AnalyticsDb is non-empty → register FarsNezam SQL engine.
+        // Otherwise keep the bundled in-memory sample engine (default; safe for tests/offline).
+        var analyticsCs = configuration.GetConnectionString("AnalyticsDb") ?? string.Empty;
 
-        // Real semantic model store — static catalogue of 3 bundled models.
-        services.AddScoped<ISemanticModelStore, SemanticModelStore>();
+        if (!string.IsNullOrWhiteSpace(analyticsCs))
+        {
+            // Register a singleton options instance with the connection string from config.
+            var sqlOpts = new SqlAnalyticsOptions { ConnectionString = analyticsCs };
+            services.AddSingleton(sqlOpts);
+            services.AddSingleton<IOptions<SqlAnalyticsOptions>>(
+                new Microsoft.Extensions.Options.OptionsWrapper<SqlAnalyticsOptions>(sqlOpts));
+
+            services.AddScoped<ISemanticModelStore, FarsNezamSemanticModelStore>();
+            services.AddScoped<IQueryEngine, SqlQueryEngine>();
+        }
+        else
+        {
+            // Default: in-memory pipeline (ported from analytics-web TypeScript engine)
+            services.AddScoped<ISemanticModelStore, SemanticModelStore>();
+            services.AddScoped<IQueryEngine, QueryEngine>();
+        }
 
         // Real AI service — typed HttpClient with 120 s timeout to absorb reasoning-model latency.
         services.AddHttpClient<IReportAiService, ArvanReportAiService>(client =>
