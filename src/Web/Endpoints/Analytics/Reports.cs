@@ -1,6 +1,8 @@
 using Mabhas19.Application.Analytics.Reports;
+using Mabhas19.Application.Analytics.Reports.Commands.SaveReport;
 using Mabhas19.Application.Analytics.Reports.Queries.ExecuteReport;
 using Mabhas19.Application.Analytics.Reports.Queries.GenerateReport;
+using Mabhas19.Application.Analytics.Reports.Queries.GetReports;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Mabhas19.Web.Endpoints.Analytics;
@@ -17,6 +19,8 @@ public class Reports : Mabhas19.Web.Infrastructure.IEndpointGroup
 
         groupBuilder.MapPost(ExecuteReport, "execute");
         groupBuilder.MapPost(GenerateReport, "generate");
+        groupBuilder.MapGet(GetReports, string.Empty);
+        groupBuilder.MapPost(SaveReport, string.Empty);
     }
 
     public static async Task<Ok<ReportResultDto>> ExecuteReport(ISender sender, ReportDefinitionDto definition)
@@ -24,7 +28,16 @@ public class Reports : Mabhas19.Web.Infrastructure.IEndpointGroup
 
     public static async Task<Ok<ReportDefinitionDto>> GenerateReport(ISender sender, GenerateReportRequest request)
         => TypedResults.Ok(await sender.Send(new GenerateReportQuery(request.Prompt, request.SemanticModelId)));
+
+    public static async Task<Ok<IReadOnlyList<SavedReportDto>>> GetReports(ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetReportsQuery()));
+
+    public static async Task<Ok<int>> SaveReport(ISender sender, SaveReportRequest request)
+        => TypedResults.Ok(await sender.Send(new SaveReportCommand(request.Definition, request.Name, request.Visibility)));
 }
 
 /// <summary>Request body for POST /api/Reports/generate.</summary>
 public sealed record GenerateReportRequest(string Prompt, string SemanticModelId);
+
+/// <summary>Request body for POST /api/Reports (save a report).</summary>
+public sealed record SaveReportRequest(ReportDefinitionDto Definition, string Name, string Visibility);

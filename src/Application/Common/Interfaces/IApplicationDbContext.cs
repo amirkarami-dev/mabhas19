@@ -1,4 +1,5 @@
-﻿using Mabhas19.Domain.Entities;
+﻿using Mabhas19.Domain.Analytics;
+using Mabhas19.Domain.Entities;
 
 namespace Mabhas19.Application.Common.Interfaces;
 
@@ -11,6 +12,17 @@ public interface IApplicationDbContext
     DbSet<AssessmentReport> AssessmentReports { get; }
 
     DbSet<Subscription> Subscriptions { get; }
+
+    // Analytics aggregates
+    DbSet<AnalyticsReport> AnalyticsReports { get; }
+
+    DbSet<Dashboard> AnalyticsDashboards { get; }
+
+    DbSet<AiProvider> AnalyticsAiProviders { get; }
+
+    DbSet<Tenant> AnalyticsTenants { get; }
+
+    DbSet<AuditEvent> AnalyticsAuditEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

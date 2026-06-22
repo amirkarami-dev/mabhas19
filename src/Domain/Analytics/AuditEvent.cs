@@ -2,18 +2,19 @@ using Mabhas19.Domain.Common;
 
 namespace Mabhas19.Domain.Analytics;
 
-/// <summary>Immutable audit log entry for analytics actions.</summary>
+/// <summary>Immutable audit log entry — no update after insert.</summary>
 public class AuditEvent : BaseEntity
 {
-    public DateTimeOffset OccurredAt { get; set; }
+    public string TenantId { get; set; } = "default";
 
-    public string? TenantId { get; set; }
+    /// <summary>Action type, e.g. "report.saved", "report.executed", "dashboard.viewed".</summary>
+    public string Type { get; set; } = string.Empty;
 
-    public string? UserId { get; set; }
+    /// <summary>Display name (or ID) of the actor who triggered the event.</summary>
+    public string? ActorName { get; set; }
 
-    /// <summary>Action identifier, e.g. "report.executed", "dashboard.viewed".</summary>
-    public string Action { get; set; } = string.Empty;
+    /// <summary>JSON payload with action-specific details (nvarchar(max)).</summary>
+    public string DetailJson { get; set; } = "{}";
 
-    /// <summary>JSON-serialised payload carrying action details.</summary>
-    public string? PayloadJson { get; set; }
+    public DateTimeOffset OccurredAtUtc { get; set; }
 }
