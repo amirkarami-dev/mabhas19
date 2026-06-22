@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mockApi, type AIProviderRow, type UserRow, type AuditRow } from "./mockApi";
 import { reportsHttpApi } from "./reportsHttpApi";
+import { dashboardsHttpApi } from "./dashboardsHttpApi";
+import { aiProvidersHttpApi } from "./aiProvidersHttpApi";
+import { auditHttpApi } from "./auditHttpApi";
 import type { ReportDefinition } from "../contracts/report-definition";
 import type { Tenant, TenantUsage, TenantStatus } from "../contracts/tenant";
 import type { TenantAIConfig } from "../contracts/ai";
@@ -115,20 +118,24 @@ export const useDeleteReport = () => {
 };
 
 // ----- Dashboard hooks -----
-// TODO(v2): no backend endpoint yet — stays on mockApi
+// Gated: HTTP backend when VITE_USE_MOCK_API="false", mock otherwise.
 
 export const useDashboards = () => {
   const t = useTid();
   return useQuery({
     queryKey: rk.dashboards(t),
-    queryFn: () => mockApi.dashboards.list(t ?? undefined),
+    queryFn: USE_REAL_API
+      ? () => dashboardsHttpApi.list()
+      : () => mockApi.dashboards.list(t ?? undefined),
   });
 };
 
 export const useDashboard = (id: string) =>
   useQuery<DashboardRecord | null>({
     queryKey: rk.dashboard(id),
-    queryFn: () => mockApi.dashboards.get(id),
+    queryFn: USE_REAL_API
+      ? () => dashboardsHttpApi.get(id)
+      : () => mockApi.dashboards.get(id),
     enabled: !!id,
   });
 
@@ -136,17 +143,19 @@ export const useCreateDashboard = () => {
   const qc = useQueryClient();
   const t = useTid();
   return useMutation<DashboardRecord, Error, { name: string }>({
-    mutationFn: ({ name }) =>
-      mockApi.dashboards.save({
-        id: "",
-        tenantId: t ?? "",
-        name,
-        ownerName: "",
-        widgets: [],
-        layout: [],
-        createdAt: "",
-        updatedAt: "",
-      }),
+    mutationFn: USE_REAL_API
+      ? ({ name }) => dashboardsHttpApi.create({ name })
+      : ({ name }) =>
+          mockApi.dashboards.save({
+            id: "",
+            tenantId: t ?? "",
+            name,
+            ownerName: "",
+            widgets: [],
+            layout: [],
+            createdAt: "",
+            updatedAt: "",
+          }),
     onSuccess: () => qc.invalidateQueries({ queryKey: rk.dashboards(t) }),
   });
 };
@@ -155,7 +164,9 @@ export const useSaveDashboard = () => {
   const qc = useQueryClient();
   const t = useTid();
   return useMutation<DashboardRecord, Error, DashboardRecord>({
-    mutationFn: (d: DashboardRecord) => mockApi.dashboards.save(d),
+    mutationFn: USE_REAL_API
+      ? (d: DashboardRecord) => dashboardsHttpApi.save(d)
+      : (d: DashboardRecord) => mockApi.dashboards.save(d),
     onSuccess: () => qc.invalidateQueries({ queryKey: rk.dashboards(t) }),
   });
 };
@@ -164,19 +175,24 @@ export const useDeleteDashboard = () => {
   const qc = useQueryClient();
   const t = useTid();
   return useMutation({
-    mutationFn: (id: string) => mockApi.dashboards.remove(id),
+    mutationFn: USE_REAL_API
+      ? (id: string) => dashboardsHttpApi.remove(id)
+      : (id: string) => mockApi.dashboards.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: rk.dashboards(t) }),
   });
 };
 
 // ----- Admin/meta hooks -----
-// TODO(v2): no backend endpoint yet for Providers/Users/Tenants/Audit — stays on mockApi
+// Providers and Audit are gated: HTTP when VITE_USE_MOCK_API="false", mock otherwise.
+// Users has no analytics backend endpoint — stays on mock (TODO: wire when endpoint exists).
 
 export const useProviders = () => {
   const t = useTid();
   return useQuery<AIProviderRow[]>({
     queryKey: rk.providers(t),
-    queryFn: () => mockApi.providers.list(t ?? undefined),
+    queryFn: USE_REAL_API
+      ? () => aiProvidersHttpApi.list()
+      : () => mockApi.providers.list(t ?? undefined),
   });
 };
 
@@ -341,7 +357,9 @@ export const useAudit = () => {
   const t = useTid();
   return useQuery<AuditRow[]>({
     queryKey: rk.audit(t),
-    queryFn: () => mockApi.audit.list(t ?? undefined),
+    queryFn: USE_REAL_API
+      ? () => auditHttpApi.list()
+      : () => mockApi.audit.list(t ?? undefined),
   });
 };
 
@@ -355,25 +373,41 @@ export interface AuditFilter {
 }
 
 /**
- * Filtered audit-event list.  Client-side filtering over the tenant-scoped
- * AuditRow list — no backend call required for the mock.
+ * Filtered audit-event list.
+ * HTTP path: delegates type/status to the backend query params; from/to/actorId
+ * remain client-side post-filters since the backend only supports type+status.
+ * Mock path: full client-side filtering over the tenant-scoped list.
  */
 export const useAuditEvents = (filter: AuditFilter = {}) => {
   const t = useTid();
   return useQuery<AuditRow[]>({
     queryKey: [...rk.audit(t), filter] as const,
-    queryFn: async () => {
-      const rows = await mockApi.audit.list(t ?? undefined);
-      return rows.filter((r) => {
-        if (filter.type && r.type !== filter.type) return false;
-        if (filter.from && r.ts < filter.from) return false;
-        if (filter.to && r.ts > filter.to) return false;
-        if (filter.actorId && r.actorId !== filter.actorId) return false;
-        const ext = r as AuditRow & { status?: string };
-        if (filter.status && ext.status !== filter.status) return false;
-        return true;
-      });
-    },
+    queryFn: USE_REAL_API
+      ? async () => {
+          const rows = await auditHttpApi.list({
+            type: filter.type,
+            status: filter.status,
+          });
+          // Apply remaining client-side filters (from/to/actorId)
+          return rows.filter((r) => {
+            if (filter.from && r.ts < filter.from) return false;
+            if (filter.to && r.ts > filter.to) return false;
+            if (filter.actorId && r.actorId !== filter.actorId) return false;
+            return true;
+          });
+        }
+      : async () => {
+          const rows = await mockApi.audit.list(t ?? undefined);
+          return rows.filter((r) => {
+            if (filter.type && r.type !== filter.type) return false;
+            if (filter.from && r.ts < filter.from) return false;
+            if (filter.to && r.ts > filter.to) return false;
+            if (filter.actorId && r.actorId !== filter.actorId) return false;
+            const ext = r as AuditRow & { status?: string };
+            if (filter.status && ext.status !== filter.status) return false;
+            return true;
+          });
+        },
   });
 };
 
