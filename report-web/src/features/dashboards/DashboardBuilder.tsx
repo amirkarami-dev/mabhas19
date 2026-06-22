@@ -1,9 +1,9 @@
 import { Button, Result, Skeleton, Space, Switch, Typography, message } from "antd";
 import { PlusOutlined, SaveOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
-import { useDashboard, useSaveDashboard } from "@/api/queries";
+import { useNavigate, useParams } from "react-router-dom";
+import { useDashboard, useCreateDashboard, useSaveDashboard } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { DashboardCanvas } from "@/dashboard/DashboardCanvas";
 import { newWidget, type DashboardWidget, type GridLayoutItem } from "@/dashboard/widget";
@@ -13,7 +13,27 @@ import { WidgetFrame } from "./WidgetFrame";
 export function DashboardBuilder() {
   const { t } = useTranslation();
   const { dashId = "" } = useParams<{ dashId: string }>();
+  const isNew = dashId === "";
+  const navigate = useNavigate();
   const { roles } = useAuth();
+
+  // "new" case: create an empty dashboard once, then redirect into the edit route.
+  const createDash = useCreateDashboard();
+  const creatingRef = useRef(false);
+  useEffect(() => {
+    if (!isNew || creatingRef.current) return;
+    creatingRef.current = true;
+    createDash
+      .mutateAsync({ name: t("dash.new", "داشبورد جدید") })
+      .then((created) => {
+        navigate(`/dashboards/${created.id}/edit`, { replace: true });
+      })
+      .catch(() => {
+        /* error handled via createDash.isError below */
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew]);
+
   const { data, isLoading, isError } = useDashboard(dashId);
   const save = useSaveDashboard();
 
@@ -35,7 +55,8 @@ export function DashboardBuilder() {
     roles.includes("TenantAdmin") ||
     roles.includes("SuperAdmin");
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
+  // While creating a new dashboard (or loading an existing one), show a skeleton.
+  if (isNew || isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
   if (isError || !data) return <Result status="404" title={t("dash.notFound")} />;
   if (!canEdit) return <Result status="403" title={t("dash.forbidden")} />;
 
