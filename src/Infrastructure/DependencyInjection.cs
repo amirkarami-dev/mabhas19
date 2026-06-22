@@ -104,7 +104,7 @@ public static class DependencyInjection
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();
         services.AddScoped<IExternalProjectProvider, FarsNezamProjectProvider>();
 
-        // Analytics module (query engine + stub services for v2 features).
-        services.AddAnalyticsServices();
+        // Analytics module (query engine + AI report-generation service).
+        services.AddAnalyticsServices(config);
     }
 }

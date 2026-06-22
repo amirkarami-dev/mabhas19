@@ -1,5 +1,21 @@
 namespace Mabhas19.Application.Analytics.SemanticModels;
 
+/// <summary>Describes a single field/column in a semantic model.</summary>
+public class SemanticFieldDto
+{
+    /// <summary>Field identifier (matches the AI-generated JSON field names).</summary>
+    public string Id { get; init; } = string.Empty;
+
+    /// <summary>Human-readable label (en-US).</summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>string | number | date</summary>
+    public string Type { get; init; } = string.Empty;
+
+    /// <summary>dimension | measure | date</summary>
+    public string Role { get; init; } = string.Empty;
+}
+
 /// <summary>Summary of a queryable semantic model available to the report engine.</summary>
 public class SemanticModelDto
 {
@@ -8,4 +24,13 @@ public class SemanticModelDto
     public string Name { get; init; } = string.Empty;
 
     public string? Description { get; init; }
+
+    /// <summary>
+    /// The source key that must be used as the <c>dataset</c> value in
+    /// the generated <see cref="Mabhas19.Application.Analytics.Reports.ReportDefinitionDto"/>.
+    /// </summary>
+    public string Source { get; init; } = string.Empty;
+
+    /// <summary>All fields exposed by this model.</summary>
+    public IReadOnlyList<SemanticFieldDto> Fields { get; init; } = [];
 }

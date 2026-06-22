@@ -6,4 +6,6 @@ namespace Mabhas19.Application.Common.Interfaces.Analytics;
 public interface ISemanticModelStore
 {
     Task<IReadOnlyList<SemanticModelDto>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    Task<SemanticModelDto?> GetByIdAsync(string modelKey, CancellationToken cancellationToken = default);
 }
