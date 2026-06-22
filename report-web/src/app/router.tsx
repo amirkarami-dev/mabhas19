@@ -11,6 +11,7 @@ import {
   RequirePermission,
 } from "../auth/routes";
 import { PagePlaceholder } from "./PagePlaceholder";
+import { AskAiBuilder } from "../features/ask-ai";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -33,7 +34,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/ask" replace /> },
 
           // User Area
-          { path: "ask", element: P("AskAIScreen") },
+          { path: "ask", element: <AskAiBuilder /> },
           { path: "ask/:threadId", element: P("AskAIThread") },
           { path: "reports", element: P("ReportLibrary") },
           {

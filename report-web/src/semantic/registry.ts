@@ -38,6 +38,14 @@ export function getDataset(source: string): Dataset {
   return data;
 }
 
+/** List all bundled semantic models with their key and localised label (fa-IR default). */
+export function listSemanticModels(): { key: string; label: string }[] {
+  return Object.values(semanticModels).map((m) => ({
+    key: m.id,
+    label: m.name["fa-IR"] ?? m.name["en-US"] ?? m.id,
+  }));
+}
+
 /** Find the model that owns an entity whose `source` matches. */
 export function getModelForDataset(source: string): SemanticModel {
   for (const model of Object.values(semanticModels)) {

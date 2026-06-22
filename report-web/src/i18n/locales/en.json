@@ -25,7 +25,40 @@
   },
   "ask": {
     "title": "Ask AI", "placeholder": "Describe what you want to see…",
-    "generate": "Generate report", "explanation": "Explanation"
+    "generate": "Generate report", "explanation": "Explanation",
+    "heroTitle": "Ask for any report",
+    "sqlReassurance": "AI never writes SQL — your data stays safe",
+    "promptLabel": "Report prompt",
+    "promptPlaceholder": "e.g. Show monthly revenue per province…",
+    "send": "Send",
+    "definitionTitle": "Report Definition (JSON)",
+    "copyJson": "Copy JSON",
+    "copied": "Copied",
+    "saveToLibrary": "Save to library",
+    "saveTitle": "Save report",
+    "fieldName": "Report name",
+    "fieldDescription": "Description",
+    "fieldTags": "Tags",
+    "fieldVisibility": "Visibility",
+    "visPrivate": "Private",
+    "visTenant": "Tenant-wide",
+    "saved": "Report saved successfully",
+    "export": "Export",
+    "root": "Root",
+    "empty": { "noRows": "No data found" },
+    "thinking": {
+      "understanding": "Understanding your request…",
+      "resolving": "Resolving semantic model…",
+      "building": "Building the report…"
+    },
+    "error": {
+      "unmapped": "Could not map intent",
+      "unmappedTitle": "Couldn't understand the request",
+      "unmappedHint": "Please rephrase or pick one of the example prompts."
+    }
+  },
+  "view": {
+    "table": "Table", "kpi": "KPI", "bar": "Bar", "line": "Line", "pie": "Pie"
   },
   "reports": {
     "title": "Report Library", "new": "New report", "run": "Run", "export": "Export",

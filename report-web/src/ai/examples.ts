@@ -123,3 +123,58 @@ export const EXAMPLES: AIExample[] = [
 export function matchExample(normalizedPrompt: string, modelId: string): AIExample | undefined {
   return EXAMPLES.find((e) => e.modelId === modelId && matchesAll(normalizedPrompt, e.matchAll));
 }
+
+/**
+ * Curated prompt chips shown in the AskAiBuilder hero (§3.1).
+ * Each entry has a short label (shown on the chip), the canonical prompt, and
+ * the datasetKey to pre-select before generating.
+ */
+export const EXAMPLE_PROMPTS: {
+  id: string;
+  label: string;
+  prompt: string;
+  datasetKey: string;
+}[] = [
+  {
+    id: "monthly-revenue-province",
+    label: "درآمد ماهانه هر استان",
+    prompt: "درآمد ماهانه به تفکیک استان",
+    datasetKey: "sales",
+  },
+  {
+    id: "top-customers",
+    label: "۱۰ مشتری برتر",
+    prompt: "۱۰ مشتری برتر بر اساس فروش",
+    datasetKey: "sales",
+  },
+  {
+    id: "delayed-projects",
+    label: "پروژه‌های معوق",
+    prompt: "پروژه‌های دارای تأخیر بیش از ۳۰ روز به تفکیک استان",
+    datasetKey: "projects",
+  },
+  {
+    id: "sales-by-category",
+    label: "فروش به تفکیک دسته",
+    prompt: "فروش به تفکیک دسته‌بندی محصول",
+    datasetKey: "sales",
+  },
+  {
+    id: "province-sales",
+    label: "فروش هر استان",
+    prompt: "مجموع فروش به تفکیک استان",
+    datasetKey: "sales",
+  },
+  {
+    id: "finance-monthly",
+    label: "هزینه ماهانه",
+    prompt: "هزینه‌های ماهانه",
+    datasetKey: "finance",
+  },
+  {
+    id: "project-status",
+    label: "وضعیت پروژه‌ها",
+    prompt: "تعداد پروژه به تفکیک وضعیت",
+    datasetKey: "projects",
+  },
+];

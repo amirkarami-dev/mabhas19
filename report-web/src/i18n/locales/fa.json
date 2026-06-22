@@ -27,7 +27,40 @@
   },
   "ask": {
     "title": "پرسش از هوش مصنوعی", "placeholder": "آنچه می‌خواهید ببینید را بنویسید…",
-    "generate": "ساخت گزارش", "explanation": "توضیح"
+    "generate": "ساخت گزارش", "explanation": "توضیح",
+    "heroTitle": "گزارش دلخواه خود را بخواهید",
+    "sqlReassurance": "هوش مصنوعی هرگز SQL نمی‌نویسد — داده‌های شما امن است",
+    "promptLabel": "پرامپت گزارش",
+    "promptPlaceholder": "مثلاً: درآمد ماهانه هر استان را نشان بده…",
+    "send": "ارسال",
+    "definitionTitle": "تعریف گزارش (JSON)",
+    "copyJson": "کپی JSON",
+    "copied": "کپی شد",
+    "saveToLibrary": "ذخیره در کتابخانه",
+    "saveTitle": "ذخیره گزارش",
+    "fieldName": "نام گزارش",
+    "fieldDescription": "توضیحات",
+    "fieldTags": "برچسب‌ها",
+    "fieldVisibility": "دید",
+    "visPrivate": "خصوصی",
+    "visTenant": "سازمانی",
+    "saved": "گزارش با موفقیت ذخیره شد",
+    "export": "خروجی",
+    "root": "ریشه",
+    "empty": { "noRows": "داده‌ای یافت نشد" },
+    "thinking": {
+      "understanding": "در حال درک درخواست…",
+      "resolving": "در حال تحلیل مدل معنایی…",
+      "building": "در حال ساخت گزارش…"
+    },
+    "error": {
+      "unmapped": "درخواست قابل تفسیر نیست",
+      "unmappedTitle": "نتوانستم درخواست را تفسیر کنم",
+      "unmappedHint": "لطفاً درخواست خود را دقیق‌تر بنویسید یا از نمونه‌های پیشنهادی استفاده کنید."
+    }
+  },
+  "view": {
+    "table": "جدول", "kpi": "KPI", "bar": "میله‌ای", "line": "خطی", "pie": "دایره‌ای"
   },
   "reports": {
     "title": "کتابخانه گزارش‌ها", "new": "گزارش جدید", "run": "اجرا",
