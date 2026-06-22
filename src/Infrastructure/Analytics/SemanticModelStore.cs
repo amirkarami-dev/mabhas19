@@ -21,6 +21,13 @@ internal sealed class SemanticModelStore : ISemanticModelStore
         return Task.FromResult(model);
     }
 
+    public Task<SemanticModelDto?> GetBySourceAsync(string source, CancellationToken cancellationToken = default)
+    {
+        var model = Catalogue.FirstOrDefault(m =>
+            string.Equals(m.Source, source, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(model);
+    }
+
     // ------------------------------------------------------------------
     // Static catalogue — mirroring the TypeScript semantic models
     // ------------------------------------------------------------------
@@ -41,7 +48,7 @@ internal sealed class SemanticModelStore : ISemanticModelStore
                 new SemanticFieldDto { Id = "province",      Name = "Province",        Type = "string", Role = "dimension" },
                 new SemanticFieldDto { Id = "status",        Name = "Status",          Type = "string", Role = "dimension" },
                 new SemanticFieldDto { Id = "buildingGroup", Name = "Building Group",  Type = "string", Role = "dimension" },
-                new SemanticFieldDto { Id = "area",          Name = "Area (m²)",       Type = "number", Role = "measure"   },
+                new SemanticFieldDto { Id = "area",          Column = "areaM2",        Name = "Area (m²)",       Type = "number", Role = "measure"   },
                 new SemanticFieldDto { Id = "score",         Name = "Assessment Score",Type = "number", Role = "measure"   },
                 new SemanticFieldDto { Id = "delayDays",     Name = "Delay (days)",    Type = "number", Role = "measure"   },
                 new SemanticFieldDto { Id = "startDate",     Name = "Start Date",      Type = "date",   Role = "date"      },
@@ -65,7 +72,7 @@ internal sealed class SemanticModelStore : ISemanticModelStore
                 new SemanticFieldDto { Id = "province",     Name = "Province",      Type = "string", Role = "dimension" },
                 new SemanticFieldDto { Id = "channel",      Name = "Channel",       Type = "string", Role = "dimension" },
                 new SemanticFieldDto { Id = "status",       Name = "Status",        Type = "string", Role = "dimension" },
-                new SemanticFieldDto { Id = "quantity",     Name = "Quantity",      Type = "number", Role = "measure"   },
+                new SemanticFieldDto { Id = "quantity",     Column = "qty",         Name = "Quantity",      Type = "number", Role = "measure"   },
                 new SemanticFieldDto { Id = "amount",       Name = "Revenue",       Type = "number", Role = "measure"   },
                 new SemanticFieldDto { Id = "orderDate",    Name = "Order Date",    Type = "date",   Role = "date"      },
             ],

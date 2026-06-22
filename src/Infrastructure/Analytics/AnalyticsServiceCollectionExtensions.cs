@@ -1,5 +1,6 @@
 using Mabhas19.Application.Common.Interfaces.Analytics;
 using Mabhas19.Infrastructure.Analytics.Ai;
+using Mabhas19.Infrastructure.Analytics.Query;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,7 +15,8 @@ internal static class AnalyticsServiceCollectionExtensions
         // Bind ArvanCloud AI gateway options (BaseUrl/ApiKey must come from user-secrets / env / SOPS).
         services.Configure<ArvanAiOptions>(configuration.GetSection(ArvanAiOptions.SectionName));
 
-        // The only fully-wired query-engine implementation (used by POST /api/Reports/execute).
+        // Real query engine — in-memory pipeline ported from analytics-web/src/query/engine.ts.
+        // SampleDataStore is a static class (no registration needed).
         services.AddScoped<IQueryEngine, QueryEngine>();
 
         // Real semantic model store — static catalogue of 3 bundled models.
