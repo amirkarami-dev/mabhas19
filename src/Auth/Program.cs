@@ -72,6 +72,18 @@ builder.Services.AddScoped<AuthDbInitialiser>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// CORS for browser SPA clients (e.g. analytics-web) that call the IdP's discovery / JWKS / token /
+// userinfo endpoints cross-origin via oidc-client-ts. mabhas19-web does OIDC server-side (Auth.js)
+// and needs none. Origins come from Cors:AllowedOrigins (env Cors__AllowedOrigins__N); empty = no CORS.
+var spaCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy =>
+    {
+        if (spaCorsOrigins.Length > 0)
+            policy.WithOrigins(spaCorsOrigins).AllowAnyHeader().AllowAnyMethod();
+    }));
+
 builder.Services.AddOpenIddict()
     .AddCore(o => o.UseEntityFrameworkCore().UseDbContext<AuthDbContext>())
     .AddServer(o =>
@@ -129,6 +141,7 @@ app.UseForwardedHeaders();
 await app.InitialiseAuthAsync();
 
 app.UseRouting();
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
