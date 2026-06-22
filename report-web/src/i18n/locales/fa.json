@@ -4,7 +4,7 @@
     "save": "ذخیره", "cancel": "انصراف", "delete": "حذف", "edit": "ویرایش",
     "create": "ایجاد", "search": "جستجو", "loading": "در حال بارگذاری…",
     "empty": "موردی یافت نشد", "retry": "تلاش دوباره", "back": "بازگشت",
-    "confirm": "تایید", "yes": "بله", "no": "خیر", "actions": "عملیات"
+    "confirm": "تایید", "yes": "بله", "no": "خیر", "actions": "عملیات", "ok": "باشه"
   },
   "nav": {
     "ask": "پرسش از هوش مصنوعی", "reports": "گزارش‌ها", "dashboards": "داشبوردها",
@@ -98,6 +98,24 @@
   },
   "admin": {
     "overview": "نمای کلی مدیریت", "noAccess": "دسترسی ندارید",
+    "users": {
+      "title": "مدیریت کاربران",
+      "rolesTitle": "ماتریس نقش‌ها و مجوزها",
+      "matrixReadOnly": "شما فقط مجاز به مشاهده این ماتریس هستید.",
+      "inviteUser": "دعوت کاربر",
+      "editUser": "ویرایش کاربر",
+      "name": "نام",
+      "email": "ایمیل",
+      "roles": "نقش‌ها",
+      "active": "فعال",
+      "status": "وضعیت",
+      "lastActive": "آخرین فعالیت",
+      "empty": "کاربری یافت نشد",
+      "lastAdminTitle": "آخرین مدیر",
+      "lastAdminWarn": "نمی‌توانید تنها مدیر فعال سازمان را غیرفعال کنید.",
+      "selfDeactivateTitle": "غیرفعال‌سازی خود",
+      "selfDeactivateWarn": "آیا مطمئن هستید که می‌خواهید حساب کاربری خود را غیرفعال کنید؟"
+    },
     "ai": {
       "tab": {
         "providers": "ارائه‌دهندگان",
@@ -165,6 +183,7 @@
     }
   },
   "rbac": {
+    "roleHeader": "نقش",
     "role": {
       "SuperAdmin": "مدیر ارشد سامانه", "TenantAdmin": "مدیر سازمان",
       "AIManager": "مدیر هوش مصنوعی", "ReportDesigner": "طراح گزارش",

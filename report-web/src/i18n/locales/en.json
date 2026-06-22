@@ -3,7 +3,7 @@
     "appName": "AI Reporting", "save": "Save", "cancel": "Cancel", "delete": "Delete",
     "edit": "Edit", "create": "Create", "search": "Search", "loading": "Loading…",
     "empty": "No items found", "retry": "Retry", "back": "Back", "confirm": "Confirm",
-    "yes": "Yes", "no": "No", "actions": "Actions"
+    "yes": "Yes", "no": "No", "actions": "Actions", "ok": "OK"
   },
   "nav": {
     "ask": "Ask AI", "reports": "Reports", "dashboards": "Dashboards", "favorites": "Favorites",
@@ -93,6 +93,24 @@
   "tenant": { "switcher": "Select tenant", "current": "Current tenant" },
   "admin": {
     "overview": "Admin Overview", "noAccess": "Access denied",
+    "users": {
+      "title": "User Management",
+      "rolesTitle": "Roles & Permissions Matrix",
+      "matrixReadOnly": "You have read-only access to this matrix.",
+      "inviteUser": "Invite User",
+      "editUser": "Edit User",
+      "name": "Name",
+      "email": "Email",
+      "roles": "Roles",
+      "active": "Active",
+      "status": "Status",
+      "lastActive": "Last Active",
+      "empty": "No users found",
+      "lastAdminTitle": "Last Admin",
+      "lastAdminWarn": "You cannot deactivate the only active administrator.",
+      "selfDeactivateTitle": "Deactivate Yourself",
+      "selfDeactivateWarn": "Are you sure you want to deactivate your own account?"
+    },
     "ai": {
       "tab": {
         "providers": "Providers",
@@ -160,6 +178,7 @@
     }
   },
   "rbac": {
+    "roleHeader": "Role",
     "role": {
       "SuperAdmin": "Super Admin", "TenantAdmin": "Tenant Admin", "AIManager": "AI Manager",
       "ReportDesigner": "Report Designer", "DashboardDesigner": "Dashboard Designer",

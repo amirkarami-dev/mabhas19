@@ -170,6 +170,32 @@ export const useUsers = () => {
   });
 };
 
+export const useUpsertUser = () => {
+  const qc = useQueryClient();
+  const t = useTid();
+  return useMutation<UserRow, Error, UserRow>({
+    mutationFn: (u: UserRow) => mockApi.users.save(u),
+    onSuccess: () => qc.invalidateQueries({ queryKey: rk.users(t) }),
+  });
+};
+
+export const useSetUserActive = () => {
+  const qc = useQueryClient();
+  const t = useTid();
+  return useMutation<UserRow, Error, { id: string; active: boolean }>({
+    mutationFn: async ({ id, active }) => {
+      const all = await mockApi.users.list();
+      const existing = all.find((u) => u.id === id);
+      if (!existing) throw new Error("User not found");
+      return mockApi.users.save({
+        ...existing,
+        status: active ? "active" : "suspended",
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: rk.users(t) }),
+  });
+};
+
 export const useTenants = () =>
   useQuery<Tenant[]>({
     queryKey: rk.tenants(),

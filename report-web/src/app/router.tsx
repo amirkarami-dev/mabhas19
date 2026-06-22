@@ -20,6 +20,8 @@ import { AIProviderList } from "../admin/ai/providers/AIProviderList";
 import { AIRoutingRules } from "../admin/ai/routing/AIRoutingRules";
 import { PromptVersions } from "../admin/ai/prompts/PromptVersions";
 import { AIUsageCost } from "../admin/ai/usage/AIUsageCost";
+import { UserList } from "../admin/users/UserList";
+import { RolePermissionMatrix } from "../admin/roles/RolePermissionMatrix";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -115,7 +117,7 @@ export const router = createBrowserRouter([
                 path: "users",
                 element: (
                   <RequirePermission perm="users:manage">
-                    {P("UserList")}
+                    <UserList />
                   </RequirePermission>
                 ),
               },
@@ -127,7 +129,14 @@ export const router = createBrowserRouter([
                   </RequirePermission>
                 ),
               },
-              { path: "roles", element: P("RoleMatrix") },
+              {
+                path: "roles",
+                element: (
+                  <RequirePermission perm="users:manage">
+                    <RolePermissionMatrix />
+                  </RequirePermission>
+                ),
+              },
               {
                 path: "data-sources",
                 element: (
