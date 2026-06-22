@@ -20,7 +20,7 @@ vi.mock("../../auth/useAuth", () => ({
   }),
 }));
 
-vi.mock("react-router-dom", () => ({
+vi.mock("react-router", () => ({
   useNavigate: () => vi.fn(),
 }));
 

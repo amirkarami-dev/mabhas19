@@ -1,9 +1,10 @@
 import { useMemo, useState, useCallback } from "react";
-import { Table, Tag, Button, Space, Skeleton, Empty, Modal } from "antd";
+import { Table, Tag, Button, Space, Skeleton, Empty, Modal, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { Tenant, TenantStatus } from "../../contracts";
 import { useTenants, useUpsertTenant, useSetTenantStatus } from "../../api/queries";
 import { TenantFormModal } from "./TenantFormModal";
+import { useTenantStore } from "@/store/tenant-store";
 
 const STATUS_COLOR: Record<TenantStatus, string> = {
   active: "green",
@@ -16,6 +17,7 @@ export function TenantList() {
   const { data: tenants, isLoading } = useTenants();
   const upsert = useUpsertTenant();
   const setStatus = useSetTenantStatus();
+  const setCurrentTenant = useTenantStore((s) => s.setCurrentTenant);
   const [modal, setModal] = useState<{ open: boolean; initial?: Tenant }>({ open: false });
 
   const suspend = useCallback(
@@ -30,6 +32,14 @@ export function TenantList() {
       });
     },
     [t, setStatus],
+  );
+
+  const switchTenant = useCallback(
+    (tn: Tenant) => {
+      setCurrentTenant(tn.id);
+      void message.success(t("admin.tenants.switched", { name: tn.displayName }));
+    },
+    [setCurrentTenant, t],
   );
 
   const openModal = useCallback((initial?: Tenant) => setModal({ open: true, initial }), []);
@@ -58,6 +68,9 @@ export function TenantList() {
             <Button size="small" onClick={() => openModal(tn)}>
               {t("common.edit")}
             </Button>
+            <Button size="small" type="primary" onClick={() => switchTenant(tn)}>
+              {t("admin.tenants.switch")}
+            </Button>
             {tn.status === "suspended" ? (
               <Button
                 size="small"
@@ -74,7 +87,7 @@ export function TenantList() {
         ),
       },
     ],
-    [t, openModal, setStatus, suspend],
+    [t, openModal, setStatus, suspend, switchTenant],
   );
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;

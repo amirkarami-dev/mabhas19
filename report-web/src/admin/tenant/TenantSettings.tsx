@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Input, Select, ColorPicker, Button, Card, Skeleton, Space, Upload } from "antd";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import type { Tenant } from "../../contracts";
 import { useTenant, useUpdateTenant, useTenantUsage } from "../../api/queries";
 import { useUiStore } from "../../store/ui-store";

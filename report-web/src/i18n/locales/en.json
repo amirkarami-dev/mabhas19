@@ -303,6 +303,8 @@
       "suspendTitle": "Suspend Tenant",
       "suspendWarn": "Are you sure you want to suspend {{name}}?",
       "reactivate": "Reactivate",
+      "switch": "Switch",
+      "switched": "Switched to {{name}}",
       "empty": "No tenants found",
       "statusValue": { "active": "Active", "trial": "Trial", "suspended": "Suspended" }
     },

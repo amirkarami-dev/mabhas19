@@ -308,6 +308,8 @@
       "suspendTitle": "تعلیق سازمان",
       "suspendWarn": "آیا مطمئنید که می‌خواهید {{name}} را تعلیق کنید؟",
       "reactivate": "بازفعال‌سازی",
+      "switch": "سوئیچ",
+      "switched": "به {{name}} سوئیچ شد",
       "empty": "سازمانی یافت نشد",
       "statusValue": { "active": "فعال", "trial": "آزمایشی", "suspended": "معلق" }
     },
