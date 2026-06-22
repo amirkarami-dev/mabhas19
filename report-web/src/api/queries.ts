@@ -212,6 +212,64 @@ export const useAudit = () => {
   });
 };
 
+/** Filter shape for the audit log screen (all fields optional). */
+export interface AuditFilter {
+  from?: string;
+  to?: string;
+  actorId?: string;
+  type?: string;
+  status?: string;
+}
+
+/**
+ * Filtered audit-event list.  Client-side filtering over the tenant-scoped
+ * AuditRow list — no backend call required for the mock.
+ */
+export const useAuditEvents = (filter: AuditFilter = {}) => {
+  const t = useTid();
+  return useQuery<AuditRow[]>({
+    queryKey: [...rk.audit(t), filter] as const,
+    queryFn: async () => {
+      const rows = await mockApi.audit.list(t ?? undefined);
+      return rows.filter((r) => {
+        if (filter.type && r.type !== filter.type) return false;
+        if (filter.from && r.ts < filter.from) return false;
+        if (filter.to && r.ts > filter.to) return false;
+        if (filter.actorId && r.actorId !== filter.actorId) return false;
+        return true;
+      });
+    },
+  });
+};
+
+/** Cost-by-tenant summary derived from the mock audit seed. */
+export interface TenantCostSeries {
+  tenantId: string;
+  series: { period: string; costUsd: number }[];
+}
+
+export const useAuditCostByTenant = () => {
+  return useQuery<TenantCostSeries[]>({
+    queryKey: ["auditCostByTenant"] as const,
+    queryFn: async () => {
+      const all = await mockApi.audit.list(undefined);
+      const byTenant: Record<string, Record<string, number>> = {};
+      for (const row of all) {
+        if (!row.cost) continue;
+        const period = row.ts.slice(0, 7); // "YYYY-MM"
+        byTenant[row.tenantId] ??= {};
+        byTenant[row.tenantId][period] = (byTenant[row.tenantId][period] ?? 0) + row.cost;
+      }
+      return Object.entries(byTenant).map(([tenantId, periods]) => ({
+        tenantId,
+        series: Object.entries(periods)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([period, costUsd]) => ({ period, costUsd })),
+      }));
+    },
+  });
+};
+
 // ─── TenantAIConfig hooks (Task 18) ──────────────────────────────────────────
 
 const AI_CONFIG_STORAGE_KEY = "report.db.tenantAIConfig";

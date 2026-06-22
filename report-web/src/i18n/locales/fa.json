@@ -209,6 +209,41 @@
         "unconfigured": "پیکربندی‌نشده"
       }
     },
+    "audit": {
+      "title": "گزارش رخدادها",
+      "time": "زمان",
+      "actor": "کاربر",
+      "eventType": "نوع رخداد",
+      "status": "وضعیت",
+      "tokens": "توکن‌ها",
+      "cost": "هزینه",
+      "latency": "تأخیر",
+      "prompt": "پرامپت",
+      "provider": "ارائه‌دهنده",
+      "model": "مدل",
+      "promptVersion": "نسخه پرامپت",
+      "cached": "از کش",
+      "resolvedDefinition": "تعریف گزارش",
+      "exportCsv": "خروجی CSV",
+      "empty": "رخدادی یافت نشد",
+      "costPerTenant": "هزینه به تفکیک سازمان",
+      "costUsd": "هزینه (دلار)",
+      "type": {
+        "ai.generate": "تولید هوش مصنوعی",
+        "report.run": "اجرای گزارش",
+        "export.csv": "خروجی CSV",
+        "AiRequest": "درخواست هوش مصنوعی",
+        "ReportExecution": "اجرای گزارش",
+        "Export": "خروجی",
+        "FailedQuery": "کوئری ناموفق",
+        "UserActivity": "فعالیت کاربر",
+        "ProviderChange": "تغییر ارائه‌دهنده"
+      },
+      "statusValue": {
+        "ok": "موفق",
+        "error": "خطا"
+      }
+    },
     "sm": {
       "title": "مدل‌های معنایی",
       "name": "نام",

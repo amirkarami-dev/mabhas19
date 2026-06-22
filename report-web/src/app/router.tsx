@@ -24,6 +24,7 @@ import { UserList } from "../admin/users/UserList";
 import { RolePermissionMatrix } from "../admin/roles/RolePermissionMatrix";
 import { DataSourceList } from "../admin/data-sources/DataSourceList";
 import { SemanticModelList } from "../admin/semantic-models/SemanticModelList";
+import { AuditLog } from "../admin/audit/AuditLog";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -214,7 +215,7 @@ export const router = createBrowserRouter([
                 path: "audit",
                 element: (
                   <RequirePermission perm="audit:read">
-                    {P("AuditLog")}
+                    <AuditLog />
                   </RequirePermission>
                 ),
               },

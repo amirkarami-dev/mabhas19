@@ -204,6 +204,41 @@
         "unconfigured": "Unconfigured"
       }
     },
+    "audit": {
+      "title": "Audit Log",
+      "time": "Timestamp",
+      "actor": "Actor",
+      "eventType": "Event Type",
+      "status": "Status",
+      "tokens": "Tokens",
+      "cost": "Cost",
+      "latency": "Latency",
+      "prompt": "Prompt",
+      "provider": "Provider",
+      "model": "Model",
+      "promptVersion": "Prompt Version",
+      "cached": "Cached",
+      "resolvedDefinition": "Resolved Definition",
+      "exportCsv": "Export CSV",
+      "empty": "No audit events found",
+      "costPerTenant": "Cost per Tenant",
+      "costUsd": "Cost (USD)",
+      "type": {
+        "ai.generate": "AI Generate",
+        "report.run": "Report Run",
+        "export.csv": "CSV Export",
+        "AiRequest": "AI Request",
+        "ReportExecution": "Report Execution",
+        "Export": "Export",
+        "FailedQuery": "Failed Query",
+        "UserActivity": "User Activity",
+        "ProviderChange": "Provider Change"
+      },
+      "statusValue": {
+        "ok": "OK",
+        "error": "Error"
+      }
+    },
     "sm": {
       "title": "Semantic Models",
       "name": "Name",
