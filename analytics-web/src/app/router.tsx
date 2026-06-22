@@ -4,6 +4,7 @@ import { AppLayout } from "../layout/AppLayout";
 import {
   LoginScreen,
   OidcCallback,
+  OidcSilentCallback,
   LogoutScreen,
   ForbiddenScreen,
   RequireAuth,
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
   // Public / Auth
   { path: "/login", element: <LoginScreen /> },
   { path: "/auth/callback", element: <OidcCallback /> },
+  { path: "/auth/silent", element: <OidcSilentCallback /> },
   { path: "/logout", element: <LogoutScreen /> },
   { path: "/403", element: <ForbiddenScreen /> },
 

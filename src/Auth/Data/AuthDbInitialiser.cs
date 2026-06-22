@@ -187,6 +187,44 @@ public class AuthDbInitialiser(
             },
             Requirements = { Requirements.Features.ProofKeyForCodeExchange }
         });
+
+        // analytics-web — Public, Authorization Code + PKCE (https web redirects), for analytic.myceo.ir.
+        // Optional: only seeded when its redirect URI is configured, and empty URIs are skipped so a
+        // missing ANALYTICS_DOMAIN can never abort the whole client seed with a UriFormatException.
+        var analyticsRedirect   = configuration["Clients:AnalyticsWeb:Redirect"]   ?? string.Empty;
+        var analyticsSilent     = configuration["Clients:AnalyticsWeb:Silent"]     ?? string.Empty;
+        var analyticsPostLogout = configuration["Clients:AnalyticsWeb:PostLogout"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(analyticsRedirect))
+        {
+            var analyticsClient = new OpenIddictApplicationDescriptor
+            {
+                ClientId    = "analytics-web",
+                ClientType  = ClientTypes.Public,
+                DisplayName = "Analytics Web",
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.Endpoints.EndSession,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + "mabhas19.api"
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange }
+            };
+            analyticsClient.RedirectUris.Add(new Uri(analyticsRedirect));
+            if (!string.IsNullOrWhiteSpace(analyticsSilent))
+                analyticsClient.RedirectUris.Add(new Uri(analyticsSilent));
+            if (!string.IsNullOrWhiteSpace(analyticsPostLogout))
+                analyticsClient.PostLogoutRedirectUris.Add(new Uri(analyticsPostLogout));
+
+            await EnsureClientAsync(analyticsClient);
+        }
     }
 
     private async Task EnsureClientAsync(OpenIddictApplicationDescriptor descriptor)

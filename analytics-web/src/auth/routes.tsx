@@ -45,6 +45,20 @@ export function OidcCallback() {
   return <Spin tip={t("auth.signingIn")} fullscreen />;
 }
 
+// Rendered inside the hidden silent-renew iframe (automaticSilentRenew). Completes the silent
+// code exchange and renders nothing. Failures are non-fatal — the user re-auths on next navigation.
+export function OidcSilentCallback() {
+  useEffect(() => {
+    if (useMock) return;
+    getUserManager()
+      .signinSilentCallback()
+      .catch(() => {
+        /* silent renew failed; ignore — interactive login still works */
+      });
+  }, []);
+  return null;
+}
+
 export function LogoutScreen() {
   const { logout } = useAuth();
   const { t } = useTranslation();

@@ -27,6 +27,7 @@ WEB_DOMAIN=mabhas19.myceo.ir
 API_DOMAIN=api.mabhas19.myceo.ir
 AUTH_DOMAIN=auth.myceo.ir
 MINIO_DOMAIN=s3.mabhas19.myceo.ir
+ANALYTICS_DOMAIN=analytic.myceo.ir
 
 # --- Infra secrets (generated) ---
 MSSQL_SA_PASSWORD=$(gen_complex)
@@ -59,6 +60,15 @@ GOOGLE_CLIENT_ID=
 # نظام مهندسی ساختمان project import:
 NEZAM_BASE_URL=
 NEZAM_API_KEY=
+# Analytics service (AI reporting on FarsNezam) — analytic.myceo.ir.
+# Non-secret build/runtime toggles:
+ANALYTICS_AI_FE_MODE=gateway
+ANALYTICS_AI_MODEL=DeepSeek-R1-qwen-7b-awq
+# Secrets (paste real values): ArvanCloud AI gateway (BaseUrl must end in /v1) + key, and the
+# FarsNezam read-only SQL conn (NON-EMPTY enables the analytics SQL engine):
+ANALYTICS_AI_BASE_URL=
+ANALYTICS_AI_API_KEY=
+ANALYTICS_DB_CONN=
 EOF
   chmod 600 "$ENV_FILE"
   echo "[provision] deploy/.env created (chmod 600)"
