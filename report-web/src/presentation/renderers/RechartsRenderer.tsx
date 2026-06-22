@@ -19,6 +19,7 @@ import type { ReportView } from "../../contracts/presentation";
 import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
 import { formatNumber, type Dir } from "../format";
+import { aggregateByCategory } from "./chart-utils";
 
 export type RendererProps = {
   view: ReportView;
@@ -55,7 +56,7 @@ function yKeys(view: ReportView): string[] {
 
 export default function RechartsRenderer({ view, result, onDrill }: RendererProps) {
   const dir = currentDir();
-  const data = result.rows as ResultRow[];
+  const rawRows = result.rows as ResultRow[];
   const x = view.mapping.x ?? "";
   const ys = yKeys(view);
   const kind = view.component || view.type;
@@ -70,6 +71,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   if (kind === "PieChart" || kind === "pie") {
     const category = view.mapping.category ?? x;
     const measure = view.mapping.measure ?? ys[0] ?? "";
+    const data = aggregateByCategory(rawRows, category, measure ? [measure] : []);
     return (
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
@@ -93,6 +95,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   if (kind === "LineChart" || kind === "line") {
+    const data = aggregateByCategory(rawRows, x, ys);
     return (
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data}>
@@ -116,6 +119,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   if (kind === "AreaChart" || kind === "area") {
+    const data = aggregateByCategory(rawRows, x, ys);
     return (
       <ResponsiveContainer width="100%" height={320}>
         <AreaChart data={data}>
@@ -140,6 +144,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   // default: BarChart
+  const data = aggregateByCategory(rawRows, x, ys);
   return (
     <ResponsiveContainer width="100%" height={320}>
       <BarChart

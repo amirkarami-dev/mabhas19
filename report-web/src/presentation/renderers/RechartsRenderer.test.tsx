@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
+import { aggregateByCategory } from "./chart-utils";
 
 // Recharts ResponsiveContainer measures the DOM; jsdom reports 0x0.
 // Force a fixed size so child charts actually render their SVG.
@@ -128,5 +129,81 @@ describe("RechartsRenderer", () => {
       <RechartsRenderer view={makeView("PieChart")} def={def} result={result} />,
     );
     expect(container.querySelectorAll(".recharts-pie-sector").length).toBe(3);
+  });
+});
+
+// ── Multi-dim render: bar count equals distinct categories ───────────────────
+describe("RechartsRenderer — multi-dim bar: distinct category count", () => {
+  it("bar chart over 2-dim data renders one bar per DISTINCT x value (not per raw row)", () => {
+    const multiDimResult: QueryResult = {
+      columns: [
+        { key: "orderDate", label: "ماه", type: "string", isMetric: false },
+        { key: "province", label: "استان", type: "string", isMetric: false },
+        { key: "revenue", label: "درآمد", type: "number", isMetric: true },
+      ],
+      rows: [
+        { orderDate: "2025-01", province: "Tehran", revenue: 1200 },
+        { orderDate: "2025-01", province: "Fars", revenue: 800 },
+        { orderDate: "2025-02", province: "Tehran", revenue: 1500 },
+        { orderDate: "2025-02", province: "Fars", revenue: 900 },
+      ],
+      total: 4,
+    };
+    const barView: ReportView = {
+      type: "chart",
+      library: "recharts",
+      component: "BarChart",
+      mapping: { x: "orderDate", y: ["revenue"], measure: "revenue" },
+    };
+
+    const { container } = render(
+      <RechartsRenderer view={barView} def={def} result={multiDimResult} />,
+    );
+    // 4 raw rows but only 2 distinct months → 2 bars after aggregation
+    expect(container.querySelectorAll(".recharts-bar-rectangle").length).toBe(2);
+  });
+});
+
+// ── aggregateByCategory pure helper ─────────────────────────────────────────
+describe("aggregateByCategory", () => {
+  it("merges duplicate categories and sums the value keys (first-seen order)", () => {
+    const rows = [
+      { m: "2025-01", v: 100 },
+      { m: "2025-01", v: 50 },
+      { m: "2025-02", v: 30 },
+    ];
+    const result = aggregateByCategory(rows, "m", ["v"]);
+    expect(result).toEqual([
+      { m: "2025-01", v: 150 },
+      { m: "2025-02", v: 30 },
+    ]);
+  });
+
+  it("passes through already-unique categories unchanged (no-op)", () => {
+    const rows = [
+      { province: "Tehran", revenue: 1200 },
+      { province: "Fars", revenue: 800 },
+      { province: "Isfahan", revenue: 600 },
+    ];
+    const result = aggregateByCategory(rows, "province", ["revenue"]);
+    expect(result).toEqual([
+      { province: "Tehran", revenue: 1200 },
+      { province: "Fars", revenue: 800 },
+      { province: "Isfahan", revenue: 600 },
+    ]);
+  });
+
+  it("treats null and non-numeric values as 0 in the sum", () => {
+    const rows = [
+      { cat: "A", val: null },
+      { cat: "A", val: 42 },
+      { cat: "B", val: "not-a-number" },
+      { cat: "B", val: 10 },
+    ];
+    const result = aggregateByCategory(rows, "cat", ["val"]);
+    expect(result).toEqual([
+      { cat: "A", val: 42 },
+      { cat: "B", val: 10 },
+    ]);
   });
 });
