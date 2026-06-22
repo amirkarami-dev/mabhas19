@@ -3,8 +3,10 @@ import { mockApi, type AIProviderRow, type UserRow, type AuditRow } from "./mock
 import type { ReportDefinition } from "../contracts/report-definition";
 import type { Tenant } from "../contracts/tenant";
 import type { TenantAIConfig } from "../contracts/ai";
+import type { SemanticModel } from "../contracts/semantic";
 import type { DashboardWidget, GridLayoutItem } from "../dashboard/widget";
 import { useTenantStore } from "../store/tenant-store";
+import { semanticModels } from "../semantic/registry";
 
 // ----- Canonical persisted shapes (the single definitions; other tasks import from here) -----
 
@@ -332,5 +334,63 @@ export const useAIUsageSeries = () => {
       return MOCK_USAGE_SERIES;
     },
     initialData: MOCK_USAGE_SERIES,
+  });
+};
+
+// ─── Data Sources & Semantic Models hooks (Task 20) ───────────────────────────
+
+/** Mock data-source record — mirrors the admin UI shape (not a full Tenant contract type). */
+export interface DataSourceRecord {
+  id: string;
+  tenantId: string;
+  name: string;
+  kind: "sql" | "rest" | "file" | "warehouse";
+  connectionRef: string;
+  semanticModelId: string;
+  status: "connected" | "error" | "unconfigured";
+  rowCount?: number;
+}
+
+const MOCK_DATA_SOURCES: DataSourceRecord[] = [
+  { id: "ds-project", tenantId: "global", name: "Projects Dataset", kind: "file",
+    connectionRef: "fixture://projects", semanticModelId: "model-project",
+    status: "connected", rowCount: 30 },
+  { id: "ds-sales", tenantId: "global", name: "Sales Dataset", kind: "file",
+    connectionRef: "fixture://sales", semanticModelId: "model-sales",
+    status: "connected", rowCount: 30 },
+  { id: "ds-finance", tenantId: "global", name: "Finance Dataset", kind: "file",
+    connectionRef: "fixture://finance", semanticModelId: "model-finance",
+    status: "connected", rowCount: 30 },
+];
+
+export const useDataSources = () => {
+  const t = useTid();
+  return useQuery<DataSourceRecord[]>({
+    queryKey: ["dataSources", t],
+    queryFn: async () => {
+      await new Promise<void>((r) => setTimeout(r, 80));
+      return MOCK_DATA_SOURCES;
+    },
+    initialData: MOCK_DATA_SOURCES,
+  });
+};
+
+export const useSemanticModels = () => {
+  return useQuery<SemanticModel[]>({
+    queryKey: ["semanticModels"],
+    queryFn: async () => {
+      await new Promise<void>((r) => setTimeout(r, 80));
+      return Object.values(semanticModels);
+    },
+    initialData: Object.values(semanticModels),
+  });
+};
+
+export const useTestDataSource = () => {
+  return useMutation<{ ok: boolean; error?: string }, Error, string>({
+    mutationFn: async (_id: string) => {
+      await new Promise<void>((r) => setTimeout(r, 400));
+      return { ok: true };
+    },
   });
 };

@@ -175,7 +175,69 @@
       "totalCost": "Total Cost",
       "tokensOverTime": "Token Usage Over Time",
       "costByModel": "Cost by Model"
+    },
+    "ds": {
+      "title": "Data Sources",
+      "addSource": "Add Data Source",
+      "name": "Name",
+      "kindLabel": "Kind",
+      "rowCount": "Rows",
+      "status": "Status",
+      "semanticModel": "Semantic Model",
+      "testConnection": "Test Connection",
+      "syncSchema": "Sync Schema",
+      "testOk": "Connection successful",
+      "testFailed": "Connection failed",
+      "syncOk": "Schema synced",
+      "empty": "No data sources configured",
+      "useSamples": "Use sample datasets",
+      "connectionRef": "Connection",
+      "kind": {
+        "sql": "SQL Database",
+        "rest": "REST API",
+        "file": "File / CSV",
+        "warehouse": "Data Warehouse"
+      },
+      "statusValue": {
+        "connected": "Connected",
+        "error": "Error",
+        "unconfigured": "Unconfigured"
+      }
+    },
+    "sm": {
+      "title": "Semantic Models",
+      "name": "Name",
+      "id": "Model ID",
+      "dataSource": "Data Source",
+      "entities": "Entities",
+      "fields": "Fields",
+      "version": "Version",
+      "empty": "No semantic models found",
+      "field": "Field ID",
+      "label": "Label",
+      "entity": "Entity",
+      "type": "Type",
+      "kind": "Kind",
+      "measure": "Measure",
+      "dimension": "Dimension",
+      "defaultAgg": "Default Aggregation",
+      "synonyms": "Synonyms",
+      "fieldType": {
+        "string": "String",
+        "number": "Number",
+        "date": "Date",
+        "boolean": "Boolean"
+      }
     }
+  },
+  "agg": {
+    "sum": "Sum",
+    "avg": "Average",
+    "min": "Min",
+    "max": "Max",
+    "count": "Count",
+    "countDistinct": "Count Distinct",
+    "none": "None"
   },
   "rbac": {
     "roleHeader": "Role",

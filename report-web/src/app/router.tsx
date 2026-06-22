@@ -22,6 +22,8 @@ import { PromptVersions } from "../admin/ai/prompts/PromptVersions";
 import { AIUsageCost } from "../admin/ai/usage/AIUsageCost";
 import { UserList } from "../admin/users/UserList";
 import { RolePermissionMatrix } from "../admin/roles/RolePermissionMatrix";
+import { DataSourceList } from "../admin/data-sources/DataSourceList";
+import { SemanticModelList } from "../admin/semantic-models/SemanticModelList";
 
 const P = (name: string) => <PagePlaceholder name={name} />;
 const ADMIN_SET = ["SuperAdmin", "TenantAdmin", "AIManager"] as const;
@@ -141,7 +143,7 @@ export const router = createBrowserRouter([
                 path: "data-sources",
                 element: (
                   <RequirePermission perm="datasources:manage">
-                    {P("DataSourceList")}
+                    <DataSourceList />
                   </RequirePermission>
                 ),
               },
@@ -165,7 +167,7 @@ export const router = createBrowserRouter([
                 path: "semantic-models",
                 element: (
                   <RequirePermission perm="datasources:manage">
-                    {P("SemanticModelList")}
+                    <SemanticModelList />
                   </RequirePermission>
                 ),
               },

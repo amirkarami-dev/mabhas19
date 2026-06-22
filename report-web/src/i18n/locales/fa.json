@@ -180,7 +180,69 @@
       "totalCost": "هزینه کل",
       "tokensOverTime": "مصرف توکن در زمان",
       "costByModel": "هزینه بر اساس مدل"
+    },
+    "ds": {
+      "title": "منابع داده",
+      "addSource": "افزودن منبع داده",
+      "name": "نام",
+      "kindLabel": "نوع",
+      "rowCount": "تعداد ردیف",
+      "status": "وضعیت",
+      "semanticModel": "مدل معنایی",
+      "testConnection": "تست اتصال",
+      "syncSchema": "همگام‌سازی طرح",
+      "testOk": "اتصال موفق",
+      "testFailed": "اتصال ناموفق",
+      "syncOk": "طرح همگام شد",
+      "empty": "منبع داده‌ای تنظیم نشده",
+      "useSamples": "استفاده از داده‌های نمونه",
+      "connectionRef": "اتصال",
+      "kind": {
+        "sql": "پایگاه داده SQL",
+        "rest": "REST API",
+        "file": "فایل / CSV",
+        "warehouse": "انبار داده"
+      },
+      "statusValue": {
+        "connected": "متصل",
+        "error": "خطا",
+        "unconfigured": "پیکربندی‌نشده"
+      }
+    },
+    "sm": {
+      "title": "مدل‌های معنایی",
+      "name": "نام",
+      "id": "شناسه مدل",
+      "dataSource": "منبع داده",
+      "entities": "موجودیت‌ها",
+      "fields": "فیلدها",
+      "version": "نسخه",
+      "empty": "مدل معنایی یافت نشد",
+      "field": "شناسه فیلد",
+      "label": "برچسب",
+      "entity": "موجودیت",
+      "type": "نوع",
+      "kind": "نوع فیلد",
+      "measure": "اندازه",
+      "dimension": "بُعد",
+      "defaultAgg": "تجمیع پیش‌فرض",
+      "synonyms": "مترادف‌ها",
+      "fieldType": {
+        "string": "متن",
+        "number": "عدد",
+        "date": "تاریخ",
+        "boolean": "بولین"
+      }
     }
+  },
+  "agg": {
+    "sum": "مجموع",
+    "avg": "میانگین",
+    "min": "حداقل",
+    "max": "حداکثر",
+    "count": "تعداد",
+    "countDistinct": "تعداد منحصربه‌فرد",
+    "none": "بدون"
   },
   "rbac": {
     "roleHeader": "نقش",
