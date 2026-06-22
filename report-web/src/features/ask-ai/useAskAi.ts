@@ -120,14 +120,30 @@ export function useAskAi() {
           };
           return { ...s, views: [...s.views, v], activeViewIndex: s.views.length };
         }
-        // Build a chart view reusing the current result's mapping.
+        // Build a chart view with correct axis mapping derived from result columns.
+        // Never blindly copy base.mapping: when the active view is a Table, its
+        // mapping only has `columns`, no x/y — the chart would silently get undefined
+        // axes and render nothing.  Derive dim/meas from the current result instead
+        // and use base.mapping's values only when they are actually set.
         const base = s.views[s.activeViewIndex];
+        const cols = s.result?.columns ?? [];
+        const dim = cols.find((c) => !c.isMetric)?.key;
+        const meas = cols.find((c) => c.isMetric)?.key;
         const chartKey = type as "bar" | "line" | "pie";
         const subtype = SUBTYPE_TO_VIEW[chartKey] ?? SUBTYPE_TO_VIEW.bar;
-        const v: ReportView = {
-          ...subtype,
-          mapping: base?.mapping ?? {},
-        };
+        let mapping: ReportView["mapping"];
+        if (chartKey === "pie") {
+          mapping = {
+            category: base?.mapping?.category ?? dim,
+            measure: base?.mapping?.measure ?? meas,
+          };
+        } else {
+          mapping = {
+            x: base?.mapping?.x ?? dim,
+            y: base?.mapping?.y ?? meas,
+          };
+        }
+        const v: ReportView = { ...subtype, mapping };
         return { ...s, views: [...s.views, v], activeViewIndex: s.views.length };
       });
     },
