@@ -18,7 +18,9 @@ namespace Mabhas19.Infrastructure.Analytics.Ai;
 /// </summary>
 internal sealed class ArvanReportAiService : IReportAiService
 {
-    private readonly HttpClient _http;
+    // Static HttpClient (NOT the DI typed client) so the call bypasses Aspire's standard
+    // resilience handler, whose 10s per-attempt timeout would abort the ~20s reasoning-model call.
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(120) };
     private readonly ArvanAiOptions _options;
     private readonly ISemanticModelStore _modelStore;
     private readonly ILogger<ArvanReportAiService> _logger;
@@ -30,12 +32,10 @@ internal sealed class ArvanReportAiService : IReportAiService
     };
 
     public ArvanReportAiService(
-        HttpClient http,
         IOptions<ArvanAiOptions> options,
         ISemanticModelStore modelStore,
         ILogger<ArvanReportAiService> logger)
     {
-        _http = http;
         _options = options.Value;
         _modelStore = modelStore;
         _logger = logger;
@@ -159,7 +159,7 @@ internal sealed class ArvanReportAiService : IReportAiService
         _logger.LogInformation(
             "ArvanReportAiService: posting to AI gateway for model '{ModelId}'", semanticModelId);
 
-        using var response = await _http.SendAsync(request, cancellationToken);
+        using var response = await Http.SendAsync(request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {

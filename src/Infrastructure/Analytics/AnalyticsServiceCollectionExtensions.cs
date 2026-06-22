@@ -41,11 +41,11 @@ internal static class AnalyticsServiceCollectionExtensions
             services.AddScoped<IQueryEngine, QueryEngine>();
         }
 
-        // Real AI service — typed HttpClient with 120 s timeout to absorb reasoning-model latency.
-        services.AddHttpClient<IReportAiService, ArvanReportAiService>(client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(120);
-        });
+        // Real AI service. Registered WITHOUT AddHttpClient so it bypasses Aspire's standard
+        // resilience handler (10s per-attempt timeout from AddServiceDefaults' ConfigureHttpClientDefaults),
+        // which would abort the ~20s reasoning-model call. ArvanReportAiService uses a static
+        // HttpClient with a 120s timeout instead.
+        services.AddScoped<IReportAiService, ArvanReportAiService>();
 
         // Stub implementations — will be replaced in future iterations.
         services.AddScoped<IAiProviderRouter, AiProviderRouter>();

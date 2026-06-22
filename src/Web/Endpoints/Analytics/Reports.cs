@@ -18,7 +18,7 @@ public class Reports : Mabhas19.Web.Infrastructure.IEndpointGroup
         groupBuilder.RequireAuthorization();
 
         groupBuilder.MapPost(ExecuteReport, "execute");
-        groupBuilder.MapPost(GenerateReport, "generate");
+        groupBuilder.MapPost(GenerateReportFromPrompt, "generate");
         groupBuilder.MapGet(GetReports, string.Empty);
         groupBuilder.MapPost(SaveReport, string.Empty);
     }
@@ -26,7 +26,7 @@ public class Reports : Mabhas19.Web.Infrastructure.IEndpointGroup
     public static async Task<Ok<ReportResultDto>> ExecuteReport(ISender sender, ReportDefinitionDto definition)
         => TypedResults.Ok(await sender.Send(new ExecuteReportQuery(definition)));
 
-    public static async Task<Ok<ReportDefinitionDto>> GenerateReport(ISender sender, GenerateReportRequest request)
+    public static async Task<Ok<ReportDefinitionDto>> GenerateReportFromPrompt(ISender sender, GenerateReportRequest request)
         => TypedResults.Ok(await sender.Send(new GenerateReportQuery(request.Prompt, request.SemanticModelId)));
 
     public static async Task<Ok<IReadOnlyList<SavedReportDto>>> GetReports(ISender sender)
