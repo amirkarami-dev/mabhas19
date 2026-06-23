@@ -1,6 +1,7 @@
 import { Table, Tag, Button } from "antd";
 import { useTranslation } from "react-i18next";
 import { usePromptVersions, type PromptTemplate } from "../usePromptVersions";
+import { PageHeader } from "../../../components/ui";
 
 export function PromptVersions() {
   const { t } = useTranslation();
@@ -8,11 +9,12 @@ export function PromptVersions() {
 
   return (
     <div>
-      <h2>{t("admin.ai.promptsTitle")}</h2>
+      <PageHeader title={t("admin.ai.promptsTitle")} />
       <Table<PromptTemplate>
         rowKey="id"
         dataSource={data ?? []}
-        pagination={false}
+        size="middle"
+        pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
         columns={[
           { title: t("admin.ai.templateName"), dataIndex: "name" },
           {

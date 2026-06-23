@@ -1,6 +1,7 @@
-import { Modal, Form, Input, Select, Switch } from "antd";
+import { Form, Input, Select, Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import type { AppRole } from "../../contracts";
+import { FormDrawer } from "../../components/ui";
 
 const ROLES: AppRole[] = [
   "SuperAdmin",
@@ -46,22 +47,22 @@ export function UserFormModal({
     label: t(`rbac.role.${r}`),
   }));
 
+  const handleSubmit = async () => {
+    const v = await form.validateFields();
+    onSave({
+      ...v,
+      id: initial?.id ?? `user-${Date.now()}`,
+      tenantId: tenantId ?? "",
+      lastActiveAt: initial?.lastActiveAt,
+    });
+  };
+
   return (
-    <Modal
+    <FormDrawer
       open={open}
       title={initial ? t("admin.users.editUser") : t("admin.users.inviteUser")}
-      okText={t("common.save")}
-      destroyOnHidden
-      onCancel={onCancel}
-      onOk={async () => {
-        const v = await form.validateFields();
-        onSave({
-          ...v,
-          id: initial?.id ?? `user-${Date.now()}`,
-          tenantId: tenantId ?? "",
-          lastActiveAt: initial?.lastActiveAt,
-        });
-      }}
+      onClose={onCancel}
+      onSubmit={() => void handleSubmit()}
     >
       <Form
         form={form}
@@ -90,6 +91,6 @@ export function UserFormModal({
           <Switch />
         </Form.Item>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }

@@ -1,10 +1,17 @@
 import { useMemo, useState, useCallback } from "react";
-import { Table, Tag, Button, Space, Skeleton, Empty, Modal, message } from "antd";
+import { Tag, Button, Space, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { Tenant, TenantStatus } from "../../contracts";
 import { useTenants, useUpsertTenant, useSetTenantStatus } from "../../api/queries";
 import { TenantFormModal } from "./TenantFormModal";
 import { useTenantStore } from "@/store/tenant-store";
+import {
+  PageHeader,
+  PageContainer,
+  DataTable,
+  EmptyState,
+  confirmAction,
+} from "../../components/ui";
 
 const STATUS_COLOR: Record<TenantStatus, string> = {
   active: "green",
@@ -14,7 +21,7 @@ const STATUS_COLOR: Record<TenantStatus, string> = {
 
 export function TenantList() {
   const { t } = useTranslation();
-  const { data: tenants, isLoading } = useTenants();
+  const { data: tenants, isLoading, error } = useTenants();
   const upsert = useUpsertTenant();
   const setStatus = useSetTenantStatus();
   const setCurrentTenant = useTenantStore((s) => s.setCurrentTenant);
@@ -22,12 +29,9 @@ export function TenantList() {
 
   const suspend = useCallback(
     (tn: Tenant) => {
-      Modal.confirm({
+      confirmAction({
         title: t("admin.tenants.suspendTitle"),
         content: t("admin.tenants.suspendWarn", { name: tn.displayName }),
-        okText: t("admin.tenants.suspend"),
-        okButtonProps: { danger: true },
-        cancelText: t("common.cancel"),
         onOk: () => setStatus.mutate({ id: tn.id, status: "suspended" }),
       });
     },
@@ -90,26 +94,33 @@ export function TenantList() {
     [t, openModal, setStatus, suspend, switchTenant],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
-  const list = tenants ?? [];
-
   return (
-    <div>
-      <Space style={{ marginBottom: 16, justifyContent: "space-between", width: "100%" }}>
-        <h2>{t("admin.tenants.title")}</h2>
-        <Button type="primary" onClick={() => openModal()}>
-          {t("admin.tenants.create")}
-        </Button>
-      </Space>
-      {list.length === 0 ? (
-        <Empty description={t("admin.tenants.empty")}>
+    <PageContainer>
+      <PageHeader
+        title={t("admin.tenants.title")}
+        actions={
           <Button type="primary" onClick={() => openModal()}>
             {t("admin.tenants.create")}
           </Button>
-        </Empty>
-      ) : (
-        <Table rowKey="id" dataSource={list} columns={columns} />
-      )}
+        }
+      />
+      <DataTable<Tenant>
+        rowKey="id"
+        columns={columns}
+        data={tenants}
+        loading={isLoading}
+        error={error}
+        empty={
+          <EmptyState
+            description={t("admin.tenants.empty")}
+            action={
+              <Button type="primary" onClick={() => openModal()}>
+                {t("admin.tenants.create")}
+              </Button>
+            }
+          />
+        }
+      />
       <TenantFormModal
         open={modal.open}
         initial={modal.initial}
@@ -119,6 +130,6 @@ export function TenantList() {
           closeModal();
         }}
       />
-    </div>
+    </PageContainer>
   );
 }

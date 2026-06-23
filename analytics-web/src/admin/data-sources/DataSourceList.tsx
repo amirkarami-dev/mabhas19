@@ -1,9 +1,15 @@
 import { useMemo, useState, useCallback } from "react";
-import { Table, Tag, Button, Space, Skeleton, Empty, Alert, message } from "antd";
+import { Tag, Button, Space, Alert, message } from "antd";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { DataSourceRecord } from "../../api/queries";
 import { useDataSources, useTestDataSource } from "../../api/queries";
+import {
+  PageHeader,
+  PageContainer,
+  DataTable,
+  EmptyState,
+} from "../../components/ui";
 
 const STATUS_COLOR: Record<DataSourceRecord["status"], string> = {
   connected: "green",
@@ -14,7 +20,7 @@ const STATUS_COLOR: Record<DataSourceRecord["status"], string> = {
 export function DataSourceList() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const { data: sources, isLoading } = useDataSources();
+  const { data: sources, isLoading, error } = useDataSources();
   const test = useTestDataSource();
   const [err, setErr] = useState<string | null>(null);
 
@@ -85,17 +91,14 @@ export function DataSourceList() {
     [t, goToModel, runTest, syncSchema],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
   const list = sources ?? [];
 
   return (
-    <div>
-      <Space
-        style={{ marginBottom: 16, justifyContent: "space-between", width: "100%" }}
-      >
-        <h2>{t("admin.ds.title")}</h2>
-        <Button type="primary">{t("admin.ds.addSource")}</Button>
-      </Space>
+    <PageContainer>
+      <PageHeader
+        title={t("admin.ds.title")}
+        actions={<Button type="primary">{t("admin.ds.addSource")}</Button>}
+      />
       {err && (
         <Alert
           type="error"
@@ -107,23 +110,26 @@ export function DataSourceList() {
           onClose={() => setErr(null)}
         />
       )}
-      {list.length === 0 ? (
-        <Empty description={t("admin.ds.empty")}>
-          <Space>
-            <Button type="primary">{t("admin.ds.addSource")}</Button>
-            <Button onClick={() => nav("/admin/semantic-models")}>
-              {t("admin.ds.useSamples")}
-            </Button>
-          </Space>
-        </Empty>
-      ) : (
-        <Table<DataSourceRecord>
-          rowKey="id"
-          dataSource={list}
-          columns={columns}
-          pagination={false}
-        />
-      )}
-    </div>
+      <DataTable<DataSourceRecord>
+        rowKey="id"
+        columns={columns}
+        data={list}
+        loading={isLoading}
+        error={error}
+        empty={
+          <EmptyState
+            description={t("admin.ds.empty")}
+            action={
+              <Space>
+                <Button type="primary">{t("admin.ds.addSource")}</Button>
+                <Button onClick={() => nav("/admin/semantic-models")}>
+                  {t("admin.ds.useSamples")}
+                </Button>
+              </Space>
+            }
+          />
+        }
+      />
+    </PageContainer>
   );
 }

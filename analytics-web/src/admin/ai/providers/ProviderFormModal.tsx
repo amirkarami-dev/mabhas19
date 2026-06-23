@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components -- PROVIDER_TYPES is a constant, not a component; co-locating avoids a one-liner file */
-import { Modal, Form, Select, Input, InputNumber, Switch } from "antd";
+import { Form, Select, Input, InputNumber, Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import type { ProviderConfig, ProviderType } from "../../../contracts";
+import { FormDrawer } from "../../../components/ui";
 
 export const PROVIDER_TYPES: ProviderType[] = [
   "openai", "azure-openai", "ollama", "deepseek", "glm",
@@ -22,28 +23,28 @@ export function ProviderFormModal({
   const isAzure = type === "azure-openai";
   const isLocal = type === "ollama";
 
+  const handleSubmit = async () => {
+    const v = await form.validateFields();
+    onSave({
+      id: initial?.id ?? `${v.type}-${Date.now()}`,
+      type: v.type,
+      model: v.model,
+      baseUrl: v.baseUrl || undefined,
+      deployment: isAzure ? v.deployment : undefined,
+      apiVersion: isAzure ? v.apiVersion : undefined,
+      keyRef: isLocal ? null : (v.keyRef ?? `secret://tenant/${v.type}`),
+      params: { temperature: v.temperature ?? 0.1, maxTokens: v.maxTokens ?? 2048 },
+      pricing: initial?.pricing,
+      enabled: v.enabled ?? true,
+    });
+  };
+
   return (
-    <Modal
+    <FormDrawer
       open={open}
       title={initial ? t("admin.ai.editProvider") : t("admin.ai.addProvider")}
-      okText={t("common.save")}
-      onCancel={onCancel}
-      destroyOnHidden
-      onOk={async () => {
-        const v = await form.validateFields();
-        onSave({
-          id: initial?.id ?? `${v.type}-${Date.now()}`,
-          type: v.type,
-          model: v.model,
-          baseUrl: v.baseUrl || undefined,
-          deployment: isAzure ? v.deployment : undefined,
-          apiVersion: isAzure ? v.apiVersion : undefined,
-          keyRef: isLocal ? null : (v.keyRef ?? `secret://tenant/${v.type}`),
-          params: { temperature: v.temperature ?? 0.1, maxTokens: v.maxTokens ?? 2048 },
-          pricing: initial?.pricing,
-          enabled: v.enabled ?? true,
-        });
-      }}
+      onClose={onCancel}
+      onSubmit={() => void handleSubmit()}
     >
       <Form form={form} layout="vertical" initialValues={{
         type: initial?.type ?? "openai",
@@ -85,6 +86,6 @@ export function ProviderFormModal({
           <Switch />
         </Form.Item>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }

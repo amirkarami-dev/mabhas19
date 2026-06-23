@@ -1,6 +1,7 @@
-import { Card, Progress, Row, Col, Alert } from "antd";
+import { Progress, Row, Col, Alert } from "antd";
 import { useTranslation } from "react-i18next";
 import type { TenantQuotas, TenantUsage } from "../../contracts";
+import { SectionCard } from "../../components/ui";
 
 const METRICS: { used: keyof TenantUsage; cap: keyof TenantQuotas; key: string }[] = [
   { used: "users", cap: "maxUsers", key: "users" },
@@ -20,7 +21,7 @@ export function QuotaPanel({ quotas, usage }: { quotas: TenantQuotas; usage: Ten
     return c > 0 && Number(usage[used]) / c >= 0.8;
   });
   return (
-    <Card title={t("admin.tenant.quotaUsage")}>
+    <SectionCard title={t("admin.tenant.quotaUsage")}>
       {near && (
         <Alert
           type="warning"
@@ -47,6 +48,6 @@ export function QuotaPanel({ quotas, usage }: { quotas: TenantQuotas; usage: Ten
           );
         })}
       </Row>
-    </Card>
+    </SectionCard>
   );
 }

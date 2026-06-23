@@ -1,13 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
-import { Table, Tag, Button, Space, Alert, Skeleton, Empty, message } from "antd";
+import { Tag, Button, Space, Alert, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { ProviderConfig } from "../../../contracts";
 import { useTenantAIConfig, useUpdateTenantAIConfig, useTestProvider } from "../../../api/queries";
 import { ProviderFormModal } from "./ProviderFormModal";
+import {
+  PageHeader,
+  DataTable,
+  EmptyState,
+  confirmAction,
+} from "../../../components/ui";
 
 export function AIProviderList() {
   const { t } = useTranslation();
-  const { data: cfg, isLoading } = useTenantAIConfig();
+  const { data: cfg, isLoading, error } = useTenantAIConfig();
   const update = useUpdateTenantAIConfig();
   const test = useTestProvider();
   const [modal, setModal] = useState<{ open: boolean; initial?: ProviderConfig }>({ open: false });
@@ -26,13 +32,18 @@ export function AIProviderList() {
   const remove = useCallback(
     (id: string) => {
       if (!cfg) return;
-      update.mutate({
-        ...cfg,
-        providers: cfg.providers.filter((x) => x.id !== id),
-        fallbackChain: cfg.fallbackChain.filter((f) => f !== id),
+      confirmAction({
+        title: t("common.delete"),
+        onOk: () => {
+          update.mutate({
+            ...cfg,
+            providers: cfg.providers.filter((x) => x.id !== id),
+            fallbackChain: cfg.fallbackChain.filter((f) => f !== id),
+          });
+        },
       });
     },
-    [cfg, update],
+    [cfg, update, t],
   );
 
   const runTest = useCallback(
@@ -64,14 +75,14 @@ export function AIProviderList() {
     [t, test.isPending, runTest, remove],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
-
   return (
     <div>
-      <Space style={{ marginBottom: 16, justifyContent: "space-between", width: "100%" }}>
-        <h2>{t("admin.ai.providersTitle")}</h2>
-        <Button type="primary" onClick={() => setModal({ open: true })}>{t("admin.ai.addProvider")}</Button>
-      </Space>
+      <PageHeader
+        title={t("admin.ai.providersTitle")}
+        actions={
+          <Button type="primary" onClick={() => setModal({ open: true })}>{t("admin.ai.addProvider")}</Button>
+        }
+      />
       {testResult && !testResult.ok && (
         <Alert
           type="error"
@@ -83,13 +94,19 @@ export function AIProviderList() {
           onClose={() => setTestResult(null)}
         />
       )}
-      {providers.length === 0 ? (
-        <Empty description={t("admin.ai.noProviders")}>
-          <Button type="primary" onClick={() => setModal({ open: true })}>{t("admin.ai.addProvider")}</Button>
-        </Empty>
-      ) : (
-        <Table rowKey="id" dataSource={providers} columns={columns} pagination={false} />
-      )}
+      <DataTable<ProviderConfig>
+        rowKey="id"
+        columns={columns}
+        data={providers}
+        loading={isLoading}
+        error={error}
+        empty={
+          <EmptyState
+            description={t("admin.ai.noProviders")}
+            action={<Button type="primary" onClick={() => setModal({ open: true })}>{t("admin.ai.addProvider")}</Button>}
+          />
+        }
+      />
       <ProviderFormModal
         open={modal.open}
         initial={modal.initial}

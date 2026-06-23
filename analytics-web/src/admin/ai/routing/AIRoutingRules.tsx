@@ -1,8 +1,9 @@
-import { Form, Select, Switch, InputNumber, List, Button, Space, Card, Skeleton, message } from "antd";
+import { Form, Select, Switch, InputNumber, List, Button, Space, Skeleton, message } from "antd";
 import { useTranslation } from "react-i18next";
 import type { TenantAIConfig } from "../../../contracts";
 import { useTenantAIConfig, useUpdateTenantAIConfig } from "../../../api/queries";
 import { usePromptVersions } from "../usePromptVersions";
+import { PageHeader, SectionCard } from "../../../components/ui";
 
 export function AIRoutingRules() {
   const { t } = useTranslation();
@@ -34,7 +35,7 @@ export function AIRoutingRules() {
 
   return (
     <div>
-      <h2>{t("admin.ai.routingTitle")}</h2>
+      <PageHeader title={t("admin.ai.routingTitle")} />
       <Form layout="vertical" style={{ maxWidth: 560 }}>
         <Form.Item label={t("admin.ai.primaryModel")}>
           <Select
@@ -76,7 +77,7 @@ export function AIRoutingRules() {
         </Form.Item>
       </Form>
 
-      <Card title={t("admin.ai.fallbackChain")} style={{ maxWidth: 560 }}>
+      <SectionCard title={t("admin.ai.fallbackChain")} style={{ maxWidth: 560 }}>
         <List
           dataSource={cfg.fallbackChain}
           locale={{ emptyText: t("admin.ai.noFallbacks") }}
@@ -104,7 +105,7 @@ export function AIRoutingRules() {
             options={notInChain.map((p) => ({ value: p.id, label: p.model }))}
           />
         )}
-      </Card>
+      </SectionCard>
     </div>
   );
 }

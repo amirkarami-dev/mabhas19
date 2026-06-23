@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import * as echarts from "echarts";
-import { Card, Skeleton } from "antd";
+import { Skeleton } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuditCostByTenant } from "../../api/queries";
+import { SectionCard } from "../../components/ui";
 
 export function AuditCostChart() {
   const { t } = useTranslation();
@@ -37,8 +38,8 @@ export function AuditCostChart() {
 
   if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
   return (
-    <Card title={t("admin.audit.costPerTenant")}>
+    <SectionCard title={t("admin.audit.costPerTenant")}>
       <div ref={ref} style={{ height: 300 }} data-testid="audit-cost-chart" />
-    </Card>
+    </SectionCard>
   );
 }

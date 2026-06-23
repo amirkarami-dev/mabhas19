@@ -1,34 +1,75 @@
 {
   "common": {
     "appName": "گزارش‌ساز هوشمند",
-    "save": "ذخیره", "cancel": "انصراف", "delete": "حذف", "edit": "ویرایش",
-    "create": "ایجاد", "search": "جستجو", "loading": "در حال بارگذاری…",
-    "empty": "موردی یافت نشد", "retry": "تلاش دوباره", "back": "بازگشت",
-    "confirm": "تایید", "yes": "بله", "no": "خیر", "actions": "عملیات", "ok": "باشه",
-    "theme": { "light": "روشن", "dark": "تاریک" }
+    "save": "ذخیره",
+    "cancel": "انصراف",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "create": "ایجاد",
+    "search": "جستجو",
+    "loading": "در حال بارگذاری…",
+    "empty": "موردی یافت نشد",
+    "retry": "تلاش دوباره",
+    "back": "بازگشت",
+    "confirm": "تایید",
+    "yes": "بله",
+    "no": "خیر",
+    "actions": "عملیات",
+    "ok": "باشه",
+    "theme": {
+      "light": "روشن",
+      "dark": "تاریک"
+    }
   },
   "nav": {
-    "ask": "پرسش از هوش مصنوعی", "reports": "گزارش‌ها", "dashboards": "داشبوردها",
-    "favorites": "نشان‌شده‌ها", "data": "داده‌ها", "exports": "خروجی‌ها",
-    "profile": "پروفایل", "settings": "تنظیمات", "admin": "مدیریت",
+    "ask": "پرسش از هوش مصنوعی",
+    "reports": "گزارش‌ها",
+    "dashboards": "داشبوردها",
+    "favorites": "نشان‌شده‌ها",
+    "data": "داده‌ها",
+    "exports": "خروجی‌ها",
+    "profile": "پروفایل",
+    "settings": "تنظیمات",
+    "admin": "مدیریت",
     "backToWorkspace": "بازگشت به فضای کاری",
-    "groupContent": "محتوا", "groupData": "داده", "groupOutput": "خروجی",
-    "adminOverview": "نمای کلی", "groupAccess": "دسترسی", "users": "کاربران",
-    "roles": "نقش‌ها", "groupDataSemantics": "داده و معنا", "dataSources": "منابع داده",
-    "semanticModels": "مدل‌های معنایی", "groupAi": "هوش مصنوعی",
-    "aiProviders": "ارائه‌دهندگان", "aiRouting": "مسیریابی", "aiPrompts": "پرامپت‌ها",
-    "aiUsage": "مصرف و هزینه", "groupTenant": "سازمان", "tenantSettings": "تنظیمات سازمان",
-    "quota": "سهمیه", "groupGovernance": "نظارت", "audit": "گزارش رخدادها",
-    "groupPlatform": "پلتفرم", "tenants": "سازمان‌ها", "system": "تنظیمات سامانه"
+    "groupContent": "محتوا",
+    "groupData": "داده",
+    "groupOutput": "خروجی",
+    "adminOverview": "نمای کلی",
+    "groupAccess": "دسترسی",
+    "users": "کاربران",
+    "roles": "نقش‌ها",
+    "groupDataSemantics": "داده و معنا",
+    "dataSources": "منابع داده",
+    "semanticModels": "مدل‌های معنایی",
+    "groupAi": "هوش مصنوعی",
+    "aiProviders": "ارائه‌دهندگان",
+    "aiRouting": "مسیریابی",
+    "aiPrompts": "پرامپت‌ها",
+    "aiUsage": "مصرف و هزینه",
+    "groupTenant": "سازمان",
+    "tenantSettings": "تنظیمات سازمان",
+    "quota": "سهمیه",
+    "groupGovernance": "نظارت",
+    "audit": "گزارش رخدادها",
+    "groupPlatform": "پلتفرم",
+    "tenants": "سازمان‌ها",
+    "system": "تنظیمات سامانه"
   },
   "auth": {
-    "login": "ورود", "logout": "خروج", "signingIn": "در حال ورود…",
-    "callbackError": "ورود ناموفق بود", "mockMode": "حالت آزمایشی",
-    "selectRole": "انتخاب نقش", "loggedOut": "از حساب خارج شدید"
+    "login": "ورود",
+    "logout": "خروج",
+    "signingIn": "در حال ورود…",
+    "callbackError": "ورود ناموفق بود",
+    "mockMode": "حالت آزمایشی",
+    "selectRole": "انتخاب نقش",
+    "loggedOut": "از حساب خارج شدید"
   },
   "ask": {
-    "title": "پرسش از هوش مصنوعی", "placeholder": "آنچه می‌خواهید ببینید را بنویسید…",
-    "generate": "ساخت گزارش", "explanation": "توضیح",
+    "title": "پرسش از هوش مصنوعی",
+    "placeholder": "آنچه می‌خواهید ببینید را بنویسید…",
+    "generate": "ساخت گزارش",
+    "explanation": "توضیح",
     "heroTitle": "گزارش دلخواه خود را بخواهید",
     "sqlReassurance": "هوش مصنوعی هرگز SQL نمی‌نویسد — داده‌های شما امن است",
     "promptLabel": "پرامپت گزارش",
@@ -48,7 +89,9 @@
     "saved": "گزارش با موفقیت ذخیره شد",
     "export": "خروجی",
     "root": "ریشه",
-    "empty": { "noRows": "داده‌ای یافت نشد" },
+    "empty": {
+      "noRows": "داده‌ای یافت نشد"
+    },
     "thinking": {
       "understanding": "در حال درک درخواست…",
       "resolving": "در حال تحلیل مدل معنایی…",
@@ -61,14 +104,25 @@
     }
   },
   "view": {
-    "table": "جدول", "kpi": "KPI", "bar": "میله‌ای", "line": "خطی", "pie": "دایره‌ای"
+    "table": "جدول",
+    "kpi": "KPI",
+    "bar": "میله‌ای",
+    "line": "خطی",
+    "pie": "دایره‌ای"
   },
   "reports": {
-    "title": "کتابخانه گزارش‌ها", "new": "گزارش جدید", "run": "اجرا",
-    "export": "خروجی", "viewer": "نمایش گزارش", "name": "نام", "updated": "بروزرسانی"
+    "title": "کتابخانه گزارش‌ها",
+    "new": "گزارش جدید",
+    "run": "اجرا",
+    "export": "خروجی",
+    "viewer": "نمایش گزارش",
+    "name": "نام",
+    "updated": "بروزرسانی"
   },
   "dashboards": {
-    "title": "داشبوردها", "new": "داشبورد جدید", "edit": "ویرایش",
+    "title": "داشبوردها",
+    "new": "داشبورد جدید",
+    "edit": "ویرایش",
     "addWidget": "افزودن ویجت"
   },
   "dash": {
@@ -95,10 +149,12 @@
     "widgetCount": "{{count}} ویجت"
   },
   "tenant": {
-    "switcher": "انتخاب سازمان", "current": "سازمان فعلی"
+    "switcher": "انتخاب سازمان",
+    "current": "سازمان فعلی"
   },
   "admin": {
-    "overview": "نمای کلی مدیریت", "noAccess": "دسترسی ندارید",
+    "overview": "نمای کلی مدیریت",
+    "noAccess": "دسترسی ندارید",
     "users": {
       "title": "مدیریت کاربران",
       "rolesTitle": "ماتریس نقش‌ها و مجوزها",
@@ -180,7 +236,8 @@
       "totalTokens": "کل توکن‌های مصرفی",
       "totalCost": "هزینه کل",
       "tokensOverTime": "مصرف توکن در زمان",
-      "costByModel": "هزینه بر اساس مدل"
+      "costByModel": "هزینه بر اساس مدل",
+      "title": "تنظیمات هوش مصنوعی"
     },
     "ds": {
       "title": "منابع داده",
@@ -284,7 +341,11 @@
       "perTenantAi": "تنظیمات هوش مصنوعی سازمان",
       "quotaUsage": "سهمیه و مصرف",
       "quotaNearLimit": "یک یا چند سهمیه به حد مجاز نزدیک است (≥۸۰٪)",
-      "planValue": { "free": "رایگان", "pro": "حرفه‌ای", "enterprise": "سازمانی" },
+      "planValue": {
+        "free": "رایگان",
+        "pro": "حرفه‌ای",
+        "enterprise": "سازمانی"
+      },
       "metric": {
         "users": "کاربران",
         "reports": "گزارش‌ها",
@@ -312,7 +373,11 @@
       "switch": "سوئیچ",
       "switched": "به {{name}} سوئیچ شد",
       "empty": "سازمانی یافت نشد",
-      "statusValue": { "active": "فعال", "trial": "آزمایشی", "suspended": "معلق" }
+      "statusValue": {
+        "active": "فعال",
+        "trial": "آزمایشی",
+        "suspended": "معلق"
+      }
     },
     "system": {
       "title": "تنظیمات سامانه",
@@ -360,20 +425,31 @@
   "rbac": {
     "roleHeader": "نقش",
     "role": {
-      "SuperAdmin": "مدیر ارشد سامانه", "TenantAdmin": "مدیر سازمان",
-      "AIManager": "مدیر هوش مصنوعی", "ReportDesigner": "طراح گزارش",
-      "DashboardDesigner": "طراح داشبورد", "PowerUser": "کاربر پیشرفته", "Viewer": "بیننده"
+      "SuperAdmin": "مدیر ارشد سامانه",
+      "TenantAdmin": "مدیر سازمان",
+      "AIManager": "مدیر هوش مصنوعی",
+      "ReportDesigner": "طراح گزارش",
+      "DashboardDesigner": "طراح داشبورد",
+      "PowerUser": "کاربر پیشرفته",
+      "Viewer": "بیننده"
     },
     "perm": {
-      "reports:write": "ویرایش گزارش", "reports:delete": "حذف گزارش",
-      "reports:execute": "اجرای گزارش", "data:export": "خروجی داده",
-      "ai:manage": "مدیریت هوش مصنوعی", "datasources:manage": "مدیریت منابع داده",
-      "users:manage": "مدیریت کاربران", "audit:read": "مشاهده رخدادها"
+      "reports:write": "ویرایش گزارش",
+      "reports:delete": "حذف گزارش",
+      "reports:execute": "اجرای گزارش",
+      "data:export": "خروجی داده",
+      "ai:manage": "مدیریت هوش مصنوعی",
+      "datasources:manage": "مدیریت منابع داده",
+      "users:manage": "مدیریت کاربران",
+      "audit:read": "مشاهده رخدادها"
     },
     "forbiddenTitle": "دسترسی غیرمجاز",
     "forbiddenMsg": "شما اجازه دسترسی به این بخش را ندارید."
   },
-  "errors": { "notFoundTitle": "صفحه یافت نشد", "notFoundMsg": "آدرس مورد نظر وجود ندارد." },
+  "errors": {
+    "notFoundTitle": "صفحه یافت نشد",
+    "notFoundMsg": "آدرس مورد نظر وجود ندارد."
+  },
   "viewer": {
     "notFound": "گزارش یافت نشد",
     "invalid": "خطا در بارگذاری گزارش",

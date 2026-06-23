@@ -1,11 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
-import { Table, Tag, Button, Space, Switch, Skeleton, Empty, Modal, Input } from "antd";
+import { Tag, Button, Space, Switch, Input, Modal } from "antd";
 import { useTranslation } from "react-i18next";
 import { isGlobal, type AppRole } from "../../contracts";
 import { useAuth } from "../../auth/useAuth";
 import { useUsers, useUpsertUser, useSetUserActive, type UserRow } from "../../api/queries";
 import { useTenantStore } from "../../store/tenant-store";
 import { UserFormModal, type AdminUser } from "./UserFormModal";
+import {
+  PageHeader,
+  PageContainer,
+  DataTable,
+  EmptyState,
+} from "../../components/ui";
 
 const ADMIN_ROLES: AppRole[] = ["SuperAdmin", "TenantAdmin"];
 
@@ -40,17 +46,14 @@ export function UserList() {
   const currentTenantId = useTenantStore((s) => s.currentTenantId);
   const tenantId = currentTenantId ?? (me?.tenantId ?? null);
 
-  const { data: rawUsers, isLoading } = useUsers();
+  const { data: rawUsers, isLoading, error } = useUsers();
   const upsert = useUpsertUser();
   const setActive = useSetUserActive();
 
   const [modal, setModal] = useState<{ open: boolean; initial?: AdminUser }>({ open: false });
   const [search, setSearch] = useState("");
 
-  const users = useMemo(
-    () => (rawUsers ?? []).map(rowToAdminUser),
-    [rawUsers],
-  );
+  const users = useMemo(() => (rawUsers ?? []).map(rowToAdminUser), [rawUsers]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -139,16 +142,16 @@ export function UserList() {
     [t, toggleActive],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
-
   return (
-    <div>
-      <Space style={{ marginBottom: 16, justifyContent: "space-between", width: "100%" }}>
-        <h2>{t("admin.users.title")}</h2>
-        <Button type="primary" onClick={() => setModal({ open: true })}>
-          {t("admin.users.inviteUser")}
-        </Button>
-      </Space>
+    <PageContainer>
+      <PageHeader
+        title={t("admin.users.title")}
+        actions={
+          <Button type="primary" onClick={() => setModal({ open: true })}>
+            {t("admin.users.inviteUser")}
+          </Button>
+        }
+      />
       <Input.Search
         placeholder={t("common.search")}
         value={search}
@@ -156,15 +159,23 @@ export function UserList() {
         style={{ marginBottom: 16 }}
         allowClear
       />
-      {filtered.length === 0 ? (
-        <Empty description={t("admin.users.empty")}>
-          <Button type="primary" onClick={() => setModal({ open: true })}>
-            {t("admin.users.inviteUser")}
-          </Button>
-        </Empty>
-      ) : (
-        <Table rowKey="id" dataSource={filtered} columns={columns} />
-      )}
+      <DataTable<AdminUser>
+        rowKey="id"
+        columns={columns}
+        data={filtered}
+        loading={isLoading}
+        error={error}
+        empty={
+          <EmptyState
+            description={t("admin.users.empty")}
+            action={
+              <Button type="primary" onClick={() => setModal({ open: true })}>
+                {t("admin.users.inviteUser")}
+              </Button>
+            }
+          />
+        }
+      />
       <UserFormModal
         open={modal.open}
         initial={modal.initial}
@@ -176,6 +187,6 @@ export function UserList() {
           setModal({ open: false });
         }}
       />
-    </div>
+    </PageContainer>
   );
 }

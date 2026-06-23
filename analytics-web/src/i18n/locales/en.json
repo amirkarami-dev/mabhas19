@@ -1,32 +1,75 @@
 {
   "common": {
-    "appName": "AI Reporting", "save": "Save", "cancel": "Cancel", "delete": "Delete",
-    "edit": "Edit", "create": "Create", "search": "Search", "loading": "Loading…",
-    "empty": "No items found", "retry": "Retry", "back": "Back", "confirm": "Confirm",
-    "yes": "Yes", "no": "No", "actions": "Actions", "ok": "OK",
-    "theme": { "light": "Light", "dark": "Dark" }
+    "appName": "AI Reporting",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading…",
+    "empty": "No items found",
+    "retry": "Retry",
+    "back": "Back",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "actions": "Actions",
+    "ok": "OK",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark"
+    }
   },
   "nav": {
-    "ask": "Ask AI", "reports": "Reports", "dashboards": "Dashboards", "favorites": "Favorites",
-    "data": "Data", "exports": "Exports", "profile": "Profile", "settings": "Settings",
-    "admin": "Admin", "backToWorkspace": "Back to Workspace", "groupContent": "Content",
-    "groupData": "Data", "groupOutput": "Output", "adminOverview": "Overview",
-    "groupAccess": "Access", "users": "Users", "roles": "Roles",
-    "groupDataSemantics": "Data & Semantics", "dataSources": "Data Sources",
-    "semanticModels": "Semantic Models", "groupAi": "AI", "aiProviders": "Providers",
-    "aiRouting": "Routing", "aiPrompts": "Prompts", "aiUsage": "Usage & Cost",
-    "groupTenant": "Tenant", "tenantSettings": "Settings", "quota": "Quota",
-    "groupGovernance": "Governance", "audit": "Audit Log", "groupPlatform": "Platform",
-    "tenants": "Tenants", "system": "System Settings"
+    "ask": "Ask AI",
+    "reports": "Reports",
+    "dashboards": "Dashboards",
+    "favorites": "Favorites",
+    "data": "Data",
+    "exports": "Exports",
+    "profile": "Profile",
+    "settings": "Settings",
+    "admin": "Admin",
+    "backToWorkspace": "Back to Workspace",
+    "groupContent": "Content",
+    "groupData": "Data",
+    "groupOutput": "Output",
+    "adminOverview": "Overview",
+    "groupAccess": "Access",
+    "users": "Users",
+    "roles": "Roles",
+    "groupDataSemantics": "Data & Semantics",
+    "dataSources": "Data Sources",
+    "semanticModels": "Semantic Models",
+    "groupAi": "AI",
+    "aiProviders": "Providers",
+    "aiRouting": "Routing",
+    "aiPrompts": "Prompts",
+    "aiUsage": "Usage & Cost",
+    "groupTenant": "Tenant",
+    "tenantSettings": "Settings",
+    "quota": "Quota",
+    "groupGovernance": "Governance",
+    "audit": "Audit Log",
+    "groupPlatform": "Platform",
+    "tenants": "Tenants",
+    "system": "System Settings"
   },
   "auth": {
-    "login": "Sign in", "logout": "Sign out", "signingIn": "Signing in…",
-    "callbackError": "Sign-in failed", "mockMode": "Mock mode", "selectRole": "Select role",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "signingIn": "Signing in…",
+    "callbackError": "Sign-in failed",
+    "mockMode": "Mock mode",
+    "selectRole": "Select role",
     "loggedOut": "You have signed out"
   },
   "ask": {
-    "title": "Ask AI", "placeholder": "Describe what you want to see…",
-    "generate": "Generate report", "explanation": "Explanation",
+    "title": "Ask AI",
+    "placeholder": "Describe what you want to see…",
+    "generate": "Generate report",
+    "explanation": "Explanation",
     "heroTitle": "Ask for any report",
     "sqlReassurance": "AI never writes SQL — your data stays safe",
     "promptLabel": "Report prompt",
@@ -46,7 +89,9 @@
     "saved": "Report saved successfully",
     "export": "Export",
     "root": "Root",
-    "empty": { "noRows": "No data found" },
+    "empty": {
+      "noRows": "No data found"
+    },
     "thinking": {
       "understanding": "Understanding your request…",
       "resolving": "Resolving semantic model…",
@@ -59,14 +104,26 @@
     }
   },
   "view": {
-    "table": "Table", "kpi": "KPI", "bar": "Bar", "line": "Line", "pie": "Pie"
+    "table": "Table",
+    "kpi": "KPI",
+    "bar": "Bar",
+    "line": "Line",
+    "pie": "Pie"
   },
   "reports": {
-    "title": "Report Library", "new": "New report", "run": "Run", "export": "Export",
-    "viewer": "Report Viewer", "name": "Name", "updated": "Updated"
+    "title": "Report Library",
+    "new": "New report",
+    "run": "Run",
+    "export": "Export",
+    "viewer": "Report Viewer",
+    "name": "Name",
+    "updated": "Updated"
   },
   "dashboards": {
-    "title": "Dashboards", "new": "New dashboard", "edit": "Edit", "addWidget": "Add widget"
+    "title": "Dashboards",
+    "new": "New dashboard",
+    "edit": "Edit",
+    "addWidget": "Add widget"
   },
   "dash": {
     "widget": "Widget",
@@ -91,9 +148,13 @@
     "cardMenu": "Card menu",
     "widgetCount": "{{count}} widget(s)"
   },
-  "tenant": { "switcher": "Select tenant", "current": "Current tenant" },
+  "tenant": {
+    "switcher": "Select tenant",
+    "current": "Current tenant"
+  },
   "admin": {
-    "overview": "Admin Overview", "noAccess": "Access denied",
+    "overview": "Admin Overview",
+    "noAccess": "Access denied",
     "users": {
       "title": "User Management",
       "rolesTitle": "Roles & Permissions Matrix",
@@ -175,7 +236,8 @@
       "totalTokens": "Total Tokens Used",
       "totalCost": "Total Cost",
       "tokensOverTime": "Token Usage Over Time",
-      "costByModel": "Cost by Model"
+      "costByModel": "Cost by Model",
+      "title": "AI Settings"
     },
     "ds": {
       "title": "Data Sources",
@@ -279,7 +341,11 @@
       "perTenantAi": "Per-Tenant AI Config",
       "quotaUsage": "Quota & Usage",
       "quotaNearLimit": "One or more quotas are near the limit (≥80%)",
-      "planValue": { "free": "Free", "pro": "Pro", "enterprise": "Enterprise" },
+      "planValue": {
+        "free": "Free",
+        "pro": "Pro",
+        "enterprise": "Enterprise"
+      },
       "metric": {
         "users": "Users",
         "reports": "Reports",
@@ -307,7 +373,11 @@
       "switch": "Switch",
       "switched": "Switched to {{name}}",
       "empty": "No tenants found",
-      "statusValue": { "active": "Active", "trial": "Trial", "suspended": "Suspended" }
+      "statusValue": {
+        "active": "Active",
+        "trial": "Trial",
+        "suspended": "Suspended"
+      }
     },
     "system": {
       "title": "System Settings",
@@ -355,20 +425,31 @@
   "rbac": {
     "roleHeader": "Role",
     "role": {
-      "SuperAdmin": "Super Admin", "TenantAdmin": "Tenant Admin", "AIManager": "AI Manager",
-      "ReportDesigner": "Report Designer", "DashboardDesigner": "Dashboard Designer",
-      "PowerUser": "Power User", "Viewer": "Viewer"
+      "SuperAdmin": "Super Admin",
+      "TenantAdmin": "Tenant Admin",
+      "AIManager": "AI Manager",
+      "ReportDesigner": "Report Designer",
+      "DashboardDesigner": "Dashboard Designer",
+      "PowerUser": "Power User",
+      "Viewer": "Viewer"
     },
     "perm": {
-      "reports:write": "Create/Edit Reports", "reports:delete": "Delete Reports",
-      "reports:execute": "Execute Reports", "data:export": "Export Data",
-      "ai:manage": "Manage AI Providers", "datasources:manage": "Manage Data Sources",
-      "users:manage": "Manage Users", "audit:read": "View Audit Logs"
+      "reports:write": "Create/Edit Reports",
+      "reports:delete": "Delete Reports",
+      "reports:execute": "Execute Reports",
+      "data:export": "Export Data",
+      "ai:manage": "Manage AI Providers",
+      "datasources:manage": "Manage Data Sources",
+      "users:manage": "Manage Users",
+      "audit:read": "View Audit Logs"
     },
     "forbiddenTitle": "Forbidden",
     "forbiddenMsg": "You do not have permission to access this area."
   },
-  "errors": { "notFoundTitle": "Page not found", "notFoundMsg": "The requested page does not exist." },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundMsg": "The requested page does not exist."
+  },
   "viewer": {
     "notFound": "Report not found",
     "invalid": "Error loading report",

@@ -1,14 +1,20 @@
 import { useMemo } from "react";
-import { Table, Skeleton, Empty, Tag, Space } from "antd";
+import { Table, Tag, Space } from "antd";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import type { SemanticModel, Entity } from "../../contracts";
 import { useSemanticModels } from "../../api/queries";
 import { FieldPreviewTable } from "./FieldPreviewTable";
+import {
+  PageHeader,
+  PageContainer,
+  EmptyState,
+  Loading,
+} from "../../components/ui";
 
 export function SemanticModelList() {
   const { t } = useTranslation();
-  const { data: models, isLoading } = useSemanticModels();
+  const { data: models, isLoading, error } = useSemanticModels();
   const [params] = useSearchParams();
   const focusId = params.get("model");
 
@@ -41,20 +47,23 @@ export function SemanticModelList() {
     [t],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
+  if (isLoading) return <Loading />;
+  if (error) return <PageContainer><PageHeader title={t("admin.sm.title")} /></PageContainer>;
+
   const list = models ?? [];
 
   return (
-    <div>
-      <h2>{t("admin.sm.title")}</h2>
+    <PageContainer>
+      <PageHeader title={t("admin.sm.title")} />
       {list.length === 0 ? (
-        <Empty description={t("admin.sm.empty")} />
+        <EmptyState description={t("admin.sm.empty")} />
       ) : (
         <Table<SemanticModel>
           rowKey="id"
           dataSource={list}
           columns={columns}
-          pagination={false}
+          size="middle"
+          pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
           defaultExpandedRowKeys={focusId ? [focusId] : undefined}
           expandable={{
             expandedRowRender: (m) => (
@@ -75,6 +84,6 @@ export function SemanticModelList() {
           }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Input, Select, ColorPicker, Button, Card, Skeleton, Space, Upload } from "antd";
+import { Form, Input, Select, ColorPicker, Button, Skeleton, Space, Upload } from "antd";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import type { Tenant } from "../../contracts";
 import { useTenant, useUpdateTenant, useTenantUsage } from "../../api/queries";
 import { useUiStore } from "../../store/ui-store";
 import { QuotaPanel } from "./QuotaPanel";
+import { PageHeader, PageContainer, SectionCard } from "../../components/ui";
 
 type BrandingFormValues = {
   displayName: string;
@@ -53,9 +54,9 @@ export function TenantSettings() {
   };
 
   return (
-    <div>
-      <h2>{t("admin.tenant.title")}</h2>
-      <Card title={t("admin.tenant.branding")} style={{ marginBottom: 16 }}>
+    <PageContainer>
+      <PageHeader title={t("admin.tenant.title")} />
+      <SectionCard title={t("admin.tenant.branding")} style={{ marginBottom: 16 }}>
         <Form
           form={form}
           layout="vertical"
@@ -131,8 +132,8 @@ export function TenantSettings() {
             </Button>
           </Space>
         </Form>
-      </Card>
+      </SectionCard>
       {usage && <QuotaPanel quotas={draft.quotas} usage={usage} />}
-    </div>
+    </PageContainer>
   );
 }

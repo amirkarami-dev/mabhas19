@@ -1,6 +1,7 @@
-import { Modal, Form, Input, Select } from "antd";
+import { Form, Input, Select } from "antd";
 import { useTranslation } from "react-i18next";
 import type { Tenant } from "../../contracts";
+import { FormDrawer } from "../../components/ui";
 
 export function TenantFormModal({
   open,
@@ -21,31 +22,31 @@ export function TenantFormModal({
     defaultLocale: Tenant["defaultLocale"];
   }>();
 
+  const handleSubmit = async () => {
+    const v = await form.validateFields();
+    const now = new Date().toISOString();
+    onSave({
+      id: initial?.id ?? `tenant-${Date.now()}`,
+      slug: v.slug,
+      displayName: v.displayName,
+      status: initial?.status ?? "trial",
+      plan: v.plan,
+      branding: initial?.branding ?? { primaryColor: "#10b981" },
+      aiConfig: initial?.aiConfig ?? ({} as Tenant["aiConfig"]),
+      quotas: initial?.quotas ?? ({} as Tenant["quotas"]),
+      dataSourceIds: initial?.dataSourceIds ?? [],
+      defaultLocale: v.defaultLocale,
+      createdAt: initial?.createdAt ?? now,
+      updatedAt: now,
+    });
+  };
+
   return (
-    <Modal
+    <FormDrawer
       open={open}
       title={initial ? t("admin.tenants.edit") : t("admin.tenants.create")}
-      okText={t("common.save")}
-      destroyOnHidden
-      onCancel={onCancel}
-      onOk={async () => {
-        const v = await form.validateFields();
-        const now = new Date().toISOString();
-        onSave({
-          id: initial?.id ?? `tenant-${Date.now()}`,
-          slug: v.slug,
-          displayName: v.displayName,
-          status: initial?.status ?? "trial",
-          plan: v.plan,
-          branding: initial?.branding ?? { primaryColor: "#10b981" },
-          aiConfig: initial?.aiConfig ?? ({} as Tenant["aiConfig"]),
-          quotas: initial?.quotas ?? ({} as Tenant["quotas"]),
-          dataSourceIds: initial?.dataSourceIds ?? [],
-          defaultLocale: v.defaultLocale,
-          createdAt: initial?.createdAt ?? now,
-          updatedAt: now,
-        });
-      }}
+      onClose={onCancel}
+      onSubmit={() => void handleSubmit()}
     >
       <Form
         form={form}
@@ -88,6 +89,6 @@ export function TenantFormModal({
           />
         </Form.Item>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }

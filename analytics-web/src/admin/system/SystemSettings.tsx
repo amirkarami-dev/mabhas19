@@ -17,6 +17,7 @@ import {
   useUpdateSystemSettings,
 } from "../../api/queries";
 import type { SystemSettings as SystemSettingsData } from "./types";
+import { PageHeader, PageContainer } from "../../components/ui";
 
 const FLAGS: (keyof SystemSettingsData["flags"])[] = [
   "advancedECharts",
@@ -61,8 +62,8 @@ export function SystemSettings() {
   };
 
   return (
-    <div>
-      <h2>{t("admin.system.title")}</h2>
+    <PageContainer>
+      <PageHeader title={t("admin.system.title")} />
       <Tabs
         items={[
           {
@@ -229,6 +230,6 @@ export function SystemSettings() {
       >
         {t("common.save")}
       </Button>
-    </div>
+    </PageContainer>
   );
 }

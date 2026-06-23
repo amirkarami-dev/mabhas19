@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts";
 import type { EChartsCoreOption } from "echarts";
-import { Card, Row, Col, Skeleton, Statistic } from "antd";
+import { Row, Col, Skeleton } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAIUsageSeries } from "../../../api/queries";
+import { PageHeader, KpiTile, SectionCard } from "../../../components/ui";
 
 function useEChart(option: EChartsCoreOption | null) {
   const ref = useRef<HTMLDivElement>(null);
@@ -73,29 +74,25 @@ export function AIUsageCost() {
 
   return (
     <div>
-      <h2>{t("admin.ai.usageTitle")}</h2>
+      <PageHeader title={t("admin.ai.usageTitle")} />
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
-          <Card>
-            <Statistic title={t("admin.ai.totalTokens")} value={totalTokens} />
-          </Card>
+          <KpiTile label={t("admin.ai.totalTokens")} value={totalTokens.toLocaleString()} tone="blue" />
         </Col>
         <Col span={12}>
-          <Card>
-            <Statistic title={t("admin.ai.totalCost")} prefix="$" precision={2} value={totalCost} />
-          </Card>
+          <KpiTile label={t("admin.ai.totalCost")} value={`$${totalCost.toFixed(2)}`} tone="amber" />
         </Col>
       </Row>
       <Row gutter={16}>
         <Col span={12}>
-          <Card title={t("admin.ai.tokensOverTime")}>
+          <SectionCard title={t("admin.ai.tokensOverTime")}>
             <div data-testid="tokens-chart" ref={tokensRef} style={{ height: 280 }} />
-          </Card>
+          </SectionCard>
         </Col>
         <Col span={12}>
-          <Card title={t("admin.ai.costByModel")}>
+          <SectionCard title={t("admin.ai.costByModel")}>
             <div data-testid="cost-chart" ref={costRef} style={{ height: 280 }} />
-          </Card>
+          </SectionCard>
         </Col>
       </Row>
     </div>

@@ -1,10 +1,16 @@
 import { useMemo, useState } from "react";
-import { Table, Tag, Space, Select, DatePicker, Button, Skeleton, Empty } from "antd";
+import { Tag, Space, Select, DatePicker, Button } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuditEvents, type AuditFilter } from "../../api/queries";
 import { AuditEventDrawer, type AuditRowExt } from "./AuditEventDrawer";
 import { AuditCostChart } from "./AuditCostChart";
 import { downloadBlob } from "../../features/export/download";
+import {
+  PageHeader,
+  PageContainer,
+  DataTable,
+  EmptyState,
+} from "../../components/ui";
 
 const KNOWN_TYPES = [
   "ai.generate",
@@ -36,11 +42,10 @@ function rowsToCsv(
   return rows.length ? `${head}\r\n${body}` : head;
 }
 
-
 export function AuditLog() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<AuditFilter>({});
-  const { data: events, isLoading } = useAuditEvents(filter);
+  const { data: events, isLoading, error } = useAuditEvents(filter);
   const [selected, setSelected] = useState<AuditRowExt | null>(null);
 
   const list = (events ?? []) as AuditRowExt[];
@@ -106,58 +111,59 @@ export function AuditLog() {
     [t],
   );
 
+  const toolbar = (
+    <Space wrap style={{ marginBottom: 16 }}>
+      <DatePicker.RangePicker
+        onChange={(_d, [from, to]) =>
+          setFilter((f) => ({ ...f, from: from || undefined, to: to || undefined }))
+        }
+      />
+      <Select
+        allowClear
+        placeholder={t("admin.audit.eventType")}
+        style={{ width: 200 }}
+        options={KNOWN_TYPES.map((ty) => ({
+          value: ty,
+          label: t(`admin.audit.type.${ty}`, { defaultValue: ty }),
+        }))}
+        onChange={(ty: string | undefined) => setFilter((f) => ({ ...f, type: ty }))}
+      />
+      <Select
+        allowClear
+        placeholder={t("admin.audit.status")}
+        style={{ width: 140 }}
+        options={[
+          { value: "ok", label: t("admin.audit.statusValue.ok") },
+          { value: "error", label: t("admin.audit.statusValue.error") },
+        ]}
+        onChange={(s: string | undefined) => setFilter((f) => ({ ...f, status: s }))}
+      />
+      <Button onClick={exportCsv} disabled={list.length === 0}>
+        {t("admin.audit.exportCsv")}
+      </Button>
+    </Space>
+  );
+
   return (
-    <div>
-      <h2>{t("admin.audit.title")}</h2>
+    <PageContainer>
+      <PageHeader title={t("admin.audit.title")} />
       <div style={{ marginBottom: 16 }}>
         <AuditCostChart />
       </div>
-      <Space wrap style={{ marginBottom: 16 }}>
-        <DatePicker.RangePicker
-          onChange={(_d, [from, to]) =>
-            setFilter((f) => ({ ...f, from: from || undefined, to: to || undefined }))
-          }
-        />
-        <Select
-          allowClear
-          placeholder={t("admin.audit.eventType")}
-          style={{ width: 200 }}
-          options={KNOWN_TYPES.map((ty) => ({
-            value: ty,
-            label: t(`admin.audit.type.${ty}`, { defaultValue: ty }),
-          }))}
-          onChange={(ty: string | undefined) => setFilter((f) => ({ ...f, type: ty }))}
-        />
-        <Select
-          allowClear
-          placeholder={t("admin.audit.status")}
-          style={{ width: 140 }}
-          options={[
-            { value: "ok", label: t("admin.audit.statusValue.ok") },
-            { value: "error", label: t("admin.audit.statusValue.error") },
-          ]}
-          onChange={(s: string | undefined) => setFilter((f) => ({ ...f, status: s }))}
-        />
-        <Button onClick={exportCsv} disabled={list.length === 0}>
-          {t("admin.audit.exportCsv")}
-        </Button>
-      </Space>
-      {isLoading ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : list.length === 0 ? (
-        <Empty description={t("admin.audit.empty")} />
-      ) : (
-        <Table
-          rowKey="id"
-          dataSource={list}
-          columns={columns}
-          onRow={(e) => ({
-            onClick: () => setSelected(e),
-            style: { cursor: "pointer" },
-          })}
-        />
-      )}
+      <DataTable<AuditRowExt>
+        rowKey="id"
+        columns={columns}
+        data={list}
+        loading={isLoading}
+        error={error}
+        toolbar={toolbar}
+        empty={<EmptyState description={t("admin.audit.empty")} />}
+        onRow={(e) => ({
+          onClick: () => setSelected(e),
+          style: { cursor: "pointer" },
+        })}
+      />
       <AuditEventDrawer event={selected} onClose={() => setSelected(null)} />
-    </div>
+    </PageContainer>
   );
 }

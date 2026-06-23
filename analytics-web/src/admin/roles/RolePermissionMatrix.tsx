@@ -3,6 +3,7 @@ import { Table, Checkbox, Tag, Alert } from "antd";
 import { useTranslation } from "react-i18next";
 import { ROLE_PERMISSIONS, isGlobal, type AppRole, type Permission } from "../../contracts";
 import { useAuth } from "../../auth/useAuth";
+import { PageHeader, PageContainer } from "../../components/ui";
 
 const ROLES: AppRole[] = [
   "SuperAdmin",
@@ -82,23 +83,26 @@ export function RolePermissionMatrix() {
   );
 
   return (
-    <div data-testid="role-permission-matrix">
-      <h2>{t("admin.users.rolesTitle")}</h2>
-      {!editable && (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message={t("admin.users.matrixReadOnly")}
+    <PageContainer>
+      <div data-testid="role-permission-matrix">
+        <PageHeader title={t("admin.users.rolesTitle")} />
+        {!editable && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={t("admin.users.matrixReadOnly")}
+          />
+        )}
+        <Table
+          rowKey="role"
+          pagination={false}
+          dataSource={ROLES.map((role) => ({ role }))}
+          columns={columns}
+          size="middle"
+          onRow={(rec) => ({ "data-testid": `role-row-${rec.role}` } as React.HTMLAttributes<HTMLElement>)}
         />
-      )}
-      <Table
-        rowKey="role"
-        pagination={false}
-        dataSource={ROLES.map((role) => ({ role }))}
-        columns={columns}
-        onRow={(rec) => ({ "data-testid": `role-row-${rec.role}` } as React.HTMLAttributes<HTMLElement>)}
-      />
-    </div>
+      </div>
+    </PageContainer>
   );
 }
