@@ -11,7 +11,7 @@ import type {
 import { createAIService } from "@/ai";
 import { drillIntoAsync } from "@/query/drilldown";
 import { chooseView } from "@/presentation/auto-viz";
-import { getSemanticModel } from "@/semantic/registry";
+import { getSemanticModel, listSemanticModels } from "@/semantic/registry";
 import { executeReport } from "@/api/executeApi";
 
 export type DrillCrumb = {
@@ -35,8 +35,9 @@ export interface AskAiState {
   errorKey?: string;
 }
 
-/** The default model key to pre-select. */
-const DEFAULT_MODEL_KEY = "model-sales";
+/** The default model key to pre-select — the first model of the active set
+ *  (FarsNezam in real mode, sample models in mock mode). */
+const DEFAULT_MODEL_KEY = listSemanticModels()[0]?.key ?? "model-sales";
 
 /** Maps a view-switcher subtype to a ReportView shape. */
 const SUBTYPE_TO_VIEW: Record<

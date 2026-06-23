@@ -129,12 +129,17 @@ export function matchExample(normalizedPrompt: string, modelId: string): AIExamp
  * Each entry has a short label (shown on the chip), the canonical prompt, and
  * the datasetKey to pre-select before generating.
  */
-export const EXAMPLE_PROMPTS: {
+export type ExamplePrompt = {
   id: string;
   label: string;
   prompt: string;
   datasetKey: string;
-}[] = [
+};
+
+const USE_REAL_MODELS =
+  (import.meta.env.VITE_USE_MOCK_API as string | undefined) === "false";
+
+const MOCK_EXAMPLE_PROMPTS: ExamplePrompt[] = [
   {
     id: "monthly-revenue-province",
     label: "درآمد ماهانه هر استان",
@@ -178,3 +183,22 @@ export const EXAMPLE_PROMPTS: {
     datasetKey: "projects",
   },
 ];
+
+/** FarsNezam example chips (REAL mode). datasetKey = backend model id. */
+const REAL_EXAMPLE_PROMPTS: ExamplePrompt[] = [
+  { id: "fn-projects-by-zone", label: "پروژه‌ها به تفکیک منطقه",
+    prompt: "تعداد پروژه‌ها به تفکیک منطقه", datasetKey: "model-projects" },
+  { id: "fn-top-zones", label: "۱۰ منطقه برتر",
+    prompt: "۱۰ منطقه برتر بر اساس تعداد پروژه", datasetKey: "model-projects" },
+  { id: "fn-area-by-type", label: "زیربنا به تفکیک نوع",
+    prompt: "مجموع زیربنا به تفکیک نوع پروژه", datasetKey: "model-projects" },
+  { id: "fn-members-by-field", label: "اعضا به تفکیک رشته",
+    prompt: "تعداد اعضا به تفکیک رشته", datasetKey: "model-members" },
+  { id: "fn-legal-by-year", label: "حقوقی بر اساس سال",
+    prompt: "تعداد پروژه‌های حقوقی بر اساس سال", datasetKey: "model-legal-projects" },
+];
+
+/** Active chips: FarsNezam in REAL mode, sample prompts in mock/dev mode. */
+export const EXAMPLE_PROMPTS: ExamplePrompt[] = USE_REAL_MODELS
+  ? REAL_EXAMPLE_PROMPTS
+  : MOCK_EXAMPLE_PROMPTS;

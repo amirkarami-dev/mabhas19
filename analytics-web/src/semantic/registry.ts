@@ -3,6 +3,7 @@ import type { Dataset } from "../contracts/dataset";
 import { projectModel } from "./models/project";
 import { salesModel } from "./models/sales";
 import { financeModel } from "./models/finance";
+import { projectsModel, membersModel, legalProjectsModel } from "./models/farsnezam";
 import { projectData } from "./datasets/project";
 import { salesData } from "./datasets/sales";
 import { financeData } from "./datasets/finance";
@@ -10,13 +11,25 @@ import { financeData } from "./datasets/finance";
 // Named re-exports so tests and UI code can import models directly:
 // import { salesModel, projectModel } from "../semantic/registry"
 export { projectModel, salesModel, financeModel };
+export { projectsModel, membersModel, legalProjectsModel };
+
+/** In REAL mode the dataset picker + auto-viz use the live FarsNezam models (matching the
+ *  backend store); in MOCK/dev mode they use the bundled sample models + in-browser data. */
+const USE_REAL_MODELS =
+  (import.meta.env.VITE_USE_MOCK_API as string | undefined) === "false";
 
 /** All bundled semantic models, keyed by model id. */
-export const semanticModels: Record<string, SemanticModel> = {
-  [projectModel.id]: projectModel,
-  [salesModel.id]: salesModel,
-  [financeModel.id]: financeModel,
-};
+export const semanticModels: Record<string, SemanticModel> = USE_REAL_MODELS
+  ? {
+      [projectsModel.id]: projectsModel,
+      [membersModel.id]: membersModel,
+      [legalProjectsModel.id]: legalProjectsModel,
+    }
+  : {
+      [projectModel.id]: projectModel,
+      [salesModel.id]: salesModel,
+      [financeModel.id]: financeModel,
+    };
 
 /** All bundled sample datasets, keyed by entity `source` (the value a
  *  ReportDefinition.dataset points at). */
