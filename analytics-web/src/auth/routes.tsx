@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Button, Result, Spin } from "antd";
+import { Button, Card, Result, Spin, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./useAuth";
 import type { AppRole, Permission } from "@/contracts/rbac";
@@ -13,14 +13,35 @@ export function LoginScreen() {
   const { t } = useTranslation();
   if (ready && user) return <Navigate to="/ask" replace />;
   return (
-    <Result
-      title={t("common.appName")}
-      extra={
-        <Button type="primary" onClick={login}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--ant-color-bg-layout)",
+      }}
+    >
+      <Card
+        variant="borderless"
+        style={{
+          width: 360,
+          boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
+          borderRadius: 16,
+        }}
+        styles={{ body: { padding: 40, textAlign: "center" } }}
+      >
+        <Typography.Title level={3} style={{ marginBottom: 8 }}>
+          {t("common.appName")}
+        </Typography.Title>
+        <Typography.Text type="secondary" style={{ display: "block", marginBottom: 32 }}>
+          {useMock ? t("auth.mockMode") : t("auth.signingIn")}
+        </Typography.Text>
+        <Button type="primary" size="large" block onClick={login}>
           {useMock ? t("auth.mockMode") : t("auth.login")}
         </Button>
-      }
-    />
+      </Card>
+    </div>
   );
 }
 
@@ -70,7 +91,19 @@ export function LogoutScreen() {
 
 export function ForbiddenScreen() {
   const { t } = useTranslation();
-  return <Result status="403" title="403" subTitle={t("rbac.forbiddenMsg")} />;
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--ant-color-bg-layout)",
+      }}
+    >
+      <Result status="403" title="403" subTitle={t("rbac.forbiddenMsg")} />
+    </div>
+  );
 }
 
 export function RequireAuth() {

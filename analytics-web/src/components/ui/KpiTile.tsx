@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 
 const TONES: Record<string, { bg: string; fg: string }> = {
   neutral: { bg: "var(--ant-color-fill-quaternary)", fg: "var(--ant-color-text)" },
-  emerald: { bg: "#e1f5ee", fg: "#085041" },
-  blue: { bg: "#e6f1fb", fg: "#0c447c" },
-  amber: { bg: "#faeeda", fg: "#633806" },
+  emerald: { bg: "var(--ant-color-success-bg)", fg: "var(--ant-color-success-text)" },
+  blue: { bg: "var(--ant-color-info-bg)", fg: "var(--ant-color-info-text)" },
+  amber: { bg: "var(--ant-color-warning-bg)", fg: "var(--ant-color-warning-text)" },
 };
 
 export function KpiTile({

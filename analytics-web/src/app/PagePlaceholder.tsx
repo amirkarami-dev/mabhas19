@@ -1,5 +1,5 @@
-import { Empty } from "antd";
+import { EmptyState } from "@/components/ui";
 
 export function PagePlaceholder({ name }: { name: string }) {
-  return <Empty description={name} style={{ marginTop: 80 }} />;
+  return <EmptyState description={name} />;
 }

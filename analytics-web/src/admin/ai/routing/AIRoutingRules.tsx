@@ -69,7 +69,7 @@ export function AIRoutingRules() {
                 value={cfg.cache.ttlSeconds}
                 onChange={(s) => patch({ cache: { ...cfg.cache, ttlSeconds: s ?? 0 } })}
               />
-              <span style={{ padding: "0 8px", lineHeight: "32px", border: "1px solid #d9d9d9", borderLeft: 0 }}>
+              <span style={{ padding: "0 8px", lineHeight: "32px", border: "1px solid var(--ant-color-border)", borderLeft: 0 }}>
                 {t("admin.ai.ttlSeconds")}
               </span>
             </Space.Compact>
