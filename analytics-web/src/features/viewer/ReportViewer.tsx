@@ -6,9 +6,6 @@ import {
   Dropdown,
   Empty,
   Result,
-  Skeleton,
-  Space,
-  Typography,
 } from "antd";
 import { DownloadOutlined, EditOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -31,6 +28,13 @@ import { ReportViewRenderer } from "@/presentation/ReportView";
 import { buildExportMenuItems } from "@/features/export";
 import { ViewSwitcher, type SwitchTarget } from "@/features/ask-ai/ViewSwitcher";
 import { useAuth } from "@/auth/useAuth";
+import {
+  ErrorState,
+  Loading,
+  PageContainer,
+  PageHeader,
+  Toolbar,
+} from "@/components/ui";
 import { FilterBar } from "./FilterBar";
 
 type Crumb = { label: string; def: ReportDefinition; result: QueryResult; views: ReportView[] };
@@ -120,15 +124,15 @@ export function ReportViewer() {
     [activeDef, semantic],
   );
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
+  if (isLoading) return <Loading rows={8} />;
   if (isError || (data === null && !isLoading)) {
     return <Result status="404" title={t("viewer.notFound")} />;
   }
-  if (!data) return <Skeleton active paragraph={{ rows: 8 }} />;
+  if (!data) return <Loading rows={8} />;
   // While waiting for executeReport to resolve (liveDef loaded but computed not yet ready)
-  if (!computed && !execError) return <Skeleton active paragraph={{ rows: 8 }} />;
+  if (!computed && !execError) return <Loading rows={8} />;
   if (execError || !liveDef || !semantic || !activeResult || !activeDef) {
-    return <Result status="error" title={t("viewer.invalid")} />;
+    return <ErrorState title={t("viewer.invalid")} />;
   }
 
   const result = activeResult;
@@ -155,15 +159,34 @@ export function ReportViewer() {
     setActiveIdx(idx >= 0 ? idx : 0);
   };
 
-  return (
-    <div className="viewer-screen">
-      <Typography.Title level={2}>{data.definition.name}</Typography.Title>
-      {data.definition.description && (
-        <Typography.Paragraph type="secondary">{data.definition.description}</Typography.Paragraph>
+  const headerActions = (
+    <>
+      <Button icon={<ReloadOutlined />} onClick={() => setRefreshKey((k) => k + 1)}>
+        {t("viewer.refresh")}
+      </Button>
+      {canEdit && (
+        <Button icon={<EditOutlined />} onClick={() => navigate(`/ask?from=${reportId}`)}>
+          {t("viewer.openInAsk")}
+        </Button>
       )}
+      <Dropdown menu={{ items: buildExportMenuItems(activeDef, result) }} trigger={["click"]}>
+        <Button icon={<DownloadOutlined />}>{t("viewer.export")}</Button>
+      </Dropdown>
+    </>
+  );
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title={data.definition.name}
+        subtitle={data.definition.description}
+        actions={headerActions}
+      />
+
       <Descriptions
         size="small"
         column={3}
+        style={{ marginBottom: 12 }}
         items={[
           { key: "owner", label: t("viewer.owner"), children: data.ownerName },
           { key: "model", label: t("viewer.model"), children: data.definition.dataset },
@@ -177,23 +200,13 @@ export function ReportViewer() {
         onChange={(i, v) => setFilterValues((s) => ({ ...s, [i]: v }))}
       />
 
-      <Space className="viewer-toolbar" wrap>
+      <Toolbar>
         <ViewSwitcher views={views} active={activeView} result={result} onSwitch={switchView} />
-        <Button icon={<ReloadOutlined />} onClick={() => setRefreshKey((k) => k + 1)}>
-          {t("viewer.refresh")}
-        </Button>
-        {canEdit && (
-          <Button icon={<EditOutlined />} onClick={() => navigate(`/ask?from=${reportId}`)}>
-            {t("viewer.openInAsk")}
-          </Button>
-        )}
-        <Dropdown menu={{ items: buildExportMenuItems(activeDef, result) }} trigger={["click"]}>
-          <Button icon={<DownloadOutlined />}>{t("viewer.export")}</Button>
-        </Dropdown>
-      </Space>
+      </Toolbar>
 
       {drillPath.length > 0 && (
         <Breadcrumb
+          style={{ marginBottom: 12 }}
           items={[
             { title: <a onClick={() => drillUp(true)}>{data.definition.name}</a> },
             ...drillPath.map((c) => ({ title: c.label })),
@@ -208,6 +221,6 @@ export function ReportViewer() {
           <ReportViewRenderer view={activeView} def={activeDef} result={result} onDrill={drill} />
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

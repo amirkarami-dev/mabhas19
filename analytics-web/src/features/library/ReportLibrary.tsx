@@ -1,5 +1,5 @@
 // report-web/src/features/library/ReportLibrary.tsx
-import { Alert, Button, Dropdown, Empty, Input, Select, Skeleton, Space, Table, Tag } from "antd";
+import { Button, Dropdown, Input, Select, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
@@ -8,6 +8,15 @@ import { Link, useNavigate } from "react-router-dom";
 import type { SavedReport } from "@/api/queries";
 import { useDeleteReport, useReports } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
+import {
+  DataTable,
+  EmptyState,
+  ErrorState,
+  Loading,
+  PageContainer,
+  PageHeader,
+  Toolbar,
+} from "@/components/ui";
 
 export function ReportLibrary() {
   const { t } = useTranslation();
@@ -112,20 +121,18 @@ export function ReportLibrary() {
     },
   ];
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
+  if (isLoading) return <Loading rows={6} />;
   if (isError)
     return (
-      <Alert
-        type="error"
-        showIcon
-        message={t("library.loadError")}
-        action={<Button onClick={() => refetch()}>{t("common.retry")}</Button>}
+      <ErrorState
+        title={t("library.loadError")}
+        onRetry={() => void refetch()}
       />
     );
 
-  return (
-    <div className="library-screen">
-      <Space className="library-toolbar" wrap>
+  const toolbar = (
+    <Toolbar>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <Input.Search
           allowClear
           placeholder={t("library.searchPlaceholder")}
@@ -148,26 +155,44 @@ export function ReportLibrary() {
           options={allTags.map((x) => ({ value: x, label: x }))}
           style={{ width: 160 }}
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/ask")}>
-          {t("library.newReport")}
-        </Button>
-      </Space>
+      </div>
+    </Toolbar>
+  );
 
-      {rows.length === 0 ? (
-        <Empty description={t("library.empty")}>
-          <Button type="primary" onClick={() => navigate("/ask")}>
-            {t("library.askFirst")}
+  const emptyNode = (
+    <EmptyState
+      description={t("library.empty")}
+      action={
+        <Button type="primary" onClick={() => navigate("/ask")}>
+          {t("library.askFirst")}
+        </Button>
+      }
+    />
+  );
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title={t("reports.title")}
+        actions={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/ask")}
+          >
+            {t("library.newReport")}
           </Button>
-        </Empty>
-      ) : (
-        <Table<SavedReport>
-          rowKey="id"
-          dataSource={rows}
-          columns={columns}
-          onRow={(r) => ({ "data-testid": "report-row", "data-id": r.id } as never)}
-          pagination={{ pageSize: 12 }}
-        />
-      )}
-    </div>
+        }
+      />
+      <DataTable<SavedReport>
+        rowKey="id"
+        columns={columns}
+        data={rows}
+        toolbar={toolbar}
+        empty={emptyNode}
+        pageSize={12}
+        onRow={(r) => ({ "data-testid": "report-row", "data-id": r.id })}
+      />
+    </PageContainer>
   );
 }

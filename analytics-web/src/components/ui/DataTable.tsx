@@ -1,8 +1,12 @@
 import { Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
+
+// Data attributes (data-*) are valid HTML but are not in React's HTMLAttributes type;
+// we extend with a loose record so callers can pass e.g. { "data-testid": "row" }.
+type RowProps = HTMLAttributes<HTMLElement> & Record<string, unknown>;
 
 export function DataTable<T extends object>({
   columns,
@@ -13,6 +17,7 @@ export function DataTable<T extends object>({
   empty,
   toolbar,
   pageSize = 10,
+  onRow,
 }: {
   columns: ColumnsType<T>;
   data?: T[];
@@ -22,6 +27,7 @@ export function DataTable<T extends object>({
   empty?: ReactNode;
   toolbar?: ReactNode;
   pageSize?: number;
+  onRow?: (record: T) => RowProps;
 }) {
   if (error) return <ErrorState detail={String((error as Error)?.message ?? error)} />;
   return (
@@ -35,6 +41,7 @@ export function DataTable<T extends object>({
         size="middle"
         pagination={{ pageSize, hideOnSinglePage: true, showSizeChanger: false }}
         locale={{ emptyText: empty ?? <EmptyState /> }}
+        onRow={onRow as ((record: T) => HTMLAttributes<HTMLElement>) | undefined}
       />
     </>
   );

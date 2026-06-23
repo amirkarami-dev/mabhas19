@@ -36,8 +36,8 @@ describe("ReportViewer", () => {
       expect(screen.getByTestId("result-canvas")).toBeInTheDocument(),
     );
     expect(screen.getByTestId("view-switcher")).toBeInTheDocument();
-    // report title from the saved definition is shown in the header
-    expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+    // report title from the saved definition is shown in the header (PageHeader uses h3)
+    expect(screen.getByRole("heading", { level: 3 })).toBeInTheDocument();
   });
 
   it("shows a 'not found' result for an unknown id", async () => {
