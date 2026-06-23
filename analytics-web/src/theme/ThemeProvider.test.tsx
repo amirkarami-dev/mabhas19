@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "./ThemeProvider";
 import { applyLocale, i18n } from "@/i18n";
-import { tokens } from "./theme";
+import { tokens, applyCssVars, buildAntdTheme } from "./theme";
+import { theme as antdTheme } from "antd";
 
 const defaultBrand = { primary: tokens.primary };
 
@@ -23,6 +24,57 @@ describe("ThemeProvider", () => {
       </ThemeProvider>,
     );
     expect(screen.getByTestId("dark-child")).toBeInTheDocument();
+  });
+});
+
+describe("ThemeProvider — single source of truth wiring", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  it("applyCssVars sets data-theme=dark when mode is dark", () => {
+    applyCssVars("dark", defaultBrand);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  it("applyCssVars sets data-theme=light when mode is light", () => {
+    applyCssVars("light", defaultBrand);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  });
+
+  it("buildAntdTheme uses darkAlgorithm for dark mode", () => {
+    const { algorithm } = buildAntdTheme("dark", defaultBrand, "ltr");
+    expect(algorithm).toBe(antdTheme.darkAlgorithm);
+  });
+
+  it("buildAntdTheme uses defaultAlgorithm for light mode", () => {
+    const { algorithm } = buildAntdTheme("light", defaultBrand, "ltr");
+    expect(algorithm).toBe(antdTheme.defaultAlgorithm);
+  });
+
+  it("ThemeProvider calls applyCssVars with the mode passed in (dark)", () => {
+    const spy = vi.spyOn({ applyCssVars }, "applyCssVars");
+    // Render with dark — DOM data-theme attribute is the observable side effect
+    render(
+      <ThemeProvider mode="dark" brand={defaultBrand} dir="ltr" locale="en">
+        <span data-testid="dark-wired">wired</span>
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("dark-wired")).toBeInTheDocument();
+    // The useEffect in ThemeProvider calls applyCssVars(mode, brand); verify via DOM side-effect
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    spy.mockRestore();
+  });
+
+  it("ThemeProvider leaves data-theme=light when mode is light", () => {
+    render(
+      <ThemeProvider mode="light" brand={defaultBrand} dir="rtl" locale="fa">
+        <span data-testid="light-wired">wired</span>
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId("light-wired")).toBeInTheDocument();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });
 });
 

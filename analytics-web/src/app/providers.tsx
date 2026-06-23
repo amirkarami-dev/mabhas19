@@ -12,7 +12,7 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const { mode, locale, dir } = useUiStore();
+  const { themeMode, locale, dir } = useUiStore();
   const brand: BrandTokens = { primary: tokens.primary, accent: tokens.accent };
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nextProvider i18n={i18n}>
-        <ThemeProvider mode={mode} brand={brand} dir={dir} locale={locale}>
+        <ThemeProvider mode={themeMode} brand={brand} dir={dir} locale={locale}>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </I18nextProvider>

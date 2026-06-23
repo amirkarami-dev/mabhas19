@@ -4,7 +4,7 @@ import { useUiStore } from "./ui-store";
 describe("ui-store", () => {
   beforeEach(() => {
     localStorage.clear();
-    useUiStore.setState({ mode: "light", locale: "fa", dir: "rtl", sidebarCollapsed: false });
+    useUiStore.setState({ themeMode: "light", locale: "fa", dir: "rtl", sidebarCollapsed: false });
   });
 
   it("setLocale switches dir to ltr for en", () => {
@@ -13,10 +13,23 @@ describe("ui-store", () => {
     expect(useUiStore.getState().dir).toBe("ltr");
   });
 
-  it("setMode toggles theme; toggleSidebar flips collapse", () => {
-    useUiStore.getState().setMode("dark");
-    expect(useUiStore.getState().mode).toBe("dark");
+  it("toggleTheme switches themeMode light→dark and persists to localStorage", () => {
+    expect(useUiStore.getState().themeMode).toBe("light");
+    useUiStore.getState().toggleTheme();
+    expect(useUiStore.getState().themeMode).toBe("dark");
+    expect(localStorage.getItem("analytics-theme")).toBe("dark");
+  });
+
+  it("toggleTheme switches themeMode dark→light", () => {
+    useUiStore.setState({ themeMode: "dark" });
+    useUiStore.getState().toggleTheme();
+    expect(useUiStore.getState().themeMode).toBe("light");
+  });
+
+  it("toggleSidebar flips collapse", () => {
     useUiStore.getState().toggleSidebar();
     expect(useUiStore.getState().sidebarCollapsed).toBe(true);
+    useUiStore.getState().toggleSidebar();
+    expect(useUiStore.getState().sidebarCollapsed).toBe(false);
   });
 });
