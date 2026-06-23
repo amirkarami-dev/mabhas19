@@ -1,6 +1,7 @@
-import { Drawer, Empty, List, Tag } from "antd";
+import { Empty, List, Tag } from "antd";
 import { useTranslation } from "react-i18next";
 import { useReports } from "@/api/queries";
+import { FormDrawer } from "@/components/ui";
 
 interface Props {
   open: boolean;
@@ -11,8 +12,17 @@ interface Props {
 export function AddWidgetDrawer({ open, onClose, onPick }: Props) {
   const { t } = useTranslation();
   const { data } = useReports();
+
+  // FormDrawer requires onSubmit but this drawer is selection-only (no submit form).
+  // We expose onClose as onSubmit so clicking "Save" closes the drawer too.
   return (
-    <Drawer title={t("dash.addWidget")} open={open} onClose={onClose} width={380}>
+    <FormDrawer
+      open={open}
+      title={t("dash.addWidget")}
+      onClose={onClose}
+      onSubmit={onClose}
+      width={380}
+    >
       {(data ?? []).length === 0 ? (
         <Empty description={t("dash.noReports")} />
       ) : (
@@ -38,6 +48,6 @@ export function AddWidgetDrawer({ open, onClose, onPick }: Props) {
           )}
         />
       )}
-    </Drawer>
+    </FormDrawer>
   );
 }

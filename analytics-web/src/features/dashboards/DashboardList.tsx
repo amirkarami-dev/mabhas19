@@ -1,10 +1,11 @@
-import { Button, Card, Dropdown, Empty, Input, Skeleton, Space } from "antd";
+import { Button, Dropdown, Input, Space } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useCreateDashboard, useDashboards, useDeleteDashboard } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
+import { EmptyState, PageContainer, PageHeader, SectionCard, Loading } from "@/components/ui";
 
 export function DashboardList() {
   const { t } = useTranslation();
@@ -33,44 +34,59 @@ export function DashboardList() {
     void navigate(`/dashboards/${d.id}/edit`);
   };
 
-  if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
+  if (isLoading) return <Loading rows={6} />;
 
   return (
-    <div className="dash-list">
-      <Space className="dash-list__toolbar" wrap>
-        <Input.Search
-          placeholder={t("dash.search")}
-          onChange={(e) => setQ(e.target.value)}
-          style={{ width: 240 }}
-        />
-        {canCreate && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            loading={create.isPending}
-            onClick={() => void onNew()}
-          >
-            {t("dash.new")}
-          </Button>
-        )}
-      </Space>
+    <PageContainer>
+      <PageHeader
+        title={t("dashboards.title")}
+        actions={
+          <Space wrap>
+            <Input.Search
+              placeholder={t("dash.search")}
+              onChange={(e) => setQ(e.target.value)}
+              style={{ width: 240 }}
+            />
+            {canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                loading={create.isPending}
+                onClick={() => void onNew()}
+              >
+                {t("dash.new")}
+              </Button>
+            )}
+          </Space>
+        }
+      />
 
       {boards.length === 0 ? (
-        <Empty description={t("dash.emptyList")}>
-          {canCreate && (
-            <Button type="primary" onClick={() => void onNew()}>
-              {t("dash.create")}
-            </Button>
-          )}
-        </Empty>
+        <EmptyState
+          description={t("dash.emptyList")}
+          action={
+            canCreate ? (
+              <Button type="primary" onClick={() => void onNew()}>
+                {t("dash.create")}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="dash-list__grid">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 16,
+          }}
+        >
           {boards.map((d) => (
-            <Card
+            <SectionCard
               key={d.id}
               data-testid="dashboard-card"
               hoverable
               title={d.name}
+              style={{ cursor: "pointer", borderRadius: 12 }}
               onClick={() => void navigate(`/dashboards/${d.id}/edit`)}
               extra={
                 <Dropdown
@@ -101,15 +117,21 @@ export function DashboardList() {
                 </Dropdown>
               }
             >
-              <div className="dash-card__meta">
-                <span>{t("dash.widgetCount", { count: d.widgets.length })}</span>
-                <span>{d.ownerName}</span>
-                <span>{d.updatedAt}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 13, color: "var(--ant-color-text-secondary)" }}>
+                  {t("dash.widgetCount", { count: d.widgets.length })}
+                </span>
+                <span style={{ fontSize: 13, color: "var(--ant-color-text-secondary)" }}>
+                  {d.ownerName}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--ant-color-text-tertiary)" }}>
+                  {d.updatedAt}
+                </span>
               </div>
-            </Card>
+            </SectionCard>
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

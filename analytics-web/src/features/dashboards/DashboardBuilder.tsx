@@ -1,5 +1,5 @@
-import { Button, Result, Skeleton, Space, Switch, Typography, message } from "antd";
-import { PlusOutlined, SaveOutlined } from "@ant-design/icons";
+import { Button, Result, Space, Switch, message } from "antd";
+import { PlusOutlined, SaveOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -9,6 +9,7 @@ import { DashboardCanvas } from "@/dashboard/DashboardCanvas";
 import { newWidget, type DashboardWidget, type GridLayoutItem } from "@/dashboard/widget";
 import { AddWidgetDrawer } from "./AddWidgetDrawer";
 import { WidgetFrame } from "./WidgetFrame";
+import { EmptyState, Loading, PageContainer, PageHeader } from "@/components/ui";
 
 export function DashboardBuilder() {
   const { t } = useTranslation();
@@ -56,7 +57,7 @@ export function DashboardBuilder() {
     roles.includes("SuperAdmin");
 
   // While creating a new dashboard (or loading an existing one), show a skeleton.
-  if (isNew || isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
+  if (isNew || isLoading) return <Loading rows={8} />;
   if (isError || !data) return <Result status="404" title={t("dash.notFound")} />;
   if (!canEdit) return <Result status="403" title={t("dash.forbidden")} />;
 
@@ -81,33 +82,52 @@ export function DashboardBuilder() {
   };
 
   return (
-    <div className="dash-builder">
-      <Space className="dash-toolbar" wrap>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          {data.name}
-        </Typography.Title>
-        <Button icon={<PlusOutlined />} onClick={() => setDrawer(true)}>
-          {t("dash.addWidget")}
-        </Button>
-        <span>
-          {t("dash.editMode")} <Switch checked={editing} onChange={setEditing} />
-        </span>
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          loading={save.isPending}
-          onClick={() => void onSave()}
-        >
-          {t("common.save")}
-        </Button>
-      </Space>
+    <PageContainer>
+      <PageHeader
+        title={data.name}
+        breadcrumbs={[
+          { title: t("dashboards.title"), href: "/dashboards" },
+          { title: data.name },
+        ]}
+        actions={
+          <Space wrap>
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => void navigate("/dashboards")}
+            >
+              {t("common.back")}
+            </Button>
+            <Button icon={<PlusOutlined />} onClick={() => setDrawer(true)}>
+              {t("dash.addWidget")}
+            </Button>
+            <Space>
+              <span style={{ fontSize: 13, color: "var(--ant-color-text-secondary)" }}>
+                {t("dash.editMode")}
+              </span>
+              <Switch checked={editing} onChange={setEditing} size="small" />
+            </Space>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={save.isPending}
+              onClick={() => void onSave()}
+            >
+              {t("common.save")}
+            </Button>
+          </Space>
+        }
+      />
 
       {widgets.length === 0 ? (
-        <div className="dash-empty" data-testid="dashboard-empty">
-          <p>{t("dash.dropHere")}</p>
-          <Button type="primary" onClick={() => setDrawer(true)}>
-            {t("dash.addWidget")}
-          </Button>
+        <div data-testid="dashboard-empty">
+          <EmptyState
+            description={t("dash.dropHere")}
+            action={
+              <Button type="primary" onClick={() => setDrawer(true)}>
+                {t("dash.addWidget")}
+              </Button>
+            }
+          />
         </div>
       ) : (
         <DashboardCanvas layout={layout} editing={editing} onLayoutChange={setLayout}>
@@ -120,6 +140,6 @@ export function DashboardBuilder() {
       )}
 
       <AddWidgetDrawer open={drawer} onClose={() => setDrawer(false)} onPick={addWidget} />
-    </div>
+    </PageContainer>
   );
 }

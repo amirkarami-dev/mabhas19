@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Dropdown } from "antd";
+import { Alert, Button, Dropdown } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { runQuery } from "@/query/engine";
 import { chooseView } from "@/presentation/auto-viz";
 import { getDataset, getModelForDataset } from "@/semantic/registry";
 import { ReportViewRenderer } from "@/presentation/ReportView";
+import { KpiTile, SectionCard } from "@/components/ui";
 
 interface Props {
   widget: DashboardWidget;
@@ -36,46 +37,79 @@ export function WidgetFrame({ widget, editing, onRemove }: Props) {
     }
   }, [data]);
 
+  const title = widget.title ?? data?.definition.name ?? t("dash.widget");
+
+  const actions = editing ? (
+    <Dropdown
+      trigger={["click"]}
+      menu={{
+        items: [
+          {
+            key: "remove",
+            danger: true,
+            label: t("dash.removeWidget"),
+            onClick: onRemove,
+          },
+        ],
+      }}
+    >
+      <Button
+        type="text"
+        size="small"
+        icon={<MoreOutlined />}
+        aria-label={t("dash.widgetMenu")}
+      />
+    </Dropdown>
+  ) : undefined;
+
+  // KPI bento: if the primary view is a kpi and we have a single value, render
+  // it as a KpiTile card (no chart container overhead, fills the bento cell).
+  const activeView = computed?.views[widget.viewIndex ?? 0] ?? computed?.views[0];
+  const isKpiView = activeView?.type === "kpi";
+
+  if (isKpiView && computed && data) {
+    const valueKey = activeView.mapping.value as string | undefined;
+    const firstRow = computed.result.rows[0] as Record<string, unknown> | undefined;
+    const kpiValue = valueKey && firstRow ? String(firstRow[valueKey] ?? "—") : "—";
+
+    return (
+      <SectionCard
+        size="small"
+        title={title}
+        loading={isLoading}
+        extra={actions}
+        style={{ height: "100%" }}
+        styles={{ body: { height: "calc(100% - 40px)", overflow: "hidden" } }}
+      >
+        {isError || computed === null ? (
+          <Alert type="error" showIcon message={t("dash.widgetError")} />
+        ) : (
+          <div style={{ padding: "8px 0" }}>
+            <KpiTile label={title} value={kpiValue} tone="emerald" />
+          </div>
+        )}
+      </SectionCard>
+    );
+  }
+
   return (
-    <Card
+    <SectionCard
       size="small"
-      title={widget.title ?? data?.definition.name ?? t("dash.widget")}
+      title={title}
       loading={isLoading}
+      extra={actions}
+      style={{ height: "100%" }}
       styles={{ body: { height: "calc(100% - 40px)", overflow: "auto" } }}
-      extra={
-        editing && (
-          <Dropdown
-            trigger={["click"]}
-            menu={{
-              items: [
-                {
-                  key: "remove",
-                  danger: true,
-                  label: t("dash.removeWidget"),
-                  onClick: onRemove,
-                },
-              ],
-            }}
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={<MoreOutlined />}
-              aria-label={t("dash.widgetMenu")}
-            />
-          </Dropdown>
-        )
-      }
     >
       {isError || computed === null ? (
         <Alert type="error" showIcon message={t("dash.widgetError")} />
-      ) : computed ? (
+      ) : computed && data ? (
         <ReportViewRenderer
-          view={computed.views[widget.viewIndex ?? 0] ?? computed.views[0]}
-          def={data!.definition}
+          view={activeView!}
+          def={data.definition}
           result={computed.result}
         />
       ) : null}
-    </Card>
+    </SectionCard>
   );
 }
