@@ -3,7 +3,8 @@
     "appName": "AI Reporting", "save": "Save", "cancel": "Cancel", "delete": "Delete",
     "edit": "Edit", "create": "Create", "search": "Search", "loading": "Loading…",
     "empty": "No items found", "retry": "Retry", "back": "Back", "confirm": "Confirm",
-    "yes": "Yes", "no": "No", "actions": "Actions", "ok": "OK"
+    "yes": "Yes", "no": "No", "actions": "Actions", "ok": "OK",
+    "theme": { "light": "Light", "dark": "Dark" }
   },
   "nav": {
     "ask": "Ask AI", "reports": "Reports", "dashboards": "Dashboards", "favorites": "Favorites",

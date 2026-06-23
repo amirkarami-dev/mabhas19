@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Menu } from "antd";
+import type { MenuProps } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/useAuth";
@@ -79,7 +80,7 @@ export function Sidebar() {
   const { can, isAdmin, roles } = useAuth();
   const isAdminZone = loc.pathname.startsWith("/admin");
 
-  const items = useMemo(() => {
+  const { items, defaultOpenKeys } = useMemo(() => {
     const groups = isAdminZone ? ADMIN_GROUPS : USER_GROUPS;
     const visible = (it: Item) => {
       if (it.adminAny) return isAdmin;
@@ -87,22 +88,42 @@ export function Sidebar() {
       if (it.need) return can(it.need);
       return true;
     };
-    return groups
-      .map((g) => ({
-        ...g,
-        items: g.items.filter(visible),
-      }))
-      .filter((g) => g.items.length > 0)
-      .flatMap((g) => [
-        ...(g.titleKey ? [{ type: "group" as const, label: t(g.titleKey) }] : []),
-        ...g.items.map((it) => ({ key: it.key, label: t(it.labelKey) })),
-      ]);
+
+    const menuItems: MenuProps["items"] = [];
+    const openKeys: string[] = [];
+
+    groups.forEach((g) => {
+      const visibleItems = g.items.filter(visible);
+      if (visibleItems.length === 0) return;
+
+      const leafItems = visibleItems.map((it) => ({
+        key: it.key,
+        label: t(it.labelKey),
+      }));
+
+      if (g.titleKey) {
+        // Groups with a title become collapsible sub-menus
+        const groupKey = `group:${g.titleKey}`;
+        openKeys.push(groupKey);
+        menuItems.push({
+          key: groupKey,
+          label: t(g.titleKey),
+          children: leafItems,
+        });
+      } else {
+        // Groups without a title are flat items
+        menuItems.push(...leafItems);
+      }
+    });
+
+    return { items: menuItems, defaultOpenKeys: openKeys };
   }, [isAdminZone, can, isAdmin, roles, t]);
 
   return (
     <Menu
       mode="inline"
       selectedKeys={[loc.pathname]}
+      defaultOpenKeys={defaultOpenKeys}
       items={items}
       onClick={({ key }) => nav(key)}
       style={{ height: "100%", borderInlineEnd: "none" }}

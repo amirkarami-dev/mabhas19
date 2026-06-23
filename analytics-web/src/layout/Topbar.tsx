@@ -1,4 +1,5 @@
-import { Layout, Select, Button, Dropdown, Space, Avatar } from "antd";
+import { Layout, Select, Button, Dropdown, Space, Avatar, Tooltip } from "antd";
+import { SunOutlined, MoonOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/useAuth";
 import { useUiStore } from "../store/ui-store";
@@ -22,7 +23,7 @@ const ALL_ROLES: AppRole[] = [
 export function Topbar() {
   const { t } = useTranslation();
   const { user, roles, logout, setMockRole } = useAuth();
-  const { mode, locale, setMode, setLocale } = useUiStore();
+  const { locale, setLocale, themeMode, toggleTheme } = useUiStore();
   const { currentTenantId, setCurrentTenant } = useTenantStore();
   const { data: tenants = [] } = useTenants();
 
@@ -31,6 +32,9 @@ export function Topbar() {
     setLocale(next);
     applyLocale(next);
   };
+
+  const themeLabel =
+    themeMode === "dark" ? t("common.theme.light") : t("common.theme.dark");
 
   return (
     <Header
@@ -61,9 +65,13 @@ export function Topbar() {
         />
       )}
       <Button onClick={toggleLocale}>{locale === "fa" ? "EN" : "FA"}</Button>
-      <Button onClick={() => setMode(mode === "dark" ? "light" : "dark")}>
-        {mode === "dark" ? "☀" : "☾"}
-      </Button>
+      <Tooltip title={themeLabel}>
+        <Button
+          aria-label={themeLabel}
+          icon={themeMode === "dark" ? <SunOutlined /> : <MoonOutlined />}
+          onClick={toggleTheme}
+        />
+      </Tooltip>
       <Dropdown
         menu={{ items: [{ key: "logout", label: t("auth.logout"), onClick: logout }] }}
       >
