@@ -1,5 +1,6 @@
 import { Button, Drawer, Space } from "antd";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 export function FormDrawer({
   open,
@@ -22,6 +23,7 @@ export function FormDrawer({
   children: ReactNode;
   width?: number;
 }) {
+  const { t } = useTranslation();
   return (
     <Drawer
       open={open}
@@ -31,10 +33,10 @@ export function FormDrawer({
       destroyOnClose
       extra={
         <Space>
-          <Button onClick={onClose}>انصراف</Button>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
           {!hideSubmit && (
             <Button type="primary" loading={submitting} onClick={onSubmit}>
-              ذخیره
+              {t("common.save")}
             </Button>
           )}
         </Space>
