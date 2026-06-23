@@ -8,7 +8,7 @@ const { Sider, Content } = Layout;
 const { useToken } = theme;
 
 export function AppLayout() {
-  const { sidebarCollapsed, dir } = useUiStore();
+  const { sidebarCollapsed, dir, themeMode } = useUiStore();
   const { token } = useToken();
 
   // In RTL layouts (fa), the sider should appear on the right.
@@ -21,7 +21,7 @@ export function AppLayout() {
       collapsible
       collapsed={sidebarCollapsed}
       trigger={null}
-      theme="light"
+      theme={themeMode === "dark" ? "dark" : "light"}
       style={{
         background: token.colorBgContainer,
         borderInlineStart: isRtl ? `1px solid ${token.colorBorderSecondary}` : undefined,
