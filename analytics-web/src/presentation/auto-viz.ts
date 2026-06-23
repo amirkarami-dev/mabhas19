@@ -55,7 +55,9 @@ export function chooseView(
   const tags = def.tags ?? [];
   const shareIntent =
     tags.includes("share") ||
-    def.presentation.views.some((v) => v.component === "PieChart");
+    // Guard: backend-generated ReportDefinitions have no `presentation` field
+    // (only the mock AI sets one), so this must be optional-chained.
+    (def.presentation?.views?.some((v) => v.component === "PieChart") ?? false);
   const advancedIntent = tags.some((t) => ADVANCED_INTENT.includes(t));
 
   const primary: ReportView = (() => {
