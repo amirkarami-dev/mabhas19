@@ -105,7 +105,9 @@ internal sealed class FarsNezamSemanticModelStore : ISemanticModelStore
                 new SemanticFieldDto { Id = "Id",         Name = "شناسه",        Type = "number", Role = "dimension" },
                 new SemanticFieldDto { Id = "ProjectNo",  Name = "شماره پرونده", Type = "string", Role = "dimension" },
                 new SemanticFieldDto { Id = "DaftarNo",   Name = "شماره دفتر",   Type = "number", Role = "dimension" },
-                new SemanticFieldDto { Id = "Typ",        Name = "نوع",          Type = "number", Role = "dimension" },
+                // Typ is an engineer/service-role code; LEFT JOIN tblMap_TypMohandes to show the title.
+                new SemanticFieldDto { Id = "Typ",        Name = "نوع خدمت",     Type = "string", Role = "dimension",
+                    LookupTable = "tblMap_TypMohandes", LookupKeyColumn = "Id", LookupNameColumn = "Onvan" },
                 new SemanticFieldDto { Id = "GroupBuild", Name = "گروه ساختمان", Type = "number", Role = "dimension" },
                 new SemanticFieldDto { Id = "FYear",      Name = "سال",          Type = "number", Role = "dimension" },
                 new SemanticFieldDto { Id = "Active",     Name = "فعال",         Type = "string", Role = "dimension" },

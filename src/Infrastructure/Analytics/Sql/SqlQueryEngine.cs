@@ -131,12 +131,49 @@ internal sealed class SqlQueryEngine : IQueryEngine
         // Jalali date fields (type == "string" AND used with dateBucket)
         var fieldTypes = model.Fields.ToDictionary(f => f.Id, f => f.Type, StringComparer.Ordinal);
 
+        // Full field map (for lookup-join metadata).
+        var fieldDtos = model.Fields.ToDictionary(f => f.Id, StringComparer.Ordinal);
+
         parameters = [];
         int paramIndex = 0;
 
         // ── Validate all referenced fields ────────────────────────────────────
 
         ValidateFields(definition, fieldMap);
+
+        // ── Lookup (code → label) LEFT JOINs for grouped dimensions ───────────
+        // A field may declare a lookup table in the TRUSTED semantic model; when grouped,
+        // we LEFT JOIN it and project the label instead of the raw code. Table/column
+        // identifiers come ONLY from the model (never user/AI input) → safe to bracket-quote.
+        var lookupJoins = new List<string>();
+        var joinedLookups = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var g in definition.GroupBy)
+        {
+            if (fieldDtos.TryGetValue(g.Field, out var fld) && fld.HasLookup && joinedLookups.Add(g.Field))
+            {
+                lookupJoins.Add(
+                    $"LEFT JOIN [{fld.LookupTable}] AS [lk_{g.Field}] " +
+                    $"ON [{tableName}].[{fld.ResolvedColumn}] = [lk_{g.Field}].[{fld.LookupKeyColumn}]");
+            }
+        }
+
+        // Qualify base-table columns with the table name ONLY when we join (avoids identifier
+        // ambiguity — e.g. both the base table and a lookup may have an [Id] column). With no
+        // join, columns stay bare so existing single-table SQL is byte-for-byte unchanged.
+        bool qualify = lookupJoins.Count > 0;
+
+        // Resolves a whitelisted field id to its (optionally table-qualified) bracketed column.
+        string ColRef(string fieldId) =>
+            qualify ? $"[{tableName}].[{fieldMap[fieldId]}]" : $"[{fieldMap[fieldId]}]";
+
+        // Dimension SELECT/GROUP expression: the lookup label when configured, else the
+        // (optionally Jalali-bucketed) column.
+        string DimExpr(ReportGroupByDto g)
+        {
+            if (fieldDtos.TryGetValue(g.Field, out var fld) && fld.HasLookup)
+                return $"[lk_{g.Field}].[{fld.LookupNameColumn}]";
+            return BuildDimExpression(ColRef(g.Field), g, fieldTypes.GetValueOrDefault(g.Field, "string"));
+        }
 
         // ── SELECT columns ────────────────────────────────────────────────────
 
@@ -153,18 +190,14 @@ internal sealed class SqlQueryEngine : IQueryEngine
         if (hasGroupBy)
         {
             foreach (var g in definition.GroupBy)
-            {
-                var colName = fieldMap[g.Field]; // whitelisted
-                var selectExpr = BuildGroupByExpression(colName, g, fieldTypes.GetValueOrDefault(g.Field, "string"));
-                selectParts.Add($"{selectExpr} AS [{g.Field}]");
-            }
+                selectParts.Add($"{DimExpr(g)} AS [{g.Field}]");
         }
 
         if (hasMetrics)
         {
             foreach (var m in definition.Metrics)
             {
-                var aggExpr = BuildAggregateExpression(m, fieldMap);
+                var aggExpr = BuildAggregateExpression(m, ColRef);
                 var alias   = m.Alias ?? $"{m.Aggregation}_{m.Field}";
                 selectParts.Add($"{aggExpr} AS [{alias}]");
             }
@@ -176,10 +209,7 @@ internal sealed class SqlQueryEngine : IQueryEngine
             if (definition.Columns.Count > 0)
             {
                 foreach (var c in definition.Columns)
-                {
-                    var colName = fieldMap[c.Field];
-                    selectParts.Add($"[{colName}] AS [{c.Field}]");
-                }
+                    selectParts.Add($"{ColRef(c.Field)} AS [{c.Field}]");
             }
             else
             {
@@ -194,6 +224,8 @@ internal sealed class SqlQueryEngine : IQueryEngine
 
         // tableName comes ONLY from our SourceToTable whitelist — safe to bracket-quote
         sb.Append($" FROM [{tableName}]");
+        foreach (var join in lookupJoins)
+            sb.Append(' ').Append(join);
 
         // ── WHERE ─────────────────────────────────────────────────────────────
 
@@ -202,8 +234,7 @@ internal sealed class SqlQueryEngine : IQueryEngine
             var whereParts = new List<string>();
             foreach (var filter in definition.Filters)
             {
-                var colName = fieldMap[filter.Field]; // whitelisted
-                var clause = BuildFilterClause(filter, colName, parameters, ref paramIndex);
+                var clause = BuildFilterClause(filter, ColRef(filter.Field), parameters, ref paramIndex);
                 if (clause is not null)
                     whereParts.Add(clause);
             }
@@ -220,12 +251,7 @@ internal sealed class SqlQueryEngine : IQueryEngine
         if (hasGroupBy)
         {
             sb.Append(" GROUP BY ");
-            var groupParts = definition.GroupBy.Select(g =>
-            {
-                var colName = fieldMap[g.Field];
-                return BuildGroupByExpression(colName, g, fieldTypes.GetValueOrDefault(g.Field, "string"));
-            });
-            sb.AppendJoin(", ", groupParts);
+            sb.AppendJoin(", ", definition.GroupBy.Select(DimExpr));
         }
 
         // ── ORDER BY ─────────────────────────────────────────────────────────
@@ -253,22 +279,16 @@ internal sealed class SqlQueryEngine : IQueryEngine
                     return $"[{alias}] {dir}";
                 }
 
-                if (fieldMap.TryGetValue(s.Field, out var colForSort))
+                if (fieldMap.ContainsKey(s.Field))
                 {
                     if (hasGroupBy)
                     {
                         // When grouping, sort by the SELECT expression (not the raw column)
                         var gDef = definition.GroupBy.FirstOrDefault(g => g.Field == s.Field);
                         if (gDef is not null)
-                        {
-                            var expr = BuildGroupByExpression(
-                                colForSort,
-                                gDef,
-                                fieldTypes.GetValueOrDefault(s.Field, "string"));
-                            return $"{expr} {dir}";
-                        }
+                            return $"{DimExpr(gDef)} {dir}";
                     }
-                    return $"[{colForSort}] {dir}";
+                    return $"{ColRef(s.Field)} {dir}";
                 }
 
                 throw new InvalidOperationException(
@@ -340,8 +360,8 @@ internal sealed class SqlQueryEngine : IQueryEngine
     /// applying Jalali date bucketing (LEFT()) when requested.
     /// Only "year" and "month" buckets are supported for Jalali string dates.
     /// </summary>
-    private static string BuildGroupByExpression(
-        string columnName,   // from whitelist
+    private static string BuildDimExpression(
+        string colExpr,   // already bracketed (and optionally table-qualified) column reference
         ReportGroupByDto g,
         string fieldType)
     {
@@ -350,13 +370,13 @@ internal sealed class SqlQueryEngine : IQueryEngine
             // Jalali date string bucketing via string prefix
             return g.DateBucket switch
             {
-                "year"  => $"LEFT([{columnName}], 4)",
-                "month" => $"LEFT([{columnName}], 7)",
-                _       => $"[{columnName}]",  // unsupported bucket → plain column
+                "year"  => $"LEFT({colExpr}, 4)",
+                "month" => $"LEFT({colExpr}, 7)",
+                _       => colExpr,  // unsupported bucket → plain column
             };
         }
 
-        return $"[{columnName}]";
+        return colExpr;
     }
 
     /// <summary>
@@ -365,17 +385,17 @@ internal sealed class SqlQueryEngine : IQueryEngine
     /// </summary>
     private static string BuildAggregateExpression(
         ReportMetricDto m,
-        Dictionary<string, string> fieldMap)
+        Func<string, string> colRef)   // resolves a field id to its bracketed (qualified) column
     {
         return m.Aggregation switch
         {
             "count"         => "COUNT(*)",
-            "countDistinct" when m.Field != "*" => $"COUNT(DISTINCT [{fieldMap[m.Field]}])",
+            "countDistinct" when m.Field != "*" => $"COUNT(DISTINCT {colRef(m.Field)})",
             "countDistinct" => "COUNT(*)",
-            "sum"           when m.Field != "*" => $"SUM([{fieldMap[m.Field]}])",
-            "avg"           when m.Field != "*" => $"AVG(CAST([{fieldMap[m.Field]}] AS FLOAT))",
-            "min"           when m.Field != "*" => $"MIN([{fieldMap[m.Field]}])",
-            "max"           when m.Field != "*" => $"MAX([{fieldMap[m.Field]}])",
+            "sum"           when m.Field != "*" => $"SUM({colRef(m.Field)})",
+            "avg"           when m.Field != "*" => $"AVG(CAST({colRef(m.Field)} AS FLOAT))",
+            "min"           when m.Field != "*" => $"MIN({colRef(m.Field)})",
+            "max"           when m.Field != "*" => $"MAX({colRef(m.Field)})",
             _               => "COUNT(*)",
         };
     }
@@ -386,12 +406,10 @@ internal sealed class SqlQueryEngine : IQueryEngine
     /// </summary>
     private static string? BuildFilterClause(
         ReportFilterDto filter,
-        string columnName,           // whitelisted column name
+        string col,                  // already-bracketed (and optionally table-qualified) column reference
         List<(string Name, object? Value)> parameters,
         ref int paramIndex)
     {
-        var col = $"[{columnName}]";
-
         switch (filter.Operator)
         {
             case "isNull":

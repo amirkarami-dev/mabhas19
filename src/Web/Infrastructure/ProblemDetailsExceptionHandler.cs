@@ -28,6 +28,16 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Title = "The specified resource was not found.",
                 Detail = ne.Message
             }),
+            // Generic "key/resource not found" (e.g. an unknown semantic model id from the AI
+            // generate request). Handle it here so it returns a clean 404 ProblemDetails instead
+            // of falling through to the default handler, which re-executes and 503s on a 404.
+            KeyNotFoundException ke => (StatusCodes.Status404NotFound, new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                Title = "The specified resource was not found.",
+                Detail = ke.Message
+            }),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, new ProblemDetails
             {
                 Status = StatusCodes.Status401Unauthorized,

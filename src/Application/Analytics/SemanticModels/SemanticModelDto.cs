@@ -24,6 +24,26 @@ public class SemanticFieldDto
 
     /// <summary>dimension | measure | date</summary>
     public string Role { get; init; } = string.Empty;
+
+    // ── Optional code → label lookup ─────────────────────────────────────────
+    // When all three are set (from the TRUSTED semantic model, never user input),
+    // GROUP BY on this field LEFT JOINs the lookup table and returns the human-readable
+    // name instead of the raw code. Identifiers are bracket-quoted from these values.
+
+    /// <summary>Lookup/reference table that maps this field's code to a label.</summary>
+    public string? LookupTable { get; init; }
+
+    /// <summary>Key column in the lookup table joined against this field's code.</summary>
+    public string? LookupKeyColumn { get; init; }
+
+    /// <summary>Name/label column in the lookup table returned in place of the code.</summary>
+    public string? LookupNameColumn { get; init; }
+
+    /// <summary>True when a complete code→label lookup is configured for this field.</summary>
+    public bool HasLookup =>
+        !string.IsNullOrEmpty(LookupTable) &&
+        !string.IsNullOrEmpty(LookupKeyColumn) &&
+        !string.IsNullOrEmpty(LookupNameColumn);
 }
 
 /// <summary>Summary of a queryable semantic model available to the report engine.</summary>

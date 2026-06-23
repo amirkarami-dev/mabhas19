@@ -449,4 +449,89 @@ public class SqlQueryEngineTests
         FarsNezamSemanticModelStore.SourceToTable["members"].ShouldBe("tblAzayeSazmanMain");
         FarsNezamSemanticModelStore.SourceToTable["legal_projects"].ShouldBe("tblHoghoghiProjectList");
     }
+
+    // =========================================================================
+    // BuildSql — code → label lookup join (legal_projects.Typ → tblMap_TypMohandes)
+    // =========================================================================
+
+    [Test]
+    public async Task SemanticModelStore_LegalProjectsTyp_HasLookupConfigured()
+    {
+        var store = new FarsNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("legal_projects");
+
+        var typ = model!.Fields.First(f => f.Id == "Typ");
+        typ.HasLookup.ShouldBeTrue();
+        typ.LookupTable.ShouldBe("tblMap_TypMohandes");
+        typ.LookupKeyColumn.ShouldBe("Id");
+        typ.LookupNameColumn.ShouldBe("Onvan");
+    }
+
+    [Test]
+    public async Task BuildSql_GroupByLookupField_EmitsLeftJoinAndProjectsLabel()
+    {
+        var store = new FarsNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("legal_projects");
+        model.ShouldNotBeNull();
+
+        var def = new ReportDefinitionDto
+        {
+            Dataset = "legal_projects",
+            GroupBy = [new ReportGroupByDto { Field = "Typ" }],
+            Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count", Alias = "c" }],
+            Sorting = [new ReportSortDto { Field = "c", Direction = "desc" }],
+        };
+
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+
+        // LEFT JOIN the lookup keyed on the base-table code column
+        sql.ShouldContain("LEFT JOIN [tblMap_TypMohandes] AS [lk_Typ] ON [tblHoghoghiProjectList].[Typ] = [lk_Typ].[Id]");
+        // Project + group by the label column (not the raw code)
+        sql.ShouldContain("[lk_Typ].[Onvan] AS [Typ]");
+        sql.ShouldContain("GROUP BY [lk_Typ].[Onvan]");
+        sql.ShouldContain("COUNT(*) AS [c]");
+    }
+
+    [Test]
+    public async Task BuildSql_LookupJoin_QualifiesBaseTableMeasureColumn()
+    {
+        var store = new FarsNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("legal_projects");
+        model.ShouldNotBeNull();
+
+        var def = new ReportDefinitionDto
+        {
+            Dataset = "legal_projects",
+            GroupBy = [new ReportGroupByDto { Field = "Typ" }],
+            Metrics = [new ReportMetricDto { Field = "FullMeter", Aggregation = "sum", Alias = "m" }],
+        };
+
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+
+        // When a join is present, base-table columns are table-qualified to avoid ambiguity.
+        sql.ShouldContain("SUM([tblHoghoghiProjectList].[FullMeter])");
+        sql.ShouldContain("LEFT JOIN [tblMap_TypMohandes]");
+    }
+
+    [Test]
+    public async Task BuildSql_NoLookupField_KeepsColumnsUnqualified()
+    {
+        var store = new FarsNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("legal_projects");
+        model.ShouldNotBeNull();
+
+        var def = new ReportDefinitionDto
+        {
+            Dataset = "legal_projects",
+            GroupBy = [new ReportGroupByDto { Field = "FYear" }],
+            Metrics = [new ReportMetricDto { Field = "FullMeter", Aggregation = "sum", Alias = "m" }],
+        };
+
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+
+        // No lookup in the def → no join, columns stay bare (existing behaviour preserved).
+        sql.ShouldNotContain("LEFT JOIN");
+        sql.ShouldContain("SUM([FullMeter])");
+        sql.ShouldContain("GROUP BY [FYear]");
+    }
 }

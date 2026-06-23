@@ -111,8 +111,9 @@ export const legalProjectsModel: SemanticModel = {
           label: { "fa-IR": "شماره پرونده", "en-US": "File No" } },
         { id: "DaftarNo", column: "DaftarNo", type: "number", role: "dimension",
           label: { "fa-IR": "شماره دفتر", "en-US": "Office No" } },
-        { id: "Typ", column: "Typ", type: "number", role: "dimension",
-          label: { "fa-IR": "نوع", "en-US": "Type" }, synonyms: ["نوع", "type"] },
+        // Backend LEFT JOINs tblMap_TypMohandes, so this returns the role title (string), not a code.
+        { id: "Typ", column: "Typ", type: "string", role: "dimension",
+          label: { "fa-IR": "نوع خدمت", "en-US": "Service Type" }, synonyms: ["نوع", "خدمت", "type"] },
         { id: "GroupBuild", column: "GroupBuild", type: "number", role: "dimension",
           label: { "fa-IR": "گروه ساختمان", "en-US": "Building Group" }, synonyms: ["گروه", "group"] },
         { id: "FYear", column: "FYear", type: "number", role: "dimension",
