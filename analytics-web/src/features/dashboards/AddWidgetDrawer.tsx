@@ -13,14 +13,12 @@ export function AddWidgetDrawer({ open, onClose, onPick }: Props) {
   const { t } = useTranslation();
   const { data } = useReports();
 
-  // FormDrawer requires onSubmit but this drawer is selection-only (no submit form).
-  // We expose onClose as onSubmit so clicking "Save" closes the drawer too.
   return (
     <FormDrawer
       open={open}
       title={t("dash.addWidget")}
       onClose={onClose}
-      onSubmit={onClose}
+      hideSubmit
       width={380}
     >
       {(data ?? []).length === 0 ? (
