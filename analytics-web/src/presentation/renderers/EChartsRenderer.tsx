@@ -3,6 +3,8 @@ import type { ReportView } from "../../contracts/presentation";
 import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
 import { formatNumber, type Dir } from "../format";
+import { useUiStore } from "../../store/ui-store";
+import { chartColors } from "../../theme/tokens";
 
 export type RendererProps = {
   view: ReportView;
@@ -36,6 +38,8 @@ function uniq(values: (string | number | null)[]): (string | number)[] {
 
 export default function EChartsRenderer({ view, result, onDrill }: RendererProps) {
   const dir = currentDir();
+  const themeMode = useUiStore((s) => s.themeMode);
+  const colors = chartColors(themeMode);
   const rows = result.rows as ResultRow[];
   // Map an ECharts click (by dataIndex on the category axis) back to its group node.
   const onEvents = onDrill
@@ -57,7 +61,7 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
   const legend: Record<string, unknown> = dir === "rtl" ? { right: 8 } : { left: 8 };
   const tooltip: Record<string, unknown> = {
     trigger: "item",
-    textStyle: { align: dir === "rtl" ? "right" : "left" },
+    textStyle: { align: dir === "rtl" ? "right" : "left", color: colors.text },
     valueFormatter,
   };
 
@@ -74,11 +78,13 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
       if (xi >= 0 && yi >= 0) data.push([xi, yi, val]);
     });
     const maxVal = Math.max(1, ...data.map((d) => d[2]));
+    const axisStyle = { axisLine: { lineStyle: { color: colors.axis } }, axisLabel: { color: colors.axis } };
     const option = {
+      backgroundColor: "transparent",
       tooltip: { ...tooltip, position: "top" },
       legend,
-      xAxis: { type: "category", data: xCats.map(String), inverse: dir === "rtl" },
-      yAxis: { type: "category", data: yCats.map(String) },
+      xAxis: { type: "category", data: xCats.map(String), inverse: dir === "rtl", ...axisStyle },
+      yAxis: { type: "category", data: yCats.map(String), ...axisStyle },
       visualMap: {
         min: 0,
         max: maxVal,
@@ -86,6 +92,7 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
         orient: "horizontal",
         left: dir === "rtl" ? "right" : "left",
         bottom: 0,
+        textStyle: { color: colors.text },
       },
       series: [
         {
@@ -128,19 +135,25 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
   }
 
   const option = {
+    backgroundColor: "transparent",
+    color: colors.series,
     tooltip: { ...tooltip, trigger: "axis" },
     legend,
-    grid: { left: 48, right: 48, bottom: 64, top: 32 },
+    grid: { left: 48, right: 48, bottom: 64, top: 32, borderColor: colors.grid },
     xAxis: {
       type: "category",
       data: xCats.map(String),
       inverse: dir === "rtl",
-      axisLabel: { interval: 0, rotate: xCats.length > 8 ? 30 : 0 },
+      axisLine: { lineStyle: { color: colors.axis } },
+      axisLabel: { interval: 0, rotate: xCats.length > 8 ? 30 : 0, color: colors.axis },
+      splitLine: { lineStyle: { color: colors.grid } },
     },
     yAxis: {
       type: "value",
       position: dir === "rtl" ? "right" : "left",
-      axisLabel: { formatter: (v: number) => valueFormatter(v) },
+      axisLine: { lineStyle: { color: colors.axis } },
+      axisLabel: { formatter: (v: number) => valueFormatter(v), color: colors.axis },
+      splitLine: { lineStyle: { color: colors.grid } },
     },
     dataZoom: xCats.length > 25 ? [{ type: "slider" }] : undefined,
     series,

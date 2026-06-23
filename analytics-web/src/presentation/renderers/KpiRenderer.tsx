@@ -1,4 +1,5 @@
-import { Card, Statistic, Tag } from "antd";
+import { Tag } from "antd";
+import { KpiTile } from "../../components/ui";
 import type { ReportView } from "../../contracts/presentation";
 import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResolvedColumn, GroupNode } from "../../contracts/dataset";
@@ -48,13 +49,13 @@ export default function KpiRenderer({ view, result }: RendererProps) {
   }
 
   return (
-    <Card variant="borderless" style={{ minWidth: 200 }}>
-      <Statistic title={label} value={display} />
+    <div style={{ minWidth: 200 }}>
+      <KpiTile label={label} value={display} tone="emerald" />
       {delta && (
         <Tag color={delta.up ? "green" : "red"} style={{ marginTop: 8 }}>
           {delta.up ? "▲" : "▼"} {delta.text}
         </Tag>
       )}
-    </Card>
+    </div>
   );
 }

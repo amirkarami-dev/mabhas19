@@ -20,6 +20,8 @@ import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
 import { formatNumber, type Dir } from "../format";
 import { aggregateByCategory } from "./chart-utils";
+import { useUiStore } from "../../store/ui-store";
+import { chartColors } from "../../theme/tokens";
 
 export type RendererProps = {
   view: ReportView;
@@ -29,15 +31,6 @@ export type RendererProps = {
    *  group node so the consumer can re-run `drillInto`. */
   onDrill?: (node: GroupNode) => void;
 };
-
-const PALETTE = [
-  "var(--chart-1, #10b981)",
-  "var(--chart-2, #3b82f6)",
-  "var(--chart-3, #f59e0b)",
-  "var(--chart-4, #ef4444)",
-  "var(--chart-5, #8b5cf6)",
-  "var(--chart-6, #14b8a6)",
-];
 
 function currentDir(): Dir {
   if (typeof document !== "undefined" && document.documentElement.dir === "rtl") {
@@ -56,6 +49,9 @@ function yKeys(view: ReportView): string[] {
 
 export default function RechartsRenderer({ view, result, onDrill }: RendererProps) {
   const dir = currentDir();
+  const themeMode = useUiStore((s) => s.themeMode);
+  const colors = chartColors(themeMode);
+  const palette = colors.series;
   const rawRows = result.rows as ResultRow[];
   const x = view.mapping.x ?? "";
   const ys = yKeys(view);
@@ -75,7 +71,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
     return (
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
-          <Tooltip formatter={(v: number) => numFmt(v)} />
+          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
           <Legend align={legendAlign} />
           <Pie
             data={data}
@@ -86,7 +82,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
             label
           >
             {data.map((_row, i) => (
-              <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+              <Cell key={i} fill={palette[i % palette.length]} />
             ))}
           </Pie>
         </PieChart>
@@ -99,17 +95,17 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
     return (
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey={x} reversed={dir === "rtl"} />
-          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} />
-          <Tooltip formatter={(v: number) => numFmt(v)} />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+          <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
             <Line
               key={yk}
               type="monotone"
               dataKey={yk}
-              stroke={PALETTE[i % PALETTE.length]}
+              stroke={palette[i % palette.length]}
               dot={false}
             />
           ))}
@@ -123,18 +119,18 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
     return (
       <ResponsiveContainer width="100%" height={320}>
         <AreaChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey={x} reversed={dir === "rtl"} />
-          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} />
-          <Tooltip formatter={(v: number) => numFmt(v)} />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+          <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
             <Area
               key={yk}
               type="monotone"
               dataKey={yk}
-              stroke={PALETTE[i % PALETTE.length]}
-              fill={PALETTE[i % PALETTE.length]}
+              stroke={palette[i % palette.length]}
+              fill={palette[i % palette.length]}
               fillOpacity={0.25}
             />
           ))}
@@ -153,15 +149,15 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
           if (typeof e?.activeTooltipIndex === "number") handleClick(e.activeTooltipIndex);
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey={x} reversed={dir === "rtl"} />
-        <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} />
-        <Tooltip formatter={(v: number) => numFmt(v)} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+        <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
+        <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+        <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
         <Legend align={legendAlign} />
         {ys.map((yk, si) => (
-          <Bar key={yk} dataKey={yk} fill={PALETTE[si % PALETTE.length]}>
+          <Bar key={yk} dataKey={yk} fill={palette[si % palette.length]}>
             {data.map((_row, ri) => (
-              <Cell key={`${yk}-${ri}`} fill={PALETTE[si % PALETTE.length]} />
+              <Cell key={`${yk}-${ri}`} fill={palette[si % palette.length]} />
             ))}
           </Bar>
         ))}
