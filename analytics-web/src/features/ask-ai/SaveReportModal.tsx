@@ -37,15 +37,21 @@ export function SaveReportModal({ open, def, onClose }: Props) {
       open={open}
       title={t("ask.saveTitle")}
       okText={t("common.save")}
+      cancelText={t("common.cancel")}
       confirmLoading={save.isPending}
       onOk={() => void submit()}
       onCancel={onClose}
       destroyOnHidden
+      width={480}
+      styles={{
+        body: { paddingTop: 8 },
+      }}
     >
       <Form
         form={form}
         layout="vertical"
         initialValues={{ name: def.name, visibility: "private" }}
+        style={{ marginTop: 16 }}
       >
         <Form.Item
           name="name"

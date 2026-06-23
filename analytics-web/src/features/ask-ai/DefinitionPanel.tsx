@@ -1,5 +1,5 @@
 // report-web/src/features/ask-ai/DefinitionPanel.tsx
-import { Button, Collapse, Tooltip, message } from "antd";
+import { Button, Collapse, Tooltip, message, theme } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ interface Props {
 
 export function DefinitionPanel({ def }: Props) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const json = JSON.stringify(def, null, 2);
   const lines = json.split("\n");
 
@@ -23,14 +24,20 @@ export function DefinitionPanel({ def }: Props) {
     <div data-testid="definition-panel">
       <Collapse
         ghost
+        size="small"
         items={[
           {
             key: "def",
-            label: t("ask.definitionTitle"),
+            label: (
+              <span style={{ fontSize: 13, color: token.colorTextSecondary }}>
+                {t("ask.definitionTitle")}
+              </span>
+            ),
             extra: (
               <Tooltip title={t("ask.copyJson")}>
                 <Button
                   size="small"
+                  type="text"
                   icon={<CopyOutlined />}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -53,6 +60,12 @@ export function DefinitionPanel({ def }: Props) {
                   fontSize: 12,
                   direction: "ltr",
                   textAlign: "left",
+                  background: token.colorFillQuaternary,
+                  borderRadius: token.borderRadiusSM,
+                  padding: "8px 12px",
+                  margin: 0,
+                  fontFamily: "monospace",
+                  color: token.colorText,
                 }}
               >
                 {lines.map((ln, i) => (

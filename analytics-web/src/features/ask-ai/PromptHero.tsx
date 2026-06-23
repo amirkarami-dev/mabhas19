@@ -1,5 +1,5 @@
 // report-web/src/features/ask-ai/PromptHero.tsx
-import { Button, Input, Select, Tag } from "antd";
+import { Button, Flex, Input, Select, Tag, Typography } from "antd";
 import { SendOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -31,15 +31,18 @@ export function PromptHero({ compact, datasetKey, onDataset, onSubmit }: Props) 
     <motion.div
       layout
       className={compact ? "ask-hero ask-hero--compact" : "ask-hero"}
+      style={compact ? undefined : { maxWidth: 720, margin: "0 auto", paddingTop: 24 }}
     >
       {!compact && (
-        <>
-          <h1 className="ask-hero__title">{t("ask.heroTitle")}</h1>
-          <p className="ask-hero__hint">{t("ask.sqlReassurance")}</p>
-        </>
+        <Typography.Text
+          type="secondary"
+          style={{ display: "block", marginBottom: 16, fontSize: 14 }}
+        >
+          {t("ask.sqlReassurance")}
+        </Typography.Text>
       )}
 
-      <div className="ask-hero__row">
+      <Flex gap={8} align="flex-start" className="ask-hero__row" wrap>
         <Select
           data-testid="dataset-picker"
           value={datasetKey}
@@ -56,6 +59,7 @@ export function PromptHero({ compact, datasetKey, onDataset, onSubmit }: Props) 
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") send();
           }}
           placeholder={t("ask.promptPlaceholder")}
+          style={{ flex: 1 }}
         />
         <Button
           type="primary"
@@ -65,10 +69,10 @@ export function PromptHero({ compact, datasetKey, onDataset, onSubmit }: Props) 
         >
           {t("ask.send")}
         </Button>
-      </div>
+      </Flex>
 
       {!compact && (
-        <div className="ask-hero__chips">
+        <div className="ask-hero__chips" style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
           {EXAMPLE_PROMPTS.map((ex) => (
             <Tag.CheckableTag
               key={ex.id}
@@ -78,6 +82,7 @@ export function PromptHero({ compact, datasetKey, onDataset, onSubmit }: Props) 
                 onDataset(ex.datasetKey);
                 onSubmit(ex.prompt);
               }}
+              style={{ cursor: "pointer", borderRadius: 20, padding: "2px 12px" }}
             >
               {ex.label}
             </Tag.CheckableTag>

@@ -1,5 +1,12 @@
 // report-web/src/features/ask-ai/ViewSwitcher.tsx
 import { Segmented } from "antd";
+import {
+  BarChartOutlined,
+  LineChartOutlined,
+  PieChartOutlined,
+  TableOutlined,
+  DashboardOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import type { QueryResult, ReportView, ViewType } from "@/contracts";
 
@@ -17,13 +24,14 @@ export function ViewSwitcher({ active, result, onSwitch }: Props) {
   const metricCount = result.columns.filter((c) => c.isMetric).length;
 
   const options = [
-    { label: t("view.table"), value: "table" as SwitchTarget },
-    { label: t("view.kpi"), value: "kpi" as SwitchTarget },
-    { label: t("view.bar"), value: "bar" as SwitchTarget },
-    { label: t("view.line"), value: "line" as SwitchTarget },
+    { label: t("view.table"), value: "table" as SwitchTarget, icon: <TableOutlined /> },
+    { label: t("view.kpi"), value: "kpi" as SwitchTarget, icon: <DashboardOutlined /> },
+    { label: t("view.bar"), value: "bar" as SwitchTarget, icon: <BarChartOutlined /> },
+    { label: t("view.line"), value: "line" as SwitchTarget, icon: <LineChartOutlined /> },
     {
       label: t("view.pie"),
       value: "pie" as SwitchTarget,
+      icon: <PieChartOutlined />,
       disabled: metricCount > 1,
     },
   ];
