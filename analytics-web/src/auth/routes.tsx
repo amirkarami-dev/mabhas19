@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Button, Card, Result, Spin, Typography } from "antd";
 import { useTranslation } from "react-i18next";
@@ -35,7 +35,7 @@ export function LoginScreen() {
           {t("common.appName")}
         </Typography.Title>
         <Typography.Text type="secondary" style={{ display: "block", marginBottom: 32 }}>
-          {useMock ? t("auth.mockMode") : t("auth.signingIn")}
+          {useMock ? t("auth.mockMode") : t("auth.signInPrompt")}
         </Typography.Text>
         <Button type="primary" size="large" block onClick={login}>
           {useMock ? t("auth.mockMode") : t("auth.login")}
@@ -49,7 +49,14 @@ export function OidcCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const ran = useRef(false);
   useEffect(() => {
+    // Run the code exchange EXACTLY once. Deps are intentionally empty + ref-guarded: react-i18next
+    // returns a NEW `t` when translations finish loading, which previously re-ran this effect and
+    // called signinRedirectCallback() a second time. The PKCE state was already consumed by the
+    // first (successful) call, so the second threw "No matching state" and flashed "ورود ناموفق بود".
+    if (ran.current) return;
+    ran.current = true;
     if (useMock) {
       navigate("/ask", { replace: true });
       return;
@@ -57,11 +64,12 @@ export function OidcCallback() {
     getUserManager()
       .signinRedirectCallback()
       .then(() => {
-        // userManager stored the session internally; AuthProvider reads it on next mount
+        // The stored user is picked up live by AuthProvider's addUserLoaded subscription.
         navigate("/ask", { replace: true });
       })
       .catch(() => setError(t("auth.callbackError")));
-  }, [navigate, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   if (error) return <Result status="error" title={error} />;
   return <Spin tip={t("auth.signingIn")} fullscreen />;
 }

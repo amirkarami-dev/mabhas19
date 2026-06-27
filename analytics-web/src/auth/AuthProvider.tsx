@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { User } from "oidc-client-ts";
 import { AuthContext } from "./useAuth";
 import type { AuthValue } from "./useAuth";
 import type { SessionUser } from "@/contracts";
@@ -17,21 +18,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let alive = true;
+
+    if (useMock) {
+      setUser(getMockUser());
+      setReady(true);
+      return;
+    }
+
+    const mgr = getUserManager();
+    const apply = (u: User | null) => {
+      if (alive) setUser(u && !u.expired ? sessionUserFromOidc(u) : null);
+    };
+
+    // Initial read (covers the case where a valid session is already in storage).
     void (async () => {
-      if (useMock) {
-        if (alive) {
-          setUser(getMockUser());
-          setReady(true);
-        }
-        return;
-      }
-      const u = await getUserManager().getUser();
+      const u = await mgr.getUser();
       if (!alive) return;
-      setUser(u && !u.expired ? sessionUserFromOidc(u) : null);
+      apply(u);
       setReady(true);
     })();
+
+    // CRITICAL: react to the user the redirect/silent callback stores. Without this, the FIRST
+    // login completes the token exchange AFTER this provider's initial getUser() already resolved
+    // null, so RequireAuth bounced to /login (the "works on the second click" bug).
+    const onLoaded = (u: User) => apply(u);
+    const onUnloaded = () => {
+      if (alive) setUser(null);
+    };
+    mgr.events.addUserLoaded(onLoaded);
+    mgr.events.addUserUnloaded(onUnloaded);
+
     return () => {
       alive = false;
+      mgr.events.removeUserLoaded(onLoaded);
+      mgr.events.removeUserUnloaded(onUnloaded);
     };
   }, []);
 

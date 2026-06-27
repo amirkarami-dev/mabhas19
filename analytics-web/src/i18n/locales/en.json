@@ -60,6 +60,7 @@
     "login": "Sign in",
     "logout": "Sign out",
     "signingIn": "Signing in…",
+    "signInPrompt": "Sign in to continue",
     "callbackError": "Sign-in failed",
     "mockMode": "Mock mode",
     "selectRole": "Select role",

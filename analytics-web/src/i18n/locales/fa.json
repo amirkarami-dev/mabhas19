@@ -60,6 +60,7 @@
     "login": "ورود",
     "logout": "خروج",
     "signingIn": "در حال ورود…",
+    "signInPrompt": "برای ورود به حساب خود ادامه دهید",
     "callbackError": "ورود ناموفق بود",
     "mockMode": "حالت آزمایشی",
     "selectRole": "انتخاب نقش",
