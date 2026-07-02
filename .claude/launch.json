@@ -21,6 +21,27 @@
       "runtimeArgs": ["-m", "http.server", "8077", "--directory", "roadmap"],
       "port": 8077,
       "autoPort": false
+    },
+    {
+      "name": "auth",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Auth"],
+      "port": 5100,
+      "autoPort": false
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Web"],
+      "port": 5000,
+      "autoPort": false
+    },
+    {
+      "name": "mun-sanandaj-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "mun-sanandaj-web", "run", "dev", "--", "--port", "5274", "--strictPort"],
+      "port": 5274,
+      "autoPort": false
     }
   ]
 }
