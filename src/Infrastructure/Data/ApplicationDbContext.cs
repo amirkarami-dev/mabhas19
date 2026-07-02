@@ -2,6 +2,7 @@
 using Mabhas19.Application.Common.Interfaces;
 using Mabhas19.Domain.Analytics;
 using Mabhas19.Domain.Entities;
+using Mabhas19.Domain.MunSanandaj;
 using Mabhas19.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<Tenant> AnalyticsTenants => Set<Tenant>();
 
     public DbSet<AuditEvent> AnalyticsAuditEvents => Set<AuditEvent>();
+
+    // MunSanandaj integration
+    public DbSet<MunSyncRun> MunSyncRuns => Set<MunSyncRun>();
+
+    public DbSet<MunReportLog> MunReportLogs => Set<MunReportLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
