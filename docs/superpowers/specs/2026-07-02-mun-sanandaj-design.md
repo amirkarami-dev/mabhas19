@@ -82,7 +82,7 @@ updated in place. "Current status of a Peygiri" = its latest row by `CreatedAt`.
 | Column | Type | Notes |
 |---|---|---|
 | `Id` | `int` (PK) | |
-| `RunId` | `int` (FK → `mun_sync_runs.Id`) | |
+| `RunId` | `int` (indexed, references `mun_sync_runs.Id` by convention — no DB-level FK constraint, since RunId is always set from an in-memory run just persisted) | |
 | `WorkerType` | `string` | denormalized copy of the run's type, for simpler queries |
 | `Peygiri` | `string` | tracking code from sp1 (e.g. `90038565090216074508`) |
 | `ProjectNo` | `string` | `darkhast_id` |
@@ -128,8 +128,8 @@ and retried on the next 12h run (no special-casing needed beyond the normal retr
 ### mahyapardaz REST API
 
 Bearer token auth (`Authorization: Bearer {token}`), config key `MunSanandaj:ApiToken`
-(env `MunSanandaj__ApiToken`) — the token value pasted in chat
-(`iqwueyuidaghdajsghdjkgaksjds`) goes only into `deploy/.env` on the server, never committed.
+(env `MunSanandaj__ApiToken`) — the token value pasted in chat goes only into `deploy/.env`
+on the server, never committed (redacted here — see chat history / rotate before go-live).
 Called via a typed `HttpClient` registered **without** Aspire's default resilience handler (same
 fix already applied to `ArvanReportAiService` — base64 PDF uploads over a slow municipal link
 would otherwise hit the 10s default per-attempt timeout) — a 120s timeout instead.
