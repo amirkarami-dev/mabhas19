@@ -1,9 +1,12 @@
 ﻿using Mabhas19.Application.Common.Interfaces;
+using Mabhas19.Application.Common.Interfaces.MunSanandaj;
 using Mabhas19.Infrastructure.Analytics;
 using Mabhas19.Infrastructure.Data;
 using Mabhas19.Infrastructure.Data.Interceptors;
 using Mabhas19.Infrastructure.External;
 using Mabhas19.Infrastructure.Identity;
+using Mabhas19.Infrastructure.MunSanandaj;
+using Mabhas19.Infrastructure.MunSanandaj.Sql;
 using Mabhas19.Infrastructure.Reporting;
 using Mabhas19.Infrastructure.Storage;
 using Mabhas19.Infrastructure.Subscriptions;
@@ -106,5 +109,20 @@ public static class DependencyInjection
 
         // Analytics module (query engine + AI report-generation service).
         services.AddAnalyticsServices(config);
+
+        // MunSanandaj integration (KurdNezam SQL -> mahyapardaz REST). Gated off entirely when
+        // ConnectionStrings:KurdNezamDb is empty, mirroring the AnalyticsDb/FarsNezamDb pattern —
+        // so local dev/CI never fails for lacking this external, credentialed municipal DB.
+        var kurdNezamCs = config.GetConnectionString("KurdNezamDb") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(kurdNezamCs))
+        {
+            services.Configure<MunSanandajOptions>(config.GetSection(MunSanandajOptions.SectionName));
+            services.AddSingleton<IMunSanandajSourceReader, MunSanandajSourceReader>();
+            services.AddSingleton<IMunSanandajGatewayClient, MunSanandajGatewayClient>();
+            services.AddSingleton<IMunSanandajPdfFetcher, MunSanandajPdfFetcher>();
+            services.AddScoped<IMunSanandajSyncService, MunSanandajSyncService>();
+            services.AddHostedService<SaveEngineerReportWorker>();
+            services.AddHostedService<SaveEngMapWorker>();
+        }
     }
 }
