@@ -29,6 +29,8 @@ public class Logs : Mabhas19.Web.Infrastructure.IEndpointGroup
         int page = 1,
         int pageSize = 50)
     {
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
         var query = context.MunReportLogs.AsQueryable();
 
         if (Enum.TryParse<MunWorkerType>(workerType, ignoreCase: true, out var wt))

@@ -4,6 +4,7 @@ import { ReloadOutlined } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { useRunDetail, useRuns, useTriggerRun } from "../../lib/queries";
+import { LOG_STATUS_LABEL, RUN_STATUS_LABEL } from "../../lib/types";
 import type { MunReportLogDto, MunWorkerType } from "../../lib/types";
 
 const WORKER_LABEL: Record<MunWorkerType, string> = {
@@ -58,7 +59,7 @@ export function Dashboard() {
                   >
                     آخرین اجرا: {new Date(run.startedAt).toLocaleString("fa-IR")} —{" "}
                     <Tag color={run.status === "Running" ? "processing" : run.status === "Completed" ? "success" : "error"}>
-                      {run.status}
+                      {RUN_STATUS_LABEL[run.status]}
                     </Tag>
                   </Typography.Text>
                 )}
@@ -98,7 +99,9 @@ export function Dashboard() {
             {
               title: "وضعیت",
               dataIndex: "status",
-              render: (status: string) => <Tag color={status === "Success" ? "success" : "error"}>{status}</Tag>,
+              render: (status: MunReportLogDto["status"]) => (
+                <Tag color={status === "Success" ? "success" : "error"}>{LOG_STATUS_LABEL[status]}</Tag>
+              ),
             },
             { title: "تلاش", dataIndex: "attemptNumber" },
             { title: "خطا", dataIndex: "errorMessage" },

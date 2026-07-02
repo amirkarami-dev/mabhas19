@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Input, Select, Table, Tag } from "antd";
 import { useLogs } from "../../lib/queries";
+import { LOG_STATUS_LABEL } from "../../lib/types";
 import type { LogsFilter, MunReportLogDto } from "../../lib/types";
 
 export function LogsPage() {
@@ -59,7 +60,9 @@ export function LogsPage() {
           {
             title: "وضعیت",
             dataIndex: "status",
-            render: (status: string) => <Tag color={status === "Success" ? "success" : "error"}>{status}</Tag>,
+            render: (status: MunReportLogDto["status"]) => (
+              <Tag color={status === "Success" ? "success" : "error"}>{LOG_STATUS_LABEL[status]}</Tag>
+            ),
           },
           { title: "تلاش", dataIndex: "attemptNumber" },
           { title: "شناسه ثبت", dataIndex: "remoteSubmissionId" },

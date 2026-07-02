@@ -50,3 +50,14 @@ export interface LogsFilter {
   page?: number;
   pageSize?: number;
 }
+
+export const RUN_STATUS_LABEL: Record<MunRunStatus, string> = {
+  Running: "در حال اجرا",
+  Completed: "تکمیل‌شده",
+  Failed: "ناموفق",
+};
+
+export const LOG_STATUS_LABEL: Record<MunLogStatus, string> = {
+  Success: "موفق",
+  Failed: "ناموفق",
+};
