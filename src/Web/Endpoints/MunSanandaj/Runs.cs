@@ -55,10 +55,14 @@ public class Runs : Mabhas19.Web.Infrastructure.IEndpointGroup
     }
 
     public static async Task<Results<Ok<MunSyncRunDto>, BadRequest<string>>> TriggerRun(
-        IMunSanandajSyncService syncService, IApplicationDbContext context, HttpContext httpContext, string workerType, CancellationToken ct)
+        IApplicationDbContext context, HttpContext httpContext, string workerType, CancellationToken ct)
     {
         if (!Enum.TryParse<MunWorkerType>(workerType, ignoreCase: true, out var type))
             return TypedResults.BadRequest("workerType must be 'SaveEngineerReport' or 'SaveEngMap'.");
+
+        var syncService = httpContext.RequestServices.GetService<IMunSanandajSyncService>();
+        if (syncService is null)
+            return TypedResults.BadRequest("MunSanandaj is not configured on this server (ConnectionStrings:KurdNezamDb is empty).");
 
         var triggeredByUser = httpContext.User.FindFirstValue("email") ?? httpContext.User.FindFirstValue("name");
 
