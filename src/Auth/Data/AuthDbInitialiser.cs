@@ -225,6 +225,43 @@ public class AuthDbInitialiser(
 
             await EnsureClientAsync(analyticsClient);
         }
+
+        // mun-sanandaj-web — Public, Authorization Code + PKCE, for mun-sanandaj.myceo.ir.
+        // Optional: only seeded when its redirect URI is configured (same pattern as analytics-web).
+        var munSanandajRedirect   = configuration["Clients:MunSanandajWeb:Redirect"]   ?? string.Empty;
+        var munSanandajSilent     = configuration["Clients:MunSanandajWeb:Silent"]     ?? string.Empty;
+        var munSanandajPostLogout = configuration["Clients:MunSanandajWeb:PostLogout"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(munSanandajRedirect))
+        {
+            var munSanandajClient = new OpenIddictApplicationDescriptor
+            {
+                ClientId    = "mun-sanandaj-web",
+                ClientType  = ClientTypes.Public,
+                DisplayName = "Mun Sanandaj Web",
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.Endpoints.EndSession,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + "mabhas19.api"
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange }
+            };
+            munSanandajClient.RedirectUris.Add(new Uri(munSanandajRedirect));
+            if (!string.IsNullOrWhiteSpace(munSanandajSilent))
+                munSanandajClient.RedirectUris.Add(new Uri(munSanandajSilent));
+            if (!string.IsNullOrWhiteSpace(munSanandajPostLogout))
+                munSanandajClient.PostLogoutRedirectUris.Add(new Uri(munSanandajPostLogout));
+
+            await EnsureClientAsync(munSanandajClient);
+        }
     }
 
     private async Task EnsureClientAsync(OpenIddictApplicationDescriptor descriptor)
