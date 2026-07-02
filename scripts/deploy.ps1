@@ -44,7 +44,7 @@ Remote "echo '$ServerPass' | sudo -S mkdir -p $AppPath/deploy $AppPath/scripts &
 Write-Host "==> 3/6  Uploading source + compose + provisioner"
 Push $tar "/tmp/mabhas19-src.tar.gz"
 # Remove only source trees (NOT deploy/.env or deploy/certs) so renamed/removed files can't survive.
-Remote "cd $AppPath && rm -rf src web analytics-web packages tests mobile docs 'Directory.Build.props' 'Directory.Packages.props' *.slnx package.json package-lock.json && tar -xzf /tmp/mabhas19-src.tar.gz -C $AppPath && rm -f /tmp/mabhas19-src.tar.gz"
+Remote "cd $AppPath && rm -rf src web analytics-web mun-sanandaj-web packages tests mobile docs 'Directory.Build.props' 'Directory.Packages.props' *.slnx package.json package-lock.json && tar -xzf /tmp/mabhas19-src.tar.gz -C $AppPath && rm -f /tmp/mabhas19-src.tar.gz"
 Push (Join-Path $RepoRoot "deploy\docker-compose.newserver.yml") "$AppPath/deploy/docker-compose.newserver.yml"
 Push (Join-Path $RepoRoot "scripts\remote-provision.sh")          "$AppPath/scripts/remote-provision.sh"
 
@@ -57,7 +57,7 @@ Write-Host "==> 5/6  Building images from source (no cache, one at a time — 4 
 # "no space left on device". (Moving containerd's root to /data would fix it permanently but
 # needs a containerd+docker restart = every container on the shared box restarts.)
 Remote "docker builder prune -af"
-foreach ($svc in @("api", "auth", "web", "analytics-web")) {
+foreach ($svc in @("api", "auth", "web", "analytics-web", "mun-sanandaj-web")) {
   Write-Host "    building $svc ..."
   Remote "cd $AppPath && docker compose -f $Compose --env-file deploy/.env build --no-cache $svc"
 }

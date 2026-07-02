@@ -28,6 +28,7 @@ API_DOMAIN=api.mabhas19.myceo.ir
 AUTH_DOMAIN=auth.myceo.ir
 MINIO_DOMAIN=s3.mabhas19.myceo.ir
 ANALYTICS_DOMAIN=analytic.myceo.ir
+MUN_SANANDAJ_DOMAIN=mun-sanandaj.myceo.ir
 
 # --- Infra secrets (generated) ---
 MSSQL_SA_PASSWORD=$(gen_complex)
@@ -60,6 +61,10 @@ GOOGLE_CLIENT_ID=
 # نظام مهندسی ساختمان project import:
 NEZAM_BASE_URL=
 NEZAM_API_KEY=
+# mun-sanandaj municipality integration (KurdNezam read-only SQL + mahyapardaz REST bearer token).
+# NON-EMPTY KURDNEZAM_DB_CONN enables the two 12h sync workers; leave both empty to disable.
+KURDNEZAM_DB_CONN=
+MUN_SANANDAJ_API_TOKEN=
 # Analytics service (AI reporting on FarsNezam) — analytic.myceo.ir.
 # Non-secret build/runtime toggles:
 ANALYTICS_AI_FE_MODE=gateway

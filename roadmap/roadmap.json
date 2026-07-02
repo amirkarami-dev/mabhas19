@@ -28,6 +28,24 @@
       ]
     },
     {
+      "id": "mun-sanandaj",
+      "name": "Mun Sanandaj integration",
+      "domain": "mun-sanandaj.myceo.ir",
+      "kind": "planned",
+      "items": [
+        { "id": "mun-01", "title": "MunSyncRun/MunReportLog entities + migration", "desc": "mun_sync_runs (per-run) + mun_report_logs (append-only per-attempt) tables on the existing Mabhas19Db.", "status": "not-started", "area": "backend", "priority": "high", "effort": "M", "tags": ["ef-core", "schema"] },
+        { "id": "mun-02", "title": "Field-mapping + gateway-response-parsing unit tests", "desc": "Pure sp2-row -> addEngineer/saveEngMap mapping, and saveEngineerReport/saveEngMap/addEngineer response parsers, golden-tested against the exact spec JSON.", "status": "not-started", "area": "backend", "priority": "high", "effort": "M", "tags": ["testing", "mapping"] },
+        { "id": "mun-03", "title": "KurdNezam SQL reader (sp1/sp2)", "desc": "Raw ADO.NET against ConnectionStrings:KurdNezamDb for WebS_GetListRepToShahrdari + WebS_GetReportFullInfo.", "status": "not-started", "area": "backend", "priority": "high", "effort": "M", "tags": ["sql", "external"] },
+        { "id": "mun-04", "title": "mahyapardaz gateway client", "desc": "Bearer-auth HttpClient (long timeout, Aspire-resilience bypass) for saveEngineerReport/saveEngMap/addEngineer.", "status": "not-started", "area": "backend", "priority": "high", "effort": "M", "tags": ["http", "external"] },
+        { "id": "mun-05", "title": "Sync orchestration + addEngineer-retry flow", "desc": "IMunSanandajSyncService: skip already-succeeded Peygiris, run both flows, auto-create+retry on 'مهندس یافت نشد'.", "status": "not-started", "area": "backend", "priority": "high", "effort": "L", "tags": ["orchestration"] },
+        { "id": "mun-06", "title": "12h background workers + gated DI", "desc": "SaveEngineerReportWorker/SaveEngMapWorker BackgroundServices, feature-gated on ConnectionStrings:KurdNezamDb.", "status": "not-started", "area": "backend", "priority": "high", "effort": "S", "tags": ["hosted-service"] },
+        { "id": "mun-07", "title": "Runs + Logs admin API", "desc": "GET Runs/Runs/{id}, POST Runs/{workerType}/trigger, GET Logs (paginated/filterable) — Administrator-only.", "status": "not-started", "area": "backend", "priority": "high", "effort": "M", "tags": ["api", "admin"] },
+        { "id": "mun-08", "title": "mun-sanandaj-web dashboard", "desc": "New Vite/React/AntD/ECharts/framer-motion SPA: live-polling dashboard (KPIs, run chart, live row table) + filterable logs page.", "status": "not-started", "area": "frontend", "priority": "high", "effort": "L", "tags": ["react", "dashboard"] },
+        { "id": "mun-09", "title": "OIDC auth (Administrator-gated)", "desc": "oidc-client-ts PKCE against the central IdP; mun-sanandaj-web seeded as a public client, gated to the Administrator role.", "status": "not-started", "area": "frontend", "priority": "high", "effort": "M", "tags": ["auth", "oidc"] },
+        { "id": "mun-10", "title": "Deploy to mun-sanandaj.myceo.ir", "desc": "New service on the 185.206.94.116 stack behind shared Traefik; DNS A-record + KurdNezam/mahyapardaz secrets in deploy/.env.", "status": "not-started", "area": "devops", "priority": "high", "effort": "M", "tags": ["deploy", "traefik"] }
+      ]
+    },
+    {
       "id": "mabhas19",
       "name": "Mabhas19 (section 19 app)",
       "domain": "mabhas19.myceo.ir",
