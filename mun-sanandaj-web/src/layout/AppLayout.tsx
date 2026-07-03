@@ -67,7 +67,7 @@ export function AppLayout() {
           </div>
           {!collapsed && (
             <Typography.Text strong style={{ fontSize: 15, whiteSpace: "nowrap" }}>
-              پایش سنندج
+               وب سرویس شهرداری
             </Typography.Text>
           )}
         </div>
