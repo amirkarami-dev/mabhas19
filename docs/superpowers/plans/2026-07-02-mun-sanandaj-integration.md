@@ -1920,7 +1920,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>پایش سرویس مبحث ۱۹ سنندج</title>
+    <title> وب سرویس شهرداری سنندج  </title>
   </head>
   <body>
     <div id="root"></div>
@@ -2132,7 +2132,7 @@ export function LoginScreen() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Card variant="borderless" style={{ width: 360 }} styles={{ body: { padding: 40, textAlign: "center" } }}>
         <Typography.Title level={3} style={{ marginBottom: 8 }}>
-          پایش سرویس مبحث ۱۹ سنندج
+          وب سرویس شهرداری سنندج
         </Typography.Title>
         <Typography.Text type="secondary" style={{ display: "block", marginBottom: 32 }}>
           برای ورود به حساب خود ادامه دهید
@@ -2493,7 +2493,7 @@ export function AppLayout() {
     <Layout style={{ minHeight: "100vh" }}>
       <Header style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <Typography.Text strong style={{ color: "#fff", whiteSpace: "nowrap" }}>
-          پایش مبحث ۱۹ سنندج
+          وب سرویس شهرداری سنندج
         </Typography.Text>
         <Menu
           theme="dark"

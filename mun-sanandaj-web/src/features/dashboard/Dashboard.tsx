@@ -46,7 +46,7 @@ export function Dashboard() {
   return (
     <div>
       <PageHeader
-        title="داشبورد پایش"
+        title="داشبورد سرویس ها"
         subtitle="وضعیت همگام‌سازی گزارش‌ها و نقشه‌های مهندسین با سامانه شهرداری سنندج"
         extra={
           anyRunning ? (
