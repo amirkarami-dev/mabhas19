@@ -50,7 +50,7 @@ export function LoginScreen() {
           م
         </div>
         <Typography.Title level={3} style={{ marginBottom: 6 }}>
-          پایش سرویس مبحث ۱۹ سنندج
+          ورود به وب سرویس شهرداری سنندج
         </Typography.Title>
         <Typography.Text type="secondary" style={{ display: "block", marginBottom: 32 }}>
           برای ورود به حساب خود ادامه دهید
