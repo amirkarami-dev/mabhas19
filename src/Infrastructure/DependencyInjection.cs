@@ -122,7 +122,11 @@ public static class DependencyInjection
             services.AddSingleton<IMunSanandajPdfFetcher, MunSanandajPdfFetcher>();
             services.AddScoped<IMunSanandajSyncService, MunSanandajSyncService>();
             services.AddHostedService<SaveEngineerReportWorker>();
-            services.AddHostedService<SaveEngMapWorker>();
+
+            // SaveEngMapWorker is intentionally NOT started for now — the engineer-map flow will be
+            // redesigned (its interaction with the shared sp1 list + the new WebS_AddSabtNoToReport
+            // write-back needs a different approach). Re-enable this line once that design is decided.
+            // services.AddHostedService<SaveEngMapWorker>();
         }
     }
 }
