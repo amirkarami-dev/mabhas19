@@ -124,9 +124,30 @@ internal sealed class MunSanandajSyncService : IMunSanandajSyncService
             return RowResult.Failed(attemptNumber, "pdf not found");
 
         var result = await _gateway.SaveEngineerReportAsync(row.ProjectNo, row.ReqId, pdfBase64, ct);
-        return result.Success
-            ? RowResult.Succeeded(attemptNumber, result.RemoteSubmissionId, result.RawResponse)
-            : RowResult.Failed(attemptNumber, result.ErrorMessage, result.RawResponse);
+        if (!result.Success)
+            return RowResult.Failed(attemptNumber, result.ErrorMessage, result.RawResponse);
+
+        // The city accepted the report. Write back to KurdNezam so sp1 stops returning this Peygiri
+        // (city-side de-dup): @Rahgiri = tracking code from sp1, @Sabt = the submission id the city
+        // just returned. A failure here must NOT fail the row — the report was really sent, and
+        // failing would cause a DUPLICATE submission next run; our own log-based dedup already stops
+        // re-sends on our side. So we only warn and carry on.
+        if (result.RemoteSubmissionId is { Length: > 0 } sabt)
+        {
+            try
+            {
+                await _reader.MarkReportSentAsync(row.Peygiri, sabt, ct);
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(ex,
+                    "saveEngineerReport succeeded for Peygiri {Peygiri} but WebS_AddSabtNoToReport failed; "
+                    + "the city list may still include it (our log dedup still prevents a re-send).",
+                    row.Peygiri);
+            }
+        }
+
+        return RowResult.Succeeded(attemptNumber, result.RemoteSubmissionId, result.RawResponse);
     }
 
     internal async Task<RowResult> ProcessSaveEngMapRowAsync(MunSourceRowDto row, int attemptNumber, CancellationToken ct)

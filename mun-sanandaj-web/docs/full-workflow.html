@@ -290,12 +290,26 @@
       <div class="node success">
         <div class="tag">City says OK ✓</div>
         <div class="title"><span class="chip ok">success</span></div>
-        <div class="desc">Save the city's tracking number (<code>peigiri</code>) with the log row.</div>
+        <div class="desc">Save the city's tracking number (<code>peigiri</code>) with the log row, then do Step 5.</div>
       </div>
       <div class="node danger">
         <div class="tag">City says error ✗</div>
         <div class="title"><span class="chip bad">failed</span></div>
         <div class="desc">Save the error text. Try again on the next run.</div>
+      </div>
+    </div>
+
+    <div class="arrow"><span class="lbl">after a successful send</span></div>
+
+    <div class="node db">
+      <div class="tag">Step 5 · Mark it sent</div>
+      <div class="title">Tell the city database "this one is done"</div>
+      <div class="desc">
+        Call the saved question <code>WebS_AddSabtNoToReport</code> with
+        <code>@Rahgiri</code> = the tracking code from Step&nbsp;2 of the big picture (the <code>Peygiri</code> from the list),
+        and <code>@Sabt</code> = the city's tracking number we just got back.
+        Now the list (<code>WebS_GetListRepToShahrdari</code>) will not return this project again, so it is never sent twice.
+        <br>If this write fails, we still keep the row as <span class="chip ok">success</span> (the report <i>was</i> sent) and only write a warning — never a second send.
       </div>
     </div>
   </div>

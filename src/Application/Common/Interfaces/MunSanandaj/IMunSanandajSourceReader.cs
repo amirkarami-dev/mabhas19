@@ -18,7 +18,11 @@ public sealed record MunEngineerInfoDto(
     string PayehNezaratTemp,
     string Major);
 
-/// <summary>Read-only access to the KurdNezam SQL Server (ConnectionStrings:KurdNezamDb).</summary>
+/// <summary>
+/// Access to the KurdNezam SQL Server (ConnectionStrings:KurdNezamDb). Reads the pending list
+/// and engineer info, and writes back one "mark as sent" record so a successfully-sent report
+/// stops appearing in the pending list (city-side de-duplication).
+/// </summary>
 public interface IMunSanandajSourceReader
 {
     /// <summary>Calls sp1 — every row currently pending report/map submission.</summary>
@@ -26,4 +30,12 @@ public interface IMunSanandajSourceReader
 
     /// <summary>Calls sp2 for one Peygiri — every engineer assigned to that project (may be more than one).</summary>
     Task<IReadOnlyList<MunEngineerInfoDto>> GetEngineersAsync(string peygiri, CancellationToken ct = default);
+
+    /// <summary>
+    /// Calls sp [dbo].[WebS_AddSabtNoToReport] to record that a report was accepted by the city, so
+    /// sp1 (WebS_GetListRepToShahrdari) stops returning it — preventing duplicate sends.
+    /// </summary>
+    /// <param name="peygiri">Tracking code from sp1 → <c>@Rahgiri</c>.</param>
+    /// <param name="sabt">Submission id returned by <c>saveEngineerReport</c> → <c>@Sabt</c>.</param>
+    Task MarkReportSentAsync(string peygiri, string sabt, CancellationToken ct = default);
 }

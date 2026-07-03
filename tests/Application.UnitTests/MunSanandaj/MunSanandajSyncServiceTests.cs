@@ -51,13 +51,45 @@ public class MunSanandajSyncServiceTests
         status.ShouldBe(Mabhas19.Domain.MunSanandaj.MunLogStatus.Failed);
         error.ShouldBe("pdf not found");
         _gateway.Verify(g => g.SaveEngineerReportAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _reader.Verify(r => r.MarkReportSentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
-    public async Task ProcessSaveEngineerReportRowAsync_success_passes_through_gateway_result()
+    public async Task ProcessSaveEngineerReportRowAsync_success_marks_report_sent_in_db()
     {
         _gateway.Setup(g => g.SaveEngineerReportAsync(Row.ProjectNo, Row.ReqId, "cGRmYnl0ZXM=", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MunGatewayResult(true, "2583267", "{}", null, null));
+
+        var (status, _, remoteId, _, _, _) = await _sut.ProcessSaveEngineerReportRowAsync(Row, 1, CancellationToken.None);
+
+        status.ShouldBe(Mabhas19.Domain.MunSanandaj.MunLogStatus.Success);
+        remoteId.ShouldBe("2583267");
+        // WebS_AddSabtNoToReport(@Rahgiri = Peygiri from sp1, @Sabt = submission id from saveEngineerReport).
+        _reader.Verify(r => r.MarkReportSentAsync(Row.Peygiri, "2583267", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ProcessSaveEngineerReportRowAsync_send_failed_does_not_mark_sent()
+    {
+        _gateway.Setup(g => g.SaveEngineerReportAsync(Row.ProjectNo, Row.ReqId, "cGRmYnl0ZXM=", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MunGatewayResult(false, null, "{}", "city error", null));
+
+        var (status, _, _, _, error, _) = await _sut.ProcessSaveEngineerReportRowAsync(Row, 1, CancellationToken.None);
+
+        status.ShouldBe(Mabhas19.Domain.MunSanandaj.MunLogStatus.Failed);
+        error.ShouldBe("city error");
+        _reader.Verify(r => r.MarkReportSentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ProcessSaveEngineerReportRowAsync_mark_sent_failure_still_returns_success()
+    {
+        // The report WAS sent to the city; a write-back (dedup) failure must not fail the row,
+        // otherwise the next run would submit a duplicate.
+        _gateway.Setup(g => g.SaveEngineerReportAsync(Row.ProjectNo, Row.ReqId, "cGRmYnl0ZXM=", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MunGatewayResult(true, "2583267", "{}", null, null));
+        _reader.Setup(r => r.MarkReportSentAsync(Row.Peygiri, "2583267", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("db write failed"));
 
         var (status, _, remoteId, _, _, _) = await _sut.ProcessSaveEngineerReportRowAsync(Row, 1, CancellationToken.None);
 

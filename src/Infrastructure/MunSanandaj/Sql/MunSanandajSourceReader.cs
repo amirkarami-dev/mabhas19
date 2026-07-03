@@ -66,4 +66,17 @@ internal sealed class MunSanandajSourceReader : IMunSanandajSourceReader
         }
         return rows;
     }
+
+    public async Task MarkReportSentAsync(string peygiri, string sabt, CancellationToken ct = default)
+    {
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync(ct);
+        await using var cmd = new SqlCommand("[dbo].[WebS_AddSabtNoToReport]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        cmd.Parameters.AddWithValue("@Rahgiri", peygiri);
+        cmd.Parameters.AddWithValue("@Sabt", sabt);
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
 }
