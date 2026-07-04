@@ -22,6 +22,19 @@ public class MunSanandajGatewayClientTests
     }
 
     [Test]
+    public void ParseSaveEngineerReportResponse_non_json_is_failed_with_raw_in_error()
+    {
+        const string raw = "<html><body>500 Internal Server Error</body></html>";
+
+        var result = MunSanandajGatewayClient.ParseSaveEngineerReportResponse(raw);
+
+        result.Success.ShouldBeFalse();
+        result.RawResponse.ShouldBe(raw);
+        result.ErrorMessage.ShouldNotBeNull();
+        result.ErrorMessage!.ShouldContain("non-JSON");
+    }
+
+    [Test]
     public void ParseSaveEngMapResponse_top_level_error_is_failed_with_no_engineer_retry()
     {
         const string raw = """

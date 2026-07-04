@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Mabhas19.Application.Common.Interfaces.MunSanandaj;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Mabhas19.Infrastructure.MunSanandaj;
@@ -27,10 +28,12 @@ internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
     private const string EeshahrBase = "https://eeshahr.sanandaj.ir/cakephp/mahyapardaz/services/restapi";
 
     private readonly MunSanandajOptions _options;
+    private readonly ILogger<MunSanandajGatewayClient> _logger;
 
-    public MunSanandajGatewayClient(IOptions<MunSanandajOptions> options)
+    public MunSanandajGatewayClient(IOptions<MunSanandajOptions> options, ILogger<MunSanandajGatewayClient> logger)
     {
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task<MunGatewayResult> SaveEngineerReportAsync(string projectNo, string reqId, string pdfBase64, CancellationToken ct = default)
@@ -66,7 +69,31 @@ internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
         using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiToken);
         using var response = await Http.SendAsync(request, ct);
-        return await response.Content.ReadAsStringAsync(ct);
+        var raw = await response.Content.ReadAsStringAsync(ct);
+        // Log the municipal response (status + url + body) so integration issues are diagnosable.
+        // The URL carries only method/darkhast_id/melk_id (no secret — the token is in the header).
+        _logger.LogInformation("mahyapardaz {Status} {Url} -> {Body}",
+            (int)response.StatusCode, url, Truncate(raw, 1500));
+        return raw;
+    }
+
+    private static string Truncate(string s, int max = 400) =>
+        string.IsNullOrEmpty(s) ? "(empty response)" : (s.Length <= max ? s : s[..max] + "…");
+
+    /// <summary>Parses <paramref name="raw"/> as JSON; returns false (not throws) on a non-JSON body
+    /// so a bad municipal response fails just that row instead of crashing the whole run.</summary>
+    private static bool TryParseJson(string raw, out JsonDocument doc)
+    {
+        try
+        {
+            doc = JsonDocument.Parse(raw);
+            return true;
+        }
+        catch (JsonException)
+        {
+            doc = null!;
+            return false;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -75,7 +102,9 @@ internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
 
     internal static MunGatewayResult ParseSaveEngineerReportResponse(string raw)
     {
-        using var doc = JsonDocument.Parse(raw);
+        if (!TryParseJson(raw, out var doc))
+            return new MunGatewayResult(false, null, raw, $"non-JSON response from city: {Truncate(raw)}", null);
+        using var _ = doc;
         var root = doc.RootElement;
 
         if (root.TryGetProperty("supervising_engineers_report", out var result)
@@ -91,7 +120,9 @@ internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
 
     internal static MunGatewayResult ParseSaveEngMapResponse(string raw)
     {
-        using var doc = JsonDocument.Parse(raw);
+        if (!TryParseJson(raw, out var doc))
+            return new MunGatewayResult(false, null, raw, $"non-JSON response from city: {Truncate(raw)}", null);
+        using var _ = doc;
         var root = doc.RootElement;
 
         // Shape 1: top-level error (e.g. invalid darkhast_id).
@@ -130,7 +161,9 @@ internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
 
     internal static MunAddEngineerResult ParseAddEngineerResponse(string raw)
     {
-        using var doc = JsonDocument.Parse(raw);
+        if (!TryParseJson(raw, out var doc))
+            return new MunAddEngineerResult(false, $"non-JSON response from city: {Truncate(raw)}");
+        using var _ = doc;
         var root = doc.RootElement;
 
         // Failure shape: { "success": false, "msg": "..." }
