@@ -22,3 +22,8 @@ export function relativeTime(iso: string): string {
 export function faNumber(n: number): string {
   return n.toLocaleString("fa-IR");
 }
+
+/** Public URL of the report PDF, named by the Peygiri tracking code. */
+export function reportPdfUrl(peygiri: string): string {
+  return `https://eservice.kurdnezam.ir/sm/pdf/${peygiri}.pdf`;
+}

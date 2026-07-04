@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Button, Card, Empty, Input, Select, Space, Table, Tooltip, Typography } from "antd";
-import { ClearOutlined } from "@ant-design/icons";
+import { ClearOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { useLogs } from "../../lib/queries";
 import type { LogsFilter, MunReportLogDto } from "../../lib/types";
 import { PageHeader } from "../../components/PageHeader";
 import { LogStatusTag } from "../../components/StatusTag";
-import { absoluteTime, relativeTime } from "../../lib/format";
+import { absoluteTime, relativeTime, reportPdfUrl } from "../../lib/format";
 
 const EMPTY: LogsFilter = { page: 1, pageSize: 50 };
 
@@ -117,6 +117,22 @@ export function LogsPage() {
                   <span>{relativeTime(v)}</span>
                 </Tooltip>
               ),
+            },
+            {
+              title: "گزارش",
+              key: "pdf",
+              align: "center",
+              width: 110,
+              render: (_: unknown, row: MunReportLogDto) =>
+                row.status === "Success" ? (
+                  <a href={reportPdfUrl(row.peygiri)} target="_blank" rel="noopener noreferrer">
+                    <Button type="link" size="small" icon={<FilePdfOutlined />}>
+                      دانلود
+                    </Button>
+                  </a>
+                ) : (
+                  <Typography.Text type="secondary">—</Typography.Text>
+                ),
             },
           ]}
         />
