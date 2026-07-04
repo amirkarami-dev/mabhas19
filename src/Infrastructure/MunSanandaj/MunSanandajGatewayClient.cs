@@ -13,7 +13,15 @@ namespace Mabhas19.Infrastructure.MunSanandaj;
 /// </summary>
 internal sealed class MunSanandajGatewayClient : IMunSanandajGatewayClient
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(120) };
+    // The saveEngineerReport/saveEngMap endpoints are reached by raw IP (185.172.68.98) whose TLS
+    // certificate does not match the IP (RemoteCertificateNameMismatch), so default validation fails.
+    // Accept the server certificate for THIS client only — same trust posture as TrustServerCertificate=True
+    // on the SQL connections; this client only ever talks to the fixed municipal mahyapardaz hosts.
+    private static readonly HttpClient Http = new(new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+    })
+    { Timeout = TimeSpan.FromSeconds(120) };
 
     private const string MahyapardazBase = "https://185.172.68.98/cakephp/mahyapardaz/services/restapi";
     private const string EeshahrBase = "https://eeshahr.sanandaj.ir/cakephp/mahyapardaz/services/restapi";
