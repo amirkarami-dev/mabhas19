@@ -119,7 +119,8 @@ internal sealed class MunSanandajSyncService : IMunSanandajSyncService
     /// control flow directly, without a database.</summary>
     internal async Task<RowResult> ProcessSaveEngineerReportRowAsync(MunSourceRowDto row, int attemptNumber, CancellationToken ct)
     {
-        var pdfBase64 = await _pdfFetcher.FetchAsBase64Async(row.ProjectNo, ct);
+        // The PDF is named by Peygiri (tracking code), not ProjectNo.
+        var pdfBase64 = await _pdfFetcher.FetchAsBase64Async(row.Peygiri, ct);
         if (pdfBase64 is null)
             return RowResult.Failed(attemptNumber, "pdf not found");
 
@@ -156,7 +157,8 @@ internal sealed class MunSanandajSyncService : IMunSanandajSyncService
         if (engineerInfos.Count == 0)
             return RowResult.Failed(attemptNumber, "no engineers found for Peygiri");
 
-        var pdfBase64 = await _pdfFetcher.FetchAsBase64Async(row.ProjectNo, ct);
+        // The PDF is named by Peygiri (tracking code), not ProjectNo.
+        var pdfBase64 = await _pdfFetcher.FetchAsBase64Async(row.Peygiri, ct);
         if (pdfBase64 is null)
             return RowResult.Failed(attemptNumber, "pdf not found");
 

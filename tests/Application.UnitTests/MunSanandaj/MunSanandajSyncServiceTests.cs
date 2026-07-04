@@ -29,7 +29,7 @@ public class MunSanandajSyncServiceTests
         _reader = new Mock<IMunSanandajSourceReader>();
         _gateway = new Mock<IMunSanandajGatewayClient>();
         _pdfFetcher = new Mock<IMunSanandajPdfFetcher>();
-        _pdfFetcher.Setup(f => f.FetchAsBase64Async(Row.ProjectNo, It.IsAny<CancellationToken>()))
+        _pdfFetcher.Setup(f => f.FetchAsBase64Async(Row.Peygiri, It.IsAny<CancellationToken>()))
             .ReturnsAsync("cGRmYnl0ZXM=");
 
         _sut = new MunSanandajSyncService(
@@ -43,7 +43,7 @@ public class MunSanandajSyncServiceTests
     [Test]
     public async Task ProcessSaveEngineerReportRowAsync_pdf_not_found_fails_without_calling_gateway()
     {
-        _pdfFetcher.Setup(f => f.FetchAsBase64Async(Row.ProjectNo, It.IsAny<CancellationToken>()))
+        _pdfFetcher.Setup(f => f.FetchAsBase64Async(Row.Peygiri, It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null);
 
         var (status, _, _, _, error, _) = await _sut.ProcessSaveEngineerReportRowAsync(Row, 1, CancellationToken.None);
