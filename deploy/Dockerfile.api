@@ -9,9 +9,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Native deps for QuestPDF (SkiaSharp) + a Persian-capable font (Vazirmatn) for PDF reports.
+# poppler-utils provides `pdftoppm` — the MunSanandaj report worker renders the first PDF page
+# to a JPG before sending it to the municipality's saveEngineerReport endpoint (which expects an image).
 # curl is used by the container HEALTHCHECK below.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends fontconfig libfontconfig1 curl \
+ && apt-get install -y --no-install-recommends fontconfig libfontconfig1 poppler-utils curl \
  && rm -rf /var/lib/apt/lists/*
 RUN apt-get update \
  && (apt-get install -y --no-install-recommends fonts-vazirmatn || true) \
