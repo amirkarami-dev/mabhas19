@@ -247,6 +247,30 @@ services:
       - "traefik.http.services.m19munsanandaj.loadbalancer.server.port=80"
     networks: [traefik]
 
+  # status — internal dev roadmap/status board (status.myceo.ir). Pure-static nginx (no build
+  # step), serving roadmap/. It exposes the internal roadmap, so it is gated by a Traefik
+  # basic-auth middleware whose credentials (${STATUS_BASICAUTH} = "user:apr1hash") are generated
+  # once by scripts/remote-provision.sh and printed to the deploy log. Keep CDN = proxied (orange)
+  # + SSL Full so ArvanCloud terminates public TLS (origin serves Traefik's self-signed cert).
+  status:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.status
+    image: mabhas19-status:newserver
+    container_name: mabhas19-status
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.m19status.rule=Host(`${STATUS_DOMAIN}`)"
+      - "traefik.http.routers.m19status.entrypoints=websecure"
+      - "traefik.http.routers.m19status.tls.certresolver=myresolver"
+      - "traefik.http.routers.m19status.service=m19status"
+      - "traefik.http.routers.m19status.middlewares=m19status-auth"
+      - "traefik.http.middlewares.m19status-auth.basicauth.users=${STATUS_BASICAUTH}"
+      - "traefik.http.services.m19status.loadbalancer.server.port=80"
+    networks: [traefik]
+
 volumes:
   mssqldata:
   miniodata:

@@ -57,7 +57,7 @@ Write-Host "==> 5/6  Building images from source (no cache, one at a time — 4 
 # "no space left on device". (Moving containerd's root to /data would fix it permanently but
 # needs a containerd+docker restart = every container on the shared box restarts.)
 Remote "docker builder prune -af"
-foreach ($svc in @("api", "auth", "web", "analytics-web", "mun-sanandaj-web")) {
+foreach ($svc in @("api", "auth", "web", "analytics-web", "mun-sanandaj-web", "status")) {
   Write-Host "    building $svc ..."
   Remote "cd $AppPath && docker compose -f $Compose --env-file deploy/.env build --no-cache $svc"
 }

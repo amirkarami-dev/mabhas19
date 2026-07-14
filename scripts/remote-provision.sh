@@ -29,6 +29,7 @@ AUTH_DOMAIN=auth.myceo.ir
 MINIO_DOMAIN=s3.mabhas19.myceo.ir
 ANALYTICS_DOMAIN=analytic.myceo.ir
 MUN_SANANDAJ_DOMAIN=mun-sanandaj.myceo.ir
+STATUS_DOMAIN=status.myceo.ir
 
 # --- Infra secrets (generated) ---
 MSSQL_SA_PASSWORD=$(gen_complex)
@@ -79,6 +80,25 @@ EOF
   echo "[provision] deploy/.env created (chmod 600)"
 else
   echo "[provision] deploy/.env already exists — leaving it untouched"
+fi
+
+# Ensure a KEY exists in .env (append if absent). Idempotent — never overwrites a live value.
+ensure_env() {
+  grep -qE "^$1=" "$ENV_FILE" 2>/dev/null || printf '%s=%s\n' "$1" "$2" >> "$ENV_FILE"
+}
+
+# status.myceo.ir — internal roadmap board. Backfill for .env files created before this service
+# existed, and generate its Traefik basic-auth credential ONCE (hash stored in .env, password
+# printed below). The apr1 hash's '$' chars are doubled to '$$' so docker-compose interpolation
+# passes a single '$' through to the Traefik label.
+ensure_env STATUS_DOMAIN status.myceo.ir
+if ! grep -qE '^STATUS_BASICAUTH=' "$ENV_FILE"; then
+  STATUS_USER=admin
+  STATUS_PW="$(openssl rand -hex 12)"
+  STATUS_HASH="$(openssl passwd -apr1 "$STATUS_PW")"
+  printf 'STATUS_BASICAUTH=%s:%s\n' "$STATUS_USER" "${STATUS_HASH//\$/\$\$}" >> "$ENV_FILE"
+  echo "[provision] STATUS board basic-auth  user: $STATUS_USER  password: $STATUS_PW"
+  echo "[provision]   (save it — only the apr1 hash is kept in .env; re-running won't rotate it)"
 fi
 
 # OpenIddict token-signing certificate (self-signed; fresh DB, so no token-continuity concern).
