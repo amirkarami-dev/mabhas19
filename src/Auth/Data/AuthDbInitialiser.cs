@@ -262,6 +262,45 @@ public class AuthDbInitialiser(
 
             await EnsureClientAsync(munSanandajClient);
         }
+
+        // landing-panel — Public, Authorization Code + PKCE, for landing-panel.myceo.ir.
+        // The admin panel for the kurdnezam landing site. Only administrators can use it, but the
+        // role check lives on the API (/api/kurdnezam writes) — the IdP just issues the token.
+        // Optional: only seeded when its redirect URI is configured (same pattern as analytics-web).
+        var landingPanelRedirect   = configuration["Clients:LandingPanel:Redirect"]   ?? string.Empty;
+        var landingPanelSilent     = configuration["Clients:LandingPanel:Silent"]     ?? string.Empty;
+        var landingPanelPostLogout = configuration["Clients:LandingPanel:PostLogout"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(landingPanelRedirect))
+        {
+            var landingPanelClient = new OpenIddictApplicationDescriptor
+            {
+                ClientId    = "landing-panel",
+                ClientType  = ClientTypes.Public,
+                DisplayName = "Landing Panel",
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.Endpoints.EndSession,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + "mabhas19.api"
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange }
+            };
+            landingPanelClient.RedirectUris.Add(new Uri(landingPanelRedirect));
+            if (!string.IsNullOrWhiteSpace(landingPanelSilent))
+                landingPanelClient.RedirectUris.Add(new Uri(landingPanelSilent));
+            if (!string.IsNullOrWhiteSpace(landingPanelPostLogout))
+                landingPanelClient.PostLogoutRedirectUris.Add(new Uri(landingPanelPostLogout));
+
+            await EnsureClientAsync(landingPanelClient);
+        }
     }
 
     private async Task EnsureClientAsync(OpenIddictApplicationDescriptor descriptor)

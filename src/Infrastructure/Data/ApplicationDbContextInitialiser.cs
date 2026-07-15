@@ -79,6 +79,11 @@ public class ApplicationDbContextInitialiser
             }
         }
 
+        // Seed the kurdnezam landing-site CMS content (no-op once it exists). This runs BEFORE the
+        // administrator seeding below, which bails out early when AdminUser:* is unconfigured —
+        // the public site's content must not depend on whether an admin account was provisioned.
+        await KurdnezamSeeder.SeedAsync(_context);
+
         // Seed the administrator account from configuration. No credentials are baked into
         // source — if they aren't supplied (env vars in production, appsettings.Development
         // locally) we skip seeding rather than ship a known default password.

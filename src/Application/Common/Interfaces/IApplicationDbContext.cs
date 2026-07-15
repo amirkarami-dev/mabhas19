@@ -1,5 +1,6 @@
 ﻿using Mabhas19.Domain.Analytics;
 using Mabhas19.Domain.Entities;
+using Mabhas19.Domain.Kurdnezam;
 using Mabhas19.Domain.MunSanandaj;
 
 namespace Mabhas19.Application.Common.Interfaces;
@@ -29,6 +30,37 @@ public interface IApplicationDbContext
     DbSet<MunSyncRun> MunSyncRuns { get; }
 
     DbSet<MunReportLog> MunReportLogs { get; }
+
+    // Kurdnezam landing site (CMS content + public submissions)
+    DbSet<KurdnezamSettings> KurdnezamSettings { get; }
+
+    DbSet<KurdnezamFooterLink> KurdnezamFooterLinks { get; }
+
+    DbSet<KurdnezamCategory> KurdnezamCategories { get; }
+
+    DbSet<KurdnezamNews> KurdnezamNews { get; }
+
+    DbSet<KurdnezamSlide> KurdnezamSlides { get; }
+
+    DbSet<KurdnezamQuickLink> KurdnezamQuickLinks { get; }
+
+    DbSet<KurdnezamPerson> KurdnezamPeople { get; }
+
+    DbSet<KurdnezamUnit> KurdnezamUnits { get; }
+
+    DbSet<KurdnezamTabGroup> KurdnezamTabGroups { get; }
+
+    DbSet<KurdnezamTabItem> KurdnezamTabItems { get; }
+
+    DbSet<KurdnezamForm> KurdnezamForms { get; }
+
+    DbSet<KurdnezamFormSubmission> KurdnezamFormSubmissions { get; }
+
+    DbSet<KurdnezamContactMessage> KurdnezamContactMessages { get; }
+
+    DbSet<KurdnezamOrgPage> KurdnezamOrgPages { get; }
+
+    DbSet<KurdnezamVisit> KurdnezamVisits { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
