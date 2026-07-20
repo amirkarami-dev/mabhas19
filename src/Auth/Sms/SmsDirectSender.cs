@@ -50,6 +50,9 @@ public class SmsDirectSender : ISmsSender
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 // Field names/casing match the legacy msgway payload.
+                // Payload matches the proven msgway structure (VahedGas MsgWaySmsSender): the code is
+                // supplied as Param1. No "Length" field — that would put msgway in generate-its-own-code
+                // mode and the delivered code would not match the one we stored.
                 Content = JsonContent.Create(new
                 {
                     Method = "sms",
@@ -58,7 +61,6 @@ public class SmsDirectSender : ISmsSender
                     Mobile = phoneNumber,
                     TemplateID = _options.MsgwayTemplateId,
                     Param1 = code,
-                    Length = code.Length,
                 }),
             };
             request.Headers.TryAddWithoutValidation("apiKey", _options.MsgwayApiKey);

@@ -74,6 +74,9 @@ services:
       Sms__Provider: "${SMS_PROVIDER:-log}"
       Sms__RelayBaseUrl: "https://sms.kurdnezambargh.ir"
       Sms__RelayToken: "${SMS_RELAY_TOKEN:-}"
+      # Direct msgway.com sending (Sms__Provider=direct). The VPS public IP is whitelisted on msgway.
+      Sms__MsgwayApiKey: "${SMS_MSGWAY_APIKEY:-}"
+      Sms__MsgwayTemplateId: "${SMS_MSGWAY_TEMPLATE_ID:-13812}"
       Authentication__Google__ClientId: "${GOOGLE_CLIENT_ID:-}"
       Otp__LogCode: "false"
       AdminUser__Email: ${ADMIN_EMAIL}

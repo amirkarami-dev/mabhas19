@@ -61,8 +61,12 @@ ADMIN_PASSWORD=$(gen_complex)
 # --- EXTERNAL INTEGRATIONS (fill in to enable; safe to leave empty) ---
 # FarsNezam (نظام مهندسی فارس) read-only SQL — engineer onboarding + project import:
 FARSNEZAM_DB_CONN=
-# Mobile OTP relay (sms.kurdnezambargh.ir) — set SMS_PROVIDER=relay + a token to enable:
-SMS_PROVIDER=log
+# Mobile OTP via msgway.com — the VPS public IP is whitelisted on msgway, so the auth container
+# calls api.msgway.com directly. Set SMS_MSGWAY_APIKEY to enable real sending (empty => logs only).
+SMS_PROVIDER=direct
+SMS_MSGWAY_APIKEY=
+SMS_MSGWAY_TEMPLATE_ID=13812
+# Legacy relay fallback (unused when SMS_PROVIDER=direct):
 SMS_RELAY_TOKEN=
 # Google sign-in (OAuth web client id):
 GOOGLE_CLIENT_ID=
@@ -107,6 +111,12 @@ ensure_env KURDNEZAM_DOMAIN kurdnezam.myceo.ir
 ensure_env KURDNEZAM_ROOT_DOMAIN kurdnezam.ir
 # admin.myceo.ir — central user-management SPA. Backfilled for .env files created before it existed.
 ensure_env ADMIN_DOMAIN admin.myceo.ir
+
+# msgway direct SMS — backfill the new keys for .env files created before direct sending existed.
+# (SMS_MSGWAY_APIKEY stays empty here — the real key is a secret set out-of-band; ensure_env never
+# overwrites a live value, so an already-configured key is preserved.)
+ensure_env SMS_MSGWAY_APIKEY ""
+ensure_env SMS_MSGWAY_TEMPLATE_ID 13812
 if ! grep -qE '^STATUS_BASICAUTH=' "$ENV_FILE"; then
   STATUS_USER=admin
   STATUS_PW="$(openssl rand -hex 12)"
