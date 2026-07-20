@@ -35,6 +35,10 @@ export const authConfig: NextAuthConfig = {
         const roles = rolesFromClaims(claims.role ?? claims.roles)
         token.roles = roles
         token.isAdmin = roles.includes("Administrator")
+        // The multi-valued `svc` claim = the product services this user may open (empty =
+        // grandfathered, all services allowed). Lifted here so the header app switcher can
+        // filter without an API call. Persists across refresh (profile is only set at sign-in).
+        token.services = rolesFromClaims(claims.svc)
         token.name =
           (claims.name as string) ?? (claims.preferred_username as string) ?? token.name
         token.email = (claims.email as string) ?? token.email
@@ -47,6 +51,7 @@ export const authConfig: NextAuthConfig = {
         if (token.sub) session.user.id = token.sub
         session.user.roles = token.roles ?? []
         session.user.isAdmin = token.isAdmin ?? false
+        session.user.services = token.services ?? []
       }
       return session
     },

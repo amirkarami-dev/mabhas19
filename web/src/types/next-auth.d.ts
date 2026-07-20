@@ -13,6 +13,8 @@ declare module "next-auth" {
       id?: string
       roles: string[]
       isAdmin: boolean
+      /** Product services this user may open (`svc` claim; empty = all/grandfathered). */
+      services: string[]
     } & DefaultSession["user"]
   }
 }
@@ -30,5 +32,7 @@ declare module "@auth/core/jwt" {
     roles?: string[]
     /** Convenience flag derived from roles. */
     isAdmin?: boolean
+    /** Product services the user may open (`svc` claim; empty = all/grandfathered). */
+    services?: string[]
   }
 }

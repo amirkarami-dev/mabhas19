@@ -18,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <AuthProvider initialUser={user}>
+    <AuthProvider initialUser={user} initialServices={session?.user?.services ?? []}>
       <DashboardShell>{children}</DashboardShell>
     </AuthProvider>
   )

@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { LangSwitcher } from "@/components/lang-switcher"
 import { ThemeToggle } from "@/components/theme-provider"
+import { AppSwitcher } from "@/components/layout/app-switcher"
 import { Button, cn } from "@/components/ui"
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
@@ -61,6 +62,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       <div className="ms-auto flex items-center gap-2 sm:gap-3">
+        <AppSwitcher />
+
         <ThemeToggle />
 
         {/* Notifications */}

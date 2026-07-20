@@ -14,6 +14,10 @@ interface AuthState {
   user: CurrentUser | null
   roles: string[]
   isAdmin: boolean
+  /** Product services this user may open (`svc` claim; empty = all/grandfathered). */
+  services: string[]
+  /** True when the user may open the given product service key. */
+  canAccess: (serviceKey: string) => boolean
   ready: boolean
   logout: () => Promise<void>
 }
@@ -24,9 +28,11 @@ const AuthContext = createContext<AuthState | null>(null)
 // so there's no client fetch and no auth flicker. Route protection lives in middleware.
 export function AuthProvider({
   initialUser,
+  initialServices = [],
   children,
 }: {
   initialUser: CurrentUser
+  initialServices?: string[]
   children: ReactNode
 }) {
   const qc = useQueryClient()
@@ -45,12 +51,21 @@ export function AuthProvider({
     }
   }, [qc])
 
+  // Empty grant list = grandfathered → the user may open every service.
+  const canAccess = useCallback(
+    (serviceKey: string) =>
+      initialServices.length === 0 || initialServices.includes(serviceKey),
+    [initialServices],
+  )
+
   return (
     <AuthContext.Provider
       value={{
         user: initialUser,
         roles: initialUser.roles ?? [],
         isAdmin: initialUser.isAdmin ?? false,
+        services: initialServices,
+        canAccess,
         ready: true,
         logout,
       }}
