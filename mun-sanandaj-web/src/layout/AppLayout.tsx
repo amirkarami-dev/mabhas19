@@ -13,6 +13,7 @@ import {
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { useThemeMode } from "../theme/useThemeMode";
+import { AppSwitcher } from "./AppSwitcher";
 
 const { Header, Sider, Content } = Layout;
 
@@ -99,6 +100,7 @@ export function AppLayout() {
             onClick={() => setCollapsed((c) => !c)}
           />
           <div style={{ flex: 1 }} />
+          <AppSwitcher currentKey="mun-sanandaj" />
           <Tooltip title={mode === "dark" ? "حالت روشن" : "حالت تیره"}>
             <Button
               type="text"

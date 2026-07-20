@@ -11,6 +11,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { useUiStore } from "@/store/ui";
 import { NAV_ITEMS, selectedNavKey } from "./nav";
+import { AppSwitcher } from "./AppSwitcher";
 
 const { Sider, Header, Content } = Layout;
 
@@ -103,6 +104,7 @@ export function AppLayout() {
           onClick={toggleSidebar}
         />
         <div style={{ flex: 1 }} />
+        <AppSwitcher currentKey="admin" />
         <Tooltip title={themeLabel}>
           <Button
             type="text"

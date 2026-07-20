@@ -7,6 +7,7 @@ import { useTenantStore } from "../store/tenant-store";
 import { useTenants } from "../api/queries";
 import { applyLocale } from "../i18n";
 import type { AppRole } from "../contracts/rbac";
+import { AppSwitcher } from "./AppSwitcher";
 
 const { Header } = Layout;
 const useMock = (import.meta.env.VITE_AUTH_MODE ?? "mock") === "mock";
@@ -55,6 +56,7 @@ export function Topbar() {
         options={tenants.map((tn) => ({ value: tn.id, label: tn.displayName }))}
       />
       <div style={{ flex: 1 }} />
+      <AppSwitcher currentKey="analytics" locale={locale} />
       {useMock && (
         <Select
           aria-label={t("auth.selectRole")}
