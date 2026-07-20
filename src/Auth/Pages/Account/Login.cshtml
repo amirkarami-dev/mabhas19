@@ -3,27 +3,33 @@
 @{
     ViewData["Title"] = "ورود";
     var returnUrl = ViewData["ReturnUrl"] as string;
+    var otpHref = "/Account/Otp" + (returnUrl is not null ? "?returnUrl=" + Uri.EscapeDataString(returnUrl) : "");
 }
 
-<h1>ورود به سامانه جامع نظام مهندسی</h1>
+<h1>ورود به حساب کاربری</h1>
+<p class="subtitle">برای دسترسی به سامانه، نام کاربری و رمز عبور خود را وارد کنید.</p>
 
 @if (Model.ErrorMessage is not null)
 {
-    <div class="error">@Model.ErrorMessage</div>
+    <div class="error" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>@Model.ErrorMessage</span>
+    </div>
 }
 
 <form method="post">
     <input type="hidden" name="returnUrl" value="@returnUrl" />
     <label for="UserName">نام کاربری</label>
-    <input asp-for="UserName" type="text" id="UserName" autocomplete="username" />
+    <input asp-for="UserName" type="text" id="UserName" autocomplete="username" placeholder="نام کاربری یا ایمیل" />
     <label for="Password">رمز عبور</label>
-    <input asp-for="Password" type="password" id="Password" autocomplete="current-password" />
+    <input asp-for="Password" type="password" id="Password" autocomplete="current-password" placeholder="••••••••" />
     <button type="submit">ورود</button>
 </form>
 
-<div class="link-row">
-    <a href="/Account/Otp@(returnUrl is not null ? "?returnUrl=" + Uri.EscapeDataString(returnUrl) : "")">ورود با کد یکبار مصرف (OTP)</a>
-</div>
+<a class="alt-btn" href="@otpHref">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+    ورود با کد یکبار مصرف (پیامک)
+</a>
 
 @if (!string.IsNullOrWhiteSpace(Model.GoogleClientId))
 {
