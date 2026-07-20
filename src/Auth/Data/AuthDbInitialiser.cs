@@ -301,6 +301,47 @@ public class AuthDbInitialiser(
 
             await EnsureClientAsync(landingPanelClient);
         }
+
+        // admin-web — Public, Authorization Code + PKCE, for admin.myceo.ir (the central user-
+        // management SPA). It is NOT a grantable service: access is gated by the Administrator role
+        // at api/admin, not by a service grant, so ServiceKeys maps it to no key. It requests the
+        // mabhas19.api scope so the token the IdP validates locally for its own admin API carries
+        // the roles claim. Optional: only seeded when its redirect URI is configured (same pattern
+        // as analytics-web).
+        var adminWebRedirect   = configuration["Clients:AdminWeb:Redirect"]   ?? string.Empty;
+        var adminWebSilent     = configuration["Clients:AdminWeb:Silent"]     ?? string.Empty;
+        var adminWebPostLogout = configuration["Clients:AdminWeb:PostLogout"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(adminWebRedirect))
+        {
+            var adminWebClient = new OpenIddictApplicationDescriptor
+            {
+                ClientId    = "admin-web",
+                ClientType  = ClientTypes.Public,
+                DisplayName = "Admin Web",
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.Endpoints.EndSession,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + "mabhas19.api"
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange }
+            };
+            adminWebClient.RedirectUris.Add(new Uri(adminWebRedirect));
+            if (!string.IsNullOrWhiteSpace(adminWebSilent))
+                adminWebClient.RedirectUris.Add(new Uri(adminWebSilent));
+            if (!string.IsNullOrWhiteSpace(adminWebPostLogout))
+                adminWebClient.PostLogoutRedirectUris.Add(new Uri(adminWebPostLogout));
+
+            await EnsureClientAsync(adminWebClient);
+        }
     }
 
     private async Task EnsureClientAsync(OpenIddictApplicationDescriptor descriptor)

@@ -4,14 +4,12 @@ using Mabhas19.Infrastructure.Analytics;
 using Mabhas19.Infrastructure.Data;
 using Mabhas19.Infrastructure.Data.Interceptors;
 using Mabhas19.Infrastructure.External;
-using Mabhas19.Infrastructure.Identity;
 using Mabhas19.Infrastructure.MunSanandaj;
 using Mabhas19.Infrastructure.MunSanandaj.Sql;
 using Mabhas19.Infrastructure.Reporting;
 using Mabhas19.Infrastructure.Storage;
 using Mabhas19.Infrastructure.Subscriptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -61,13 +59,7 @@ public static class DependencyInjection
 
         builder.Services.AddAuthorizationBuilder();
 
-        builder.Services
-            .AddIdentityCore<ApplicationUser>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
-
         builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddTransient<IIdentityService, IdentityService>();
 
         AddMabhas19Services(builder);
     }
@@ -99,9 +91,8 @@ public static class DependencyInjection
         ReportFonts.Register(builder.Environment.ContentRootPath);
         services.AddScoped<IReportGenerator, QuestPdfReportGenerator>();
 
-        // Subscriptions, admin helpers.
+        // Subscriptions.
         services.AddScoped<ISubscriptionService, SubscriptionService>();
-        services.AddScoped<IUserAdminService, UserAdminService>();
 
         // External project import providers (collected as IEnumerable<IExternalProjectProvider>).
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();

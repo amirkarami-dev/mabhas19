@@ -8,11 +8,12 @@ import { routing } from "./i18n/routing"
 // absolute external URL, which the standalone server then tries to proxy (EAI_AGAIN).
 //
 // Auth here is a cheap session-cookie PRESENCE gate for protected routes (real validation
-// is the API's JWT check + the server components). The /admin ROLE gate lives in
-// (dashboard)/admin/layout.tsx via auth().
+// is the API's JWT check + the server components). Role-gated admin routes are gated
+// server-side in their own layouts via auth(); the in-app /admin user-management route
+// was removed (it moved to the separate admin app at admin.myceo.ir).
 const intlMiddleware = createMiddleware(routing)
 
-const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|admin|reports)(?:\/|$)/
+const PROTECTED = /^\/(?:en\/)?(?:dashboard|projects|import|subscription|reports)(?:\/|$)/
 
 export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl

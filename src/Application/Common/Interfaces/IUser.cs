@@ -3,6 +3,7 @@
 public interface IUser
 {
     string? Id { get; }
+    string? Name { get; }
     List<string>? Roles { get; }
 
 }

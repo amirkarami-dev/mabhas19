@@ -15,7 +15,8 @@ namespace Mabhas19.Auth;
 public class AuthorizationController(
     SignInManager<AuthUser> signInManager,
     UserManager<AuthUser> userManager,
-    IFarsNezamDirectory farsDirectory) : Controller
+    IFarsNezamDirectory farsDirectory,
+    IServiceAccessStore serviceAccess) : Controller
 {
     private const string FarsHintPrefix = "fars:";
 
@@ -72,6 +73,28 @@ public class AuthorizationController(
 
         var user = await userManager.GetUserAsync(result.Principal!)
                    ?? throw new InvalidOperationException("User not found.");
+
+        // Per-service access gate. Map the requesting client_id -> product service key; a user with a
+        // NON-EMPTY grant list may only reach services in it. Grandfather rule: an empty grant list
+        // (existing / self-provisioned users) allows everything. Clients not tied to a grantable
+        // service (e.g. admin-web) map to null and are never blocked here. The login itself already
+        // happened above — only issuing the token for this service is denied.
+        var serviceKey = ServiceKeys.ServiceKeyForClient(request.ClientId);
+        if (serviceKey is not null)
+        {
+            var grants = await serviceAccess.GetServiceKeysAsync(user.Id, HttpContext.RequestAborted);
+            if (grants.Count > 0 && !grants.Contains(serviceKey, StringComparer.OrdinalIgnoreCase))
+            {
+                return Forbid(
+                    authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.AccessDenied,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                            "شما به این سرویس دسترسی ندارید."
+                    }));
+            }
+        }
 
         var principal = await BuildPrincipalAsync(user, request.GetScopes());
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -131,6 +154,11 @@ public class AuthorizationController(
         // SetClaims requires ImmutableArray<string> — convert the IList<string> returned by GetRolesAsync.
         var roles = await userManager.GetRolesAsync(user);
         principal.SetClaims(Claims.Role, roles.ToImmutableArray());
+
+        // Multi-valued 'svc' claim = the product services this user may use (empty = grandfathered).
+        // Runs on authorize AND refresh, so a refreshed token always reflects the current grants.
+        var services = await serviceAccess.GetServiceKeysAsync(user.Id, HttpContext.RequestAborted);
+        principal.SetClaims("svc", services.ToImmutableArray());
 
         principal.SetScopes(scopes);
         principal.SetResources("mabhas19.api");

@@ -1,21 +1,20 @@
 // API DTO types — sourced from the generated @mabhas19/api-types package.
 // All existing "@/lib/types" imports in this project continue to work unchanged.
 
+// NOTE: Admin user-management DTOs (AdminUser, CreateUserInput,
+// UpdateUserSubscriptionInput, SetUserRoleInput) and the SubscriptionPlan helper were
+// dropped — user management moved to the separate admin app (admin.myceo.ir) and the
+// API's /api/Admin/* endpoints (and their generated schema types) were removed.
 export type {
   Project,
   Assessment,
   CurrentUser,
   Subscription,
-  AdminUser,
   CreateProjectInput,
   UpdateProjectInput,
   ImportProjectInput,
   SaveAssessmentInput,
-  CreateUserInput,
-  UpdateUserSubscriptionInput,
-  SetUserRoleInput,
   GenerateReportResult,
-  SubscriptionPlan,
 } from "@mabhas19/api-types"
 
 import type { CurrentUser } from "@mabhas19/api-types"

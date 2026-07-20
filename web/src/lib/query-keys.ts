@@ -5,6 +5,4 @@ export const queryKeys = {
   projects: ["projects"] as const,
   project: (id: string) => ["projects", id] as const,
   assessment: (id: string) => ["projects", id, "assessment"] as const,
-  adminUsers: ["admin", "users"] as const,
-  adminUser: (id: string) => ["admin", "users", id] as const,
 }

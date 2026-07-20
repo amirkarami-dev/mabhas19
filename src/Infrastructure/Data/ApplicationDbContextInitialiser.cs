@@ -1,11 +1,5 @@
-﻿using Mabhas19.Domain.Constants;
-using Mabhas19.Domain.Entities;
-using Mabhas19.Domain.Enums;
-using Mabhas19.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -28,17 +22,11 @@ public class ApplicationDbContextInitialiser
 {
     private readonly ILogger<ApplicationDbContextInitialiser> _logger;
     private readonly ApplicationDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IConfiguration _configuration;
 
-    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context)
     {
         _logger = logger;
         _context = context;
-        _userManager = userManager;
-        _roleManager = roleManager;
-        _configuration = configuration;
     }
 
     public async Task InitialiseAsync()
@@ -70,66 +58,9 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        // Ensure all application roles exist.
-        foreach (var roleName in Roles.All)
-        {
-            if (_roleManager.Roles.All(r => r.Name != roleName))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-        }
-
-        // Seed the kurdnezam landing-site CMS content (no-op once it exists). This runs BEFORE the
-        // administrator seeding below, which bails out early when AdminUser:* is unconfigured —
-        // the public site's content must not depend on whether an admin account was provisioned.
+        // Seed the kurdnezam landing-site CMS content (no-op once it exists). Users and roles
+        // are owned by the central OIDC IdP (src/Auth); this API is a pure JWT resource server
+        // and no longer seeds identity data.
         await KurdnezamSeeder.SeedAsync(_context);
-
-        // Seed the administrator account from configuration. No credentials are baked into
-        // source — if they aren't supplied (env vars in production, appsettings.Development
-        // locally) we skip seeding rather than ship a known default password.
-        var adminEmail = _configuration["AdminUser:Email"];
-        var adminPassword = _configuration["AdminUser:Password"];
-        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
-        {
-            _logger.LogWarning("AdminUser:Email/Password not configured; skipping administrator seeding.");
-            return;
-        }
-
-        var administrator = await _userManager.FindByEmailAsync(adminEmail);
-        if (administrator is null)
-        {
-            administrator = new ApplicationUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-            var created = await _userManager.CreateAsync(administrator, adminPassword);
-            if (!created.Succeeded)
-            {
-                _logger.LogWarning("Could not create admin user: {Errors}",
-                    string.Join("; ", created.Errors.Select(e => e.Description)));
-                return;
-            }
-        }
-
-        if (!await _userManager.IsInRoleAsync(administrator, Roles.Administrator))
-        {
-            await _userManager.AddToRoleAsync(administrator, Roles.Administrator);
-        }
-
-        // Give the administrator an unrestricted Enterprise subscription.
-        if (!await _context.Subscriptions.AnyAsync(s => s.UserId == administrator.Id))
-        {
-            _context.Subscriptions.Add(new Subscription
-            {
-                UserId = administrator.Id,
-                Plan = SubscriptionPlan.Enterprise,
-                MaxProjects = 1000,
-                IsActive = true,
-                ValidFrom = DateTimeOffset.UtcNow
-            });
-            await _context.SaveChangesAsync();
-        }
     }
 }

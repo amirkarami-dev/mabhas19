@@ -1,13 +1,10 @@
 import { apiFetch } from "./api"
 import type {
-  AdminUser,
   Assessment,
   CreateProjectInput,
-  CreateUserInput,
   CurrentUser,
   Project,
   Subscription,
-  UpdateUserSubscriptionInput,
 } from "./types"
 
 // ---- Auth ----
@@ -20,33 +17,8 @@ export const subscriptionApi = {
   me: () => apiFetch<Subscription>("/api/Subscriptions/me"),
 }
 
-// ---- Admin (requires Administrator role) ----
-export const adminApi = {
-  listUsers: () => apiFetch<AdminUser[]>("/api/Admin/users"),
-
-  getUser: (id: string) => apiFetch<AdminUser>(`/api/Admin/users/${id}`),
-
-  createUser: (input: CreateUserInput) =>
-    apiFetch<{ id: string }>("/api/Admin/users", {
-      method: "POST",
-      body: input,
-    }),
-
-  updateSubscription: (id: string, input: UpdateUserSubscriptionInput) =>
-    apiFetch(`/api/Admin/users/${id}/subscription`, {
-      method: "PUT",
-      body: input,
-    }),
-
-  setRole: (id: string, isAdmin: boolean) =>
-    apiFetch(`/api/Admin/users/${id}/role`, {
-      method: "PUT",
-      body: { isAdmin },
-    }),
-
-  removeUser: (id: string) =>
-    apiFetch(`/api/Admin/users/${id}`, { method: "DELETE" }),
-}
+// NOTE: User & subscription administration moved out of this app. It now lives in the
+// separate admin app (admin.myceo.ir); the API's /api/Admin/* endpoints were removed.
 
 // ---- Projects ----
 export const projectsApi = {

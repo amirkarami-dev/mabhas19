@@ -16,6 +16,7 @@ public static class OpenIddictClaimDestinations
         Claims.Email            => [Destinations.AccessToken, Destinations.IdentityToken],
         Claims.Role             => [Destinations.AccessToken, Destinations.IdentityToken],
         "preferred_username"    => [Destinations.AccessToken, Destinations.IdentityToken],
+        "svc"                   => [Destinations.AccessToken, Destinations.IdentityToken],
         _                       => []
     };
 }

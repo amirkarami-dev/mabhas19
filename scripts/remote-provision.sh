@@ -31,6 +31,8 @@ ANALYTICS_DOMAIN=analytic.myceo.ir
 MUN_SANANDAJ_DOMAIN=mun-sanandaj.myceo.ir
 STATUS_DOMAIN=status.myceo.ir
 LANDING_PANEL_DOMAIN=landing-panel.myceo.ir
+# Central user-management admin SPA (gated by the Administrator role at the IdP's api/admin).
+ADMIN_DOMAIN=admin.myceo.ir
 # The kurdnezam landing site is served on BOTH its own root domain and the portal subdomain.
 # Both are CORS-allowed on the API (the site calls it from the browser for visit tracking + forms).
 KURDNEZAM_DOMAIN=kurdnezam.myceo.ir
@@ -103,6 +105,8 @@ ensure_env STATUS_DOMAIN status.myceo.ir
 ensure_env LANDING_PANEL_DOMAIN landing-panel.myceo.ir
 ensure_env KURDNEZAM_DOMAIN kurdnezam.myceo.ir
 ensure_env KURDNEZAM_ROOT_DOMAIN kurdnezam.ir
+# admin.myceo.ir — central user-management SPA. Backfilled for .env files created before it existed.
+ensure_env ADMIN_DOMAIN admin.myceo.ir
 if ! grep -qE '^STATUS_BASICAUTH=' "$ENV_FILE"; then
   STATUS_USER=admin
   STATUS_PW="$(openssl rand -hex 12)"

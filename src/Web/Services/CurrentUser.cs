@@ -15,6 +15,7 @@ public class CurrentUser : IUser
 
     public string? Id => _httpContextAccessor.HttpContext?.User?.FindFirstValue("sub")
                          ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    public string? Name => _httpContextAccessor.HttpContext?.User?.FindFirstValue("name");
     public List<string>? Roles => _httpContextAccessor.HttpContext?.User?.FindAll("role").Select(x => x.Value).ToList();
 
 }

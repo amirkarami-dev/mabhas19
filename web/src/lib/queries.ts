@@ -8,15 +8,10 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { adminApi, projectsApi, subscriptionApi } from "./endpoints"
+import { projectsApi, subscriptionApi } from "./endpoints"
 import { ApiError } from "./api"
 import { queryKeys } from "./query-keys"
-import type {
-  Assessment,
-  CreateProjectInput,
-  CreateUserInput,
-  UpdateUserSubscriptionInput,
-} from "./types"
+import type { Assessment, CreateProjectInput } from "./types"
 
 // ---------------------------------------------------------------- Queries ----
 // (Identity / currentUser is now resolved server-side from the session, not fetched here.)
@@ -58,14 +53,6 @@ export function useAssessment(projectId: string, enabled = true) {
       }
     },
     enabled: enabled && !!projectId,
-  })
-}
-
-export function useAdminUsers(enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.adminUsers,
-    queryFn: () => adminApi.listUsers(),
-    enabled,
   })
 }
 
@@ -135,51 +122,5 @@ export function useSaveAssessment(projectId: string) {
   })
 }
 
-// ---- Admin mutations ----
-
-export function useCreateUser() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (input: CreateUserInput) => adminApi.createUser(input),
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUsers }),
-  })
-}
-
-export function useUpdateUserSubscription() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      id,
-      input,
-    }: {
-      id: string
-      input: UpdateUserSubscriptionInput
-    }) => adminApi.updateSubscription(id, input),
-    onSuccess: (_data, { id }) => {
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUsers })
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUser(id) })
-    },
-  })
-}
-
-export function useSetUserRole() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, isAdmin }: { id: string; isAdmin: boolean }) =>
-      adminApi.setRole(id, isAdmin),
-    onSuccess: (_data, { id }) => {
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUsers })
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUser(id) })
-    },
-  })
-}
-
-export function useRemoveUser() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => adminApi.removeUser(id),
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: queryKeys.adminUsers }),
-  })
-}
+// NOTE: Admin user/subscription hooks were removed — user management now lives in the
+// separate admin app (admin.myceo.ir); the API's /api/Admin/* endpoints were deleted.

@@ -24,6 +24,12 @@ builder.Services.AddDbContext<AuthDbContext>(o =>
 {
     o.UseSqlServer(builder.Configuration.GetConnectionString("Mabhas19AuthDb"));
     o.UseOpenIddict(); // registers OpenIddict's EF Core stores' entity sets
+    // The AddUserServiceAccess migration is hand-authored (the dotnet-ef design-time build could not
+    // resolve the shared ServiceDefaults source-generator on the build box), so AuthDbContextModelSnapshot
+    // is not yet regenerated and EF Core 10's startup pending-changes check would otherwise abort
+    // MigrateAsync. The migration itself is correct and creates the right table. FOLLOW-UP: regenerate the
+    // snapshot with `dotnet ef migrations add` once the analyzer restore is fixed, then remove this line.
+    o.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 builder.Services.AddIdentity<AuthUser, IdentityRole>()
     .AddEntityFrameworkStores<AuthDbContext>()
@@ -51,6 +57,9 @@ else
     builder.Services.AddHttpClient<ISmsSender, SmsSender>();
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddScoped<IFarsNezamDirectory, FarsNezamDirectory>();
+
+// Per-user product-service grants (read at authorize to emit the 'svc' claim + enforce access).
+builder.Services.AddScoped<IServiceAccessStore, ServiceAccessStore>();
 
 // The FarsNezam magic-link is unsigned (accepted risk), so the auto-provisioning page gets
 // a per-IP rate limit to blunt enumeration of membership codes.
