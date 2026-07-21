@@ -147,6 +147,16 @@ else
   echo "[provision] openiddict.pfx already exists — leaving it untouched"
 fi
 
+# ASP.NET Data Protection key ring for the auth app (bind-mounted at /keys). It encrypts the
+# login form's antiforgery token and the auth cookie, so it MUST survive container recreates —
+# otherwise every redeploy breaks the next login POST ("key not found in the key ring") and
+# signs everyone out. The auth image runs as UID 1654, so the folder must be owned by it.
+KEYS_DIR="$ROOT/deploy/authkeys"
+mkdir -p "$KEYS_DIR"
+chown 1654:1654 "$KEYS_DIR" 2>/dev/null || sudo chown 1654:1654 "$KEYS_DIR"
+chmod 700 "$KEYS_DIR"
+echo "[provision] deploy/authkeys ready (owned by 1654)"
+
 # Surface the seeded admin credentials once (the operator's own new secret) so they can log in.
 echo "[provision] ADMIN_EMAIL=$(grep -E '^ADMIN_EMAIL=' "$ENV_FILE" | cut -d= -f2-)"
 echo "[provision] ADMIN_PASSWORD=$(grep -E '^ADMIN_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)"

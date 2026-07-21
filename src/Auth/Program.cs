@@ -3,6 +3,7 @@ using Mabhas19.Auth.Data;
 using Mabhas19.Auth.External;
 using Mabhas19.Auth.Otp;
 using Mabhas19.Auth.Sms;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -19,6 +20,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
+
+// The Data Protection key ring MUST outlive the container: it encrypts the login form's
+// antiforgery token and the auth cookie. Without this the keys are kept in-memory only, so every
+// redeploy made the next login POST fail with "The key {...} was not found in the key ring" and
+// signed every user out. /keys is a bind mount owned by the app UID (1654).
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/keys"))
+    .SetApplicationName("mabhas19-auth");
 
 builder.Services.AddDbContext<AuthDbContext>(o =>
 {
