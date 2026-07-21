@@ -325,6 +325,14 @@ services:
       - "traefik.http.routers.m19kurdnezamweb.tls.certresolver=myresolver"
       - "traefik.http.routers.m19kurdnezamweb.service=m19kurdnezamweb"
       - "traefik.http.services.m19kurdnezamweb.loadbalancer.server.port=3000"
+    # node:22-alpine has busybox wget (no curl). Hitting / renders a real page, so this proves
+    # Next is actually serving, not just that the process is alive.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 25s
     networks: [traefik]
 
   # admin-web — the central user-management SPA (admin.myceo.ir). React/Vite + Ant Design, served
