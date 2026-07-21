@@ -48,10 +48,15 @@ public class MinioFileStorage : IFileStorage
     {
         var ms = new MemoryStream();
 
+        // Must use the ASYNC callback overload. The sync one (`s => s.CopyTo(ms)`) blocks on the
+        // SDK's HTTP response stream and deadlocks the request: a MISSING object still 404s fast
+        // (the callback never runs), but an EXISTING object hangs forever — so every uploaded
+        // image silently failed to render.
         await _client.GetObjectAsync(new GetObjectArgs()
             .WithBucket(_options.Bucket)
             .WithObject(key)
-            .WithCallbackStream(s => s.CopyTo(ms)), ct);
+            .WithCallbackStream(async (stream, cancellationToken) =>
+                await stream.CopyToAsync(ms, cancellationToken)), ct);
 
         ms.Position = 0;
         return ms;
