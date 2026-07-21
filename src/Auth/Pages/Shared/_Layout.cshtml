@@ -146,7 +146,31 @@
             box-shadow: 0 0 0 4px var(--ring);
         }
         /* latin/number inputs read left-to-right */
-        #UserName, #Phone, #Code { direction: ltr; text-align: left; }
+        #UserName, #Phone, #Code, #Password { direction: ltr; text-align: left; }
+
+        /* password box + show/hide (eye) button */
+        .pw-field { position: relative; }
+        .pw-field input { padding-inline-end: 3rem; }
+        .pw-toggle {
+            position: absolute;
+            inset-inline-end: .45rem;
+            top: 0;
+            height: 50px;
+            width: 2.4rem;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .pw-toggle:hover { color: var(--text); }
+        .pw-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+        .pw-toggle .eye-off { display: none; }
+        .pw-toggle[data-shown="true"] .eye-on { display: none; }
+        .pw-toggle[data-shown="true"] .eye-off { display: block; }
 
         .otp-code {
             height: 62px !important;
