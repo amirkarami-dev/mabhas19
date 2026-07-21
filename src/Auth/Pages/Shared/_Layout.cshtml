@@ -150,13 +150,13 @@
 
         /* password box + show/hide (eye) button */
         .pw-field { position: relative; }
-        /* The page is RTL so the button sits on the LEFT, but #Password is direction:ltr —
-           its own "inline-end" is the right. Reserve the space explicitly on the left, or the
-           typed password runs underneath the eye button. */
-        .pw-field input { padding-left: 3rem; }
+        /* The eye button is pinned to the RIGHT edge (physical, not logical: the page is RTL and
+           #Password is direction:ltr, so inset-inline-* resolves the wrong way for one of them).
+           Reserve the matching space on the right or the typed password runs under the button. */
+        .pw-field input { padding-right: 3rem; }
         .pw-toggle {
             position: absolute;
-            inset-inline-end: .45rem;
+            right: .45rem;
             top: 0;
             height: 50px;
             width: 2.4rem;
