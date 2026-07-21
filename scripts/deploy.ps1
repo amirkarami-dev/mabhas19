@@ -2,7 +2,7 @@
 #
 # This box has normal internet, so images are BUILT FROM SOURCE on the server and the stack
 # attaches to the box's pre-existing shared Traefik (external "traefik" network, ACME DNS-01
-# "myresolver"). It is isolated by its own /opt/mabhas19 folder + unique container/router names,
+# "myresolver"). It is isolated by its own /data/apps/mabhas19 folder + unique container/router names,
 # so it never disturbs kurdvahedgas-web / sms-service / v2ray on the same host.
 #
 # Safe to re-run: deploy/.env and the OpenIddict signing cert are generated once and preserved.
@@ -14,7 +14,7 @@ param(
   [string]$ServerUser = "ubuntu",
   [string]$ServerPass = $env:M19_SERVER_PASS,
   [string]$HostKey    = "SHA256:avswocM1nU3e0FnKQsQDoKSfs6mb/dkRG/8r7iTLEps",
-  [string]$AppPath    = "/opt/mabhas19",
+  [string]$AppPath    = "/data/apps/mabhas19",
   [string]$Compose    = "deploy/docker-compose.newserver.yml"
 )
 $ErrorActionPreference = "Stop"
@@ -57,7 +57,7 @@ Write-Host "==> 5/6  Building images from source (no cache, one at a time — 4 
 # "no space left on device". (Moving containerd's root to /data would fix it permanently but
 # needs a containerd+docker restart = every container on the shared box restarts.)
 Remote "docker builder prune -af"
-foreach ($svc in @("api", "auth", "web", "analytics-web", "mun-sanandaj-web", "status")) {
+foreach ($svc in @("api", "auth", "web", "analytics-web", "mun-sanandaj-web", "landing-panel", "admin-web", "kurdnezam-web", "status")) {
   Write-Host "    building $svc ..."
   Remote "cd $AppPath && docker compose -f $Compose --env-file deploy/.env build --no-cache $svc"
 }
