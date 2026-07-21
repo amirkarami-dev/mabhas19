@@ -320,10 +320,23 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.m19kurdnezamweb.rule=Host(`${KURDNEZAM_ROOT_DOMAIN}`) || Host(`${KURDNEZAM_DOMAIN}`)"
+      # TWO routers on purpose, because the two hostnames reach us by different paths.
+      #
+      # 1) The root domain now points STRAIGHT at this box, so it can get a real Let's Encrypt
+      #    cert via HTTP-01. It must NOT use myresolver (DNS-01): the ArvanCloud token is 403
+      #    "access restricted" for these zones, and kurdnezam.ir is not in that account at all
+      #    (404 "Domain not found") — it runs on its own ns1/ns2.kurdnezam.ir nameservers.
+      - "traefik.http.routers.m19kurdnezamweb.rule=Host(`${KURDNEZAM_ROOT_DOMAIN}`)"
       - "traefik.http.routers.m19kurdnezamweb.entrypoints=websecure"
-      - "traefik.http.routers.m19kurdnezamweb.tls.certresolver=myresolver"
+      - "traefik.http.routers.m19kurdnezamweb.tls.certresolver=httpresolver"
       - "traefik.http.routers.m19kurdnezamweb.service=m19kurdnezamweb"
+      # 2) The myceo.ir hostname still sits behind the ArvanCloud CDN, which terminates TLS
+      #    itself. It requests NO cert here: an HTTP-01 challenge for it would be answered by the
+      #    CDN rather than by us, and bundling it with the root domain would fail BOTH.
+      - "traefik.http.routers.m19kurdnezamwebcdn.rule=Host(`${KURDNEZAM_DOMAIN}`)"
+      - "traefik.http.routers.m19kurdnezamwebcdn.entrypoints=websecure"
+      - "traefik.http.routers.m19kurdnezamwebcdn.tls=true"
+      - "traefik.http.routers.m19kurdnezamwebcdn.service=m19kurdnezamweb"
       - "traefik.http.services.m19kurdnezamweb.loadbalancer.server.port=3000"
     # node:22-alpine has busybox wget (no curl). Hitting / renders a real page, so this proves
     # Next is actually serving, not just that the process is alive.
