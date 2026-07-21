@@ -7,6 +7,9 @@ namespace Mabhas19.Infrastructure.Storage;
 
 public class MinioFileStorage : IFileStorage
 {
+    /// <summary>Shared on purpose — one handler pool for the presigned downloads in <see cref="GetAsync"/>.</summary>
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
+
     private readonly IMinioClient _client;
     private readonly MinioOptions _options;
     private bool _bucketChecked;
@@ -46,18 +49,19 @@ public class MinioFileStorage : IFileStorage
 
     public async Task<Stream> GetAsync(string key, CancellationToken ct = default)
     {
+        // NOTE: do NOT use _client.GetObjectAsync(...).WithCallbackStream(...). Measured on this
+        // deployment, that call never returns for an object that EXISTS (a missing one still fails
+        // fast, because the callback never runs) — with both the sync and the async callback
+        // overloads. The result was that every uploaded image was stored yet served a hung request.
+        // A presigned GET is a plain HTTPS fetch with no SDK callback, and is the same mechanism
+        // report downloads already use in production.
+        var url = await GetPresignedUrlAsync(key, TimeSpan.FromMinutes(5), ct);
+
+        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+
         var ms = new MemoryStream();
-
-        // Must use the ASYNC callback overload. The sync one (`s => s.CopyTo(ms)`) blocks on the
-        // SDK's HTTP response stream and deadlocks the request: a MISSING object still 404s fast
-        // (the callback never runs), but an EXISTING object hangs forever — so every uploaded
-        // image silently failed to render.
-        await _client.GetObjectAsync(new GetObjectArgs()
-            .WithBucket(_options.Bucket)
-            .WithObject(key)
-            .WithCallbackStream(async (stream, cancellationToken) =>
-                await stream.CopyToAsync(ms, cancellationToken)), ct);
-
+        await response.Content.CopyToAsync(ms, ct);
         ms.Position = 0;
         return ms;
     }
