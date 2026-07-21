@@ -302,6 +302,31 @@ services:
     # Static SPA: all OIDC/API calls run in the browser -> no server-side egress needed.
     networks: [traefik]
 
+  # kurdnezam-web — the PUBLIC landing site (kurdnezam.ir + kurdnezam.myceo.ir). Next.js standalone.
+  # Moved in from its own repo/stack so the whole platform builds and deploys from one place.
+  # Unlike the SPAs above this one renders on the server, so it needs egress to reach the API.
+  kurdnezam-web:
+    build:
+      # Self-contained app (its own package.json + lock, not an npm workspace member), so its own
+      # folder is the build context and its Dockerfile is used unchanged.
+      context: ../kurdnezam-web
+      dockerfile: Dockerfile
+      args:
+        # Next inlines NEXT_PUBLIC_* at BUILD time. Public value only, never a secret.
+        NEXT_PUBLIC_API_BASE: "https://${API_DOMAIN}"
+    image: mabhas19-kurdnezam-web:newserver
+    container_name: mabhas19-kurdnezam-web
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.m19kurdnezamweb.rule=Host(`${KURDNEZAM_ROOT_DOMAIN}`) || Host(`${KURDNEZAM_DOMAIN}`)"
+      - "traefik.http.routers.m19kurdnezamweb.entrypoints=websecure"
+      - "traefik.http.routers.m19kurdnezamweb.tls.certresolver=myresolver"
+      - "traefik.http.routers.m19kurdnezamweb.service=m19kurdnezamweb"
+      - "traefik.http.services.m19kurdnezamweb.loadbalancer.server.port=3000"
+    networks: [traefik]
+
   # admin-web — the central user-management SPA (admin.myceo.ir). React/Vite + Ant Design, served
   # static by nginx. It calls the IdP's api/admin/* endpoints from the browser (base = the AUTH host,
   # not the API host), so its access token needs the Administrator role — enforced by the IdP.
