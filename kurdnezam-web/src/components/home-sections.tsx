@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useContent } from "@/lib/store";
 import { imageUrl } from "@/lib/api";
+import { ArticleBody, AttachmentList } from "@/components/article";
 import { useI18n } from "@/lib/i18n";
 import type { Category, NewsItem, TabGroup } from "@/data/content";
 import { useHydrated } from "@/components/ui";
@@ -131,11 +132,14 @@ function NewsReader({
               transition={{ delay: 0.25, duration: 0.35 }}
               className="mt-5 text-base leading-8 text-ink/85"
             >
-              {item.body.split("\n\n").map((p, i) => (
-                <p key={i} className="mb-4">
-                  {p}
-                </p>
-              ))}
+              <ArticleBody body={item.body} className="article-body" />
+
+              {item.attachments && item.attachments.length > 0 ? (
+                <div className="mb-6 mt-6">
+                  <AttachmentList items={item.attachments} />
+                </div>
+              ) : null}
+
               <Link
                 href={`/news/${item.id}`}
                 className="mt-2 inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-copper"

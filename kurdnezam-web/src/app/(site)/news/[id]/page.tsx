@@ -16,6 +16,7 @@ import {
 import { useContent } from "@/lib/store";
 import { imageUrl } from "@/lib/api";
 import { Breadcrumb, NewsCard } from "@/components/ui";
+import { ArticleBody, AttachmentList } from "@/components/article";
 
 export default function NewsDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -88,11 +89,10 @@ export default function NewsDetailPage() {
           pushing the body far below a full-bleed banner image. */}
       <div className="mt-8 grid items-start gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="article-body rounded-3xl border border-line bg-white p-6 text-base leading-8 sm:p-10">
-            {item.body.split("\n\n").map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
+          <ArticleBody
+            body={item.body}
+            className="article-body rounded-3xl border border-line bg-white p-6 text-base leading-8 sm:p-10"
+          />
 
           <div className="mt-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-5">
             <span className="inline-flex items-center gap-2 font-medium">
@@ -126,6 +126,8 @@ export default function NewsDetailPage() {
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24">
+          <AttachmentList items={item.attachments} />
+
           {fullImage ? (
             <figure className="overflow-hidden rounded-3xl border border-line bg-paper shadow-card">
               {/* These are usually scans of letters, so `contain` shows the WHOLE page —

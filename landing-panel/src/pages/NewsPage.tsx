@@ -4,8 +4,15 @@ import type { ColumnsType } from "antd/es/table";
 import { PictureOutlined } from "@ant-design/icons";
 import { mediaUrl } from "@/api/client";
 import { categoriesApi, newsApi, unitsApi } from "@/api/endpoints";
-import type { News, NewsInput, NewsListParams, Paged } from "@/api/types";
-import { CrudTable, FormDrawer, ImageUploader, PageHeader } from "@/components/ui";
+import type { News, NewsAttachment, NewsInput, NewsListParams, Paged } from "@/api/types";
+import {
+  AttachmentUploader,
+  CrudTable,
+  FormDrawer,
+  ImageUploader,
+  PageHeader,
+  RichTextEditor,
+} from "@/components/ui";
 import { formatDate, formatDateTime, formatNumber, truncate } from "@/lib/format";
 import { queryKeys, useApiMutation, useApiQuery } from "@/query";
 
@@ -44,6 +51,7 @@ interface NewsFormValues {
   unitId?: number | null;
   image?: string;
   featured: boolean;
+  attachments?: NewsAttachment[];
 }
 
 /** Today as the Jalali string the editors type, e.g. "۱۴۰۵/۴/۲۱" (fa-IR digits come from Intl). */
@@ -204,8 +212,9 @@ export function NewsPage() {
         unitId: editing.unitId ?? undefined,
         image: editing.image,
         featured: editing.featured,
+        attachments: editing.attachments ?? [],
       }
-    : { date: todayJalali(), featured: false };
+    : { date: todayJalali(), featured: false, attachments: [] };
 
   const handleSubmit = async (values: NewsFormValues) => {
     const input: NewsInput = {
@@ -218,6 +227,8 @@ export function NewsPage() {
       unitId: values.unitId ?? null,
       image: values.image?.trim() ?? "",
       featured: !!values.featured,
+      // Sent in full: the server replaces the article's files with exactly this list.
+      attachments: values.attachments ?? [],
     };
 
     // Let it throw: `FormDrawer` paints ValidationProblemDetails onto the offending fields.
@@ -397,9 +408,17 @@ export function NewsPage() {
           name="body"
           label="متن خبر"
           rules={[{ required: true, message: "متن خبر الزامی است" }]}
-          extra="پاراگراف‌ها را با یک خط خالی از یکدیگر جدا کنید."
+          extra="متن را قالب‌بندی کنید: درشت، فهرست، عنوان و پیوند. خبرهای قدیمی خودکار تبدیل می‌شوند."
         >
-          <Input.TextArea rows={14} placeholder={"پاراگراف اول…\n\nپاراگراف دوم…"} />
+          <RichTextEditor minHeight={320} />
+        </Form.Item>
+
+        <Form.Item
+          name="attachments"
+          label="پیوست‌ها"
+          extra="PDF / Word / Excel / تصویر — حداکثر ۲۰ مگابایت برای هر فایل. ترتیب فهرست همان ترتیب نمایش در سایت است."
+        >
+          <AttachmentUploader />
         </Form.Item>
 
         <Form.Item

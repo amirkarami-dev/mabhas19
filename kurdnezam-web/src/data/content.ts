@@ -33,6 +33,20 @@ export interface NewsItem {
   /** `/images/...` (legacy static) or `/api/kurdnezam/media/...` — resolve with `imageUrl()`. */
   image: string;
   featured: boolean;
+  /** Downloadable files (بخشنامه / فرم), ordered by the server. */
+  attachments?: NewsAttachment[];
+}
+
+/** A file attached to a news item. Served from the API host, not the site. */
+export interface NewsAttachment {
+  id: number;
+  /** `/api/kurdnezam/media/...` — resolve with `imageUrl()`. */
+  url: string;
+  /** Original name, shown to the visitor and used as the download name. */
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  sortOrder: number;
 }
 
 export interface Slide {

@@ -104,6 +104,20 @@ export interface News {
   unitId?: number | null;
   image: string;
   featured: boolean;
+  /** Downloadable files, already ordered by the server. */
+  attachments?: NewsAttachment[];
+}
+
+/** One downloadable file on an article. */
+export interface NewsAttachment {
+  id?: number;
+  /** Stored reference, e.g. "/api/kurdnezam/media/ab12….pdf". */
+  url: string;
+  /** Original name — shown in the UI and used as the download name. */
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  sortOrder?: number;
 }
 
 export interface NewsInput {
@@ -118,6 +132,11 @@ export interface NewsInput {
   unitId?: number | null;
   /** Omit to let the server stamp "now". */
   publishedAt?: string | null;
+  /**
+   * The COMPLETE list — the server replaces the article's files with exactly this, so dropping
+   * one here deletes it. Order of the array becomes the display order.
+   */
+  attachments?: NewsAttachment[];
 }
 
 export interface NewsListParams {
@@ -387,6 +406,10 @@ export interface MediaUpload {
   fileName: string;
   /** Server-relative, e.g. "/api/kurdnezam/media/ab12….png". Resolve with `mediaUrl()`. */
   url: string;
+  /** Name as uploaded, kept so attachments download under it instead of the 32-hex key. */
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
 }
 
 // ── whole-site payload ───────────────────────────────────────────────────────
