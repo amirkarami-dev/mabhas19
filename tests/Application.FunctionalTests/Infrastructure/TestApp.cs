@@ -1,8 +1,6 @@
 using Mabhas19.Domain.Constants;
 using Mabhas19.Infrastructure.Data;
-using Mabhas19.Infrastructure.Identity;
 using MediatR;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -45,38 +43,14 @@ public static class TestApp
         return await RunAsUserAsync("administrator@local", "Administrator1234!", [Roles.Administrator]);
     }
 
-    public static async Task<string> RunAsUserAsync(string userName, string password, string[] roles)
+    public static Task<string> RunAsUserAsync(string userName, string password, string[] roles)
     {
-        using var scope = FunctionalTestSetup.ScopeFactory.CreateScope();
-
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-        var user = new ApplicationUser { UserName = userName, Email = userName };
-
-        var result = await userManager.CreateAsync(user, password);
-
-        if (roles.Length > 0)
-        {
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-            foreach (var role in roles)
-            {
-                await roleManager.CreateAsync(new IdentityRole(role));
-            }
-
-            await userManager.AddToRolesAsync(user, roles);
-        }
-
-        if (result.Succeeded)
-        {
-            _userId = user.Id;
-            _roles = [..roles];
-            return _userId;
-        }
-
-        var errors = string.Join(Environment.NewLine, result.ToApplicationResult().Errors);
-
-        throw new Exception($"Unable to create {userName}.{Environment.NewLine}{errors}");
+        // Identity lives in the central OIDC IdP; the API is a pure JWT resource server and
+        // authorises purely from claims (see CurrentUser / IUser). Tests therefore just assert
+        // an identity — a GUID subject plus roles — that the test IUser (WebApiFactory) surfaces.
+        _userId = Guid.NewGuid().ToString();
+        _roles = [.. roles];
+        return Task.FromResult(_userId);
     }
 
     public static async Task ResetState()
