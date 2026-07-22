@@ -74,7 +74,7 @@
     "heroTitle": "گزارش دلخواه خود را بخواهید",
     "sqlReassurance": "هوش مصنوعی هرگز SQL نمی‌نویسد — داده‌های شما امن است",
     "promptLabel": "پرامپت گزارش",
-    "promptPlaceholder": "مثلاً: درآمد ماهانه هر استان را نشان بده…",
+    "promptPlaceholder": "مثلاً: تعداد اعضا به تفکیک رشته و پایه را نشان بده…",
     "send": "ارسال",
     "definitionTitle": "تعریف گزارش (JSON)",
     "copyJson": "کپی JSON",

@@ -32,6 +32,14 @@ public class SemanticFieldDto
     /// </summary>
     public string? Description { get; init; }
 
+    /// <summary>
+    /// Optional code → display-label map, applied to RESULT rows only (filters and SQL keep the
+    /// raw codes; the AI already targets codes via <see cref="Description"/>). Keys are the
+    /// normalised code strings ("1", "-1", …); bit columns arrive as bool and normalise to
+    /// "1"/"0". See SqlQueryEngine.ApplyValueLabels.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? ValueLabels { get; init; }
+
     // ── Optional code → label lookup ─────────────────────────────────────────
     // When all three are set (from the TRUSTED semantic model, never user input),
     // GROUP BY on this field LEFT JOINs the lookup table and returns the human-readable

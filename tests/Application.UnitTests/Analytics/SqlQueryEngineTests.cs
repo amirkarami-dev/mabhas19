@@ -531,4 +531,55 @@ public class SqlQueryEngineTests
         sql.ShouldContain("SUM([Meter])");
         sql.ShouldContain("GROUP BY [CityId]");
     }
+
+    // =========================================================================
+    // ApplyValueLabels — dictionary codes become display labels in RESULT rows
+    // =========================================================================
+
+    [Test]
+    public async Task ApplyValueLabels_TranslatesCodes_AcrossSqlValueShapes()
+    {
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
+        model.ShouldNotBeNull();
+
+        var rows = new List<Dictionary<string, object?>>
+        {
+            new()
+            {
+                ["Reshte"] = "5",          // nvarchar code
+                ["PayeT"]  = (short)-1,    // smallint code (-1 = ارشد)
+                ["IsHogh"] = true,         // bit arrives as bool
+                ["Ozviat"] = 5317,         // no dictionary → untouched
+                ["member_count"] = 42,     // metric alias → untouched
+            },
+        };
+
+        SqlQueryEngine.ApplyValueLabels(rows, model!);
+
+        rows[0]["Reshte"].ShouldBe("برق");
+        rows[0]["PayeT"].ShouldBe("ارشد");
+        rows[0]["IsHogh"].ShouldBe("حقوقی");
+        rows[0]["Ozviat"].ShouldBe(5317);
+        rows[0]["member_count"].ShouldBe(42);
+    }
+
+    [Test]
+    public async Task ApplyValueLabels_UnknownCodeOrNull_PassesThrough()
+    {
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
+        model.ShouldNotBeNull();
+
+        var rows = new List<Dictionary<string, object?>>
+        {
+            new() { ["Reshte"] = "99", ["PayeT"] = null },
+        };
+
+        SqlQueryEngine.ApplyValueLabels(rows, model!);
+
+        // A code outside the dictionary must stay visible as-is, never become blank.
+        rows[0]["Reshte"].ShouldBe("99");
+        rows[0]["PayeT"].ShouldBeNull();
+    }
 }

@@ -90,7 +90,11 @@ internal sealed class SqlQueryEngine : IQueryEngine
             rows.Add(row);
         }
 
-        // 5. Build column descriptors
+        // 5. Decode dictionary-coded values (Reshte 5 → "برق", PayeT -1 → "ارشد", …) for DISPLAY.
+        // Filters/sorting already ran in SQL on the raw codes, so this changes presentation only.
+        ApplyValueLabels(rows, model);
+
+        // 6. Build column descriptors
         var columns = ResolveColumns(definition, model);
 
         return new ReportResultDto
@@ -116,6 +120,57 @@ internal sealed class SqlQueryEngine : IQueryEngine
     /// <param name="parameters">Output: list of (paramName, value) pairs for SqlCommand.Parameters.</param>
     /// <returns>Parameterized SQL string ready for execution.</returns>
     /// <exception cref="InvalidOperationException">Thrown when an unknown field is referenced (whitelist enforcement).</exception>
+    /// <summary>
+    /// Replaces dictionary-coded values in result rows with their display labels, per the
+    /// model's <see cref="SemanticFieldDto.ValueLabels"/>. Pure and idempotent: unknown codes
+    /// and fields without a dictionary pass through untouched. bit columns arrive from
+    /// SqlDataReader as bool and normalise to "1"/"0"; numeric codes normalise to their
+    /// invariant integral string (smallint/int/decimal all become "5", "-1", …).
+    /// </summary>
+    internal static void ApplyValueLabels(
+        List<Dictionary<string, object?>> rows, SemanticModelDto model)
+    {
+        var labelledFields = model.Fields
+            .Where(f => f.ValueLabels is { Count: > 0 })
+            .ToList();
+        if (labelledFields.Count == 0 || rows.Count == 0) return;
+
+        foreach (var row in rows)
+        {
+            foreach (var field in labelledFields)
+            {
+                if (!row.TryGetValue(field.Id, out var value) || value is null) continue;
+
+                var code = NormalizeCode(value);
+                if (code is not null && field.ValueLabels!.TryGetValue(code, out var label))
+                {
+                    row[field.Id] = label;
+                }
+            }
+        }
+    }
+
+    /// <summary>bool → "1"/"0"; integral-valued numerics → invariant string; strings trimmed.</summary>
+    private static string? NormalizeCode(object value)
+    {
+        switch (value)
+        {
+            case bool b:
+                return b ? "1" : "0";
+            case string s:
+                return s.Trim();
+            case sbyte or byte or short or ushort or int or uint or long:
+                return Convert.ToInt64(value, System.Globalization.CultureInfo.InvariantCulture)
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
+            case decimal d when d == decimal.Truncate(d):
+                return ((long)d).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            case double dbl when dbl == Math.Truncate(dbl):
+                return ((long)dbl).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            default:
+                return null; // fractional / exotic → leave the raw value alone
+        }
+    }
+
     public static string BuildSql(
         ReportDefinitionDto definition,
         SemanticModelDto model,

@@ -74,7 +74,7 @@
     "heroTitle": "Ask for any report",
     "sqlReassurance": "AI never writes SQL — your data stays safe",
     "promptLabel": "Report prompt",
-    "promptPlaceholder": "e.g. Show monthly revenue per province…",
+    "promptPlaceholder": "e.g. Show member counts by field and grade…",
     "send": "Send",
     "definitionTitle": "Report Definition (JSON)",
     "copyJson": "Copy JSON",
