@@ -1,0 +1,260 @@
+import { useMemo, useState } from "react";
+import {
+  Alert,
+  App,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Modal,
+  Row,
+  Skeleton,
+  Space,
+  Tag,
+  Typography,
+  theme,
+} from "antd";
+import { ClockCircleOutlined, RightOutlined } from "@ant-design/icons";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { walfareApi, type PoolAvailability } from "@/api/walfareApi";
+import { errorMessage } from "@/api/client";
+import { queryKeys, useApiQuery } from "@/query";
+import { EmptyState, PageHeader } from "@/components/ui";
+import {
+  JALALI_MONTHS,
+  JALALI_WEEKDAYS,
+  faDigits,
+  faMoney,
+  isSameDay,
+  jalaliMonthDays,
+  shiftJalaliMonth,
+  toJalali,
+  todayStart,
+  type CalendarDay,
+} from "@/lib/jalali";
+
+/** A month of Jalali days, Saturday-first grid, past days disabled. */
+function JalaliCalendar({
+  anchor,
+  onShift,
+  selected,
+  onSelect,
+}: {
+  anchor: Date;
+  onShift: (delta: number) => void;
+  selected: Date | null;
+  onSelect: (day: CalendarDay) => void;
+}) {
+  const { token } = theme.useToken();
+  const days = useMemo(() => jalaliMonthDays(anchor), [anchor]);
+  const today = todayStart();
+  const header = toJalali(anchor);
+
+  // Leading blanks so day 1 lands on its weekday column (Saturday-first).
+  const leading = days.length > 0 ? days[0].weekdayBit : 0;
+
+  return (
+    <Card
+      title={
+        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+          <Button size="small" onClick={() => onShift(-1)} icon={<RightOutlined />} aria-label="ماه قبل" />
+          <Typography.Text strong>
+            {JALALI_MONTHS[header.jm - 1]} {faDigits(header.jy)}
+          </Typography.Text>
+          <Button
+            size="small"
+            onClick={() => onShift(1)}
+            icon={<RightOutlined style={{ transform: "rotate(180deg)" }} />}
+            aria-label="ماه بعد"
+          />
+        </Space>
+      }
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+        {JALALI_WEEKDAYS.map((w) => (
+          <div key={w} style={{ textAlign: "center", fontSize: 12, color: token.colorTextSecondary, padding: 4 }}>
+            {w}
+          </div>
+        ))}
+        {Array.from({ length: leading }).map((_, i) => (
+          <div key={`blank-${i}`} />
+        ))}
+        {days.map((d) => {
+          const disabled = d.date < today;
+          const isSelected = selected !== null && isSameDay(d.date, selected);
+          const isToday = isSameDay(d.date, today);
+          return (
+            <button
+              key={d.apiDate}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelect(d)}
+              aria-pressed={isSelected}
+              style={{
+                height: 42,
+                borderRadius: 10,
+                border: isToday && !isSelected ? `1px dashed ${token.colorPrimary}` : "1px solid transparent",
+                cursor: disabled ? "not-allowed" : "pointer",
+                background: isSelected ? token.colorPrimary : "transparent",
+                color: disabled
+                  ? token.colorTextQuaternary
+                  : isSelected
+                    ? "#fff"
+                    : token.colorText,
+                fontWeight: isSelected ? 700 : 400,
+                fontSize: 14,
+              }}
+            >
+              {faDigits(d.jalali.jd)}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+export function BookingPage() {
+  const { serviceId: serviceIdParam } = useParams<{ serviceId: string }>();
+  const serviceId = Number(serviceIdParam);
+  const navigate = useNavigate();
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+
+  const [anchor, setAnchor] = useState<Date>(todayStart());
+  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
+  const [confirmPool, setConfirmPool] = useState<PoolAvailability | null>(null);
+  const [paying, setPaying] = useState(false);
+
+  const me = useApiQuery(queryKeys.me.get(), walfareApi.me);
+  const services = useApiQuery(queryKeys.services.active(), walfareApi.activeServices);
+  const service = services.data?.find((s) => s.id === serviceId);
+
+  const pools = useApiQuery(
+    queryKeys.pools.forDate(serviceId, selectedDay?.apiDate ?? ""),
+    () => walfareApi.poolsForDate(serviceId, selectedDay!.apiDate),
+    { enabled: !!selectedDay && Number.isFinite(serviceId) },
+  );
+
+  /** Reserve, then push straight into the bank. One click = one ticket + one payment attempt. */
+  const reserveAndPay = async (pool: PoolAvailability) => {
+    if (!selectedDay) return;
+    setPaying(true);
+    try {
+      const reservationId = await walfareApi.createReservation(pool.id, selectedDay.apiDate);
+      const init = await walfareApi.initPayment(reservationId);
+      // The reservation exists (PendingPayment) even if the user abandons the gateway —
+      // "رزروهای من" offers a retry button.
+      void qc.invalidateQueries({ queryKey: queryKeys.reservations.all() });
+      window.location.href = init.redirectUrl;
+    } catch (err) {
+      message.error(errorMessage(err, "ثبت رزرو ناموفق بود"));
+      void qc.invalidateQueries({ queryKey: queryKeys.pools.all() });
+      setPaying(false);
+      setConfirmPool(null);
+    }
+  };
+
+  if (!Number.isFinite(serviceId)) {
+    return <Alert type="error" showIcon message="سرویس نامعتبر" />;
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={service?.title ?? "رزرو استخر"}
+        subtitle="تاریخ را از تقویم انتخاب کنید؛ استخرهای فعال همان روز نمایش داده می‌شوند."
+      />
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={10} xl={8}>
+          <JalaliCalendar
+            anchor={anchor}
+            onShift={(delta) => setAnchor((a) => shiftJalaliMonth(a, delta))}
+            selected={selectedDay?.date ?? null}
+            onSelect={setSelectedDay}
+          />
+        </Col>
+
+        <Col xs={24} lg={14} xl={16}>
+          {!selectedDay ? (
+            <EmptyState description="برای مشاهده استخرها، یک روز را از تقویم انتخاب کنید." />
+          ) : pools.isFetching ? (
+            <Skeleton active paragraph={{ rows: 4 }} />
+          ) : pools.error ? (
+            <Alert type="error" showIcon message={errorMessage(pools.error)} />
+          ) : pools.data && pools.data.length > 0 ? (
+            <Row gutter={[12, 12]}>
+              {pools.data.map((p) => {
+                const full = p.remaining <= 0;
+                return (
+                  <Col key={p.id} xs={24} md={12}>
+                    <Card>
+                      <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Typography.Text strong style={{ fontSize: 15 }}>
+                            {p.name}
+                          </Typography.Text>
+                          {full ? (
+                            <Tag color="red">تکمیل</Tag>
+                          ) : (
+                            <Tag color="green">{faDigits(p.remaining)} جای خالی</Tag>
+                          )}
+                        </Space>
+                        {p.description ? (
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {p.description}
+                          </Typography.Text>
+                        ) : null}
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          <ClockCircleOutlined /> ساعت {faDigits(p.reserveStartTime)} تا {faDigits(p.reserveEndTime)}
+                        </Typography.Text>
+                        <Space style={{ width: "100%", justifyContent: "space-between", marginTop: 4 }}>
+                          <Typography.Text strong>{faMoney(p.priceRials)}</Typography.Text>
+                          <Button type="primary" disabled={full || paying} onClick={() => setConfirmPool(p)}>
+                            رزرو و پرداخت
+                          </Button>
+                        </Space>
+                      </Space>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          ) : (
+            <EmptyState description="برای این روز استخری فعال نیست. روز دیگری را انتخاب کنید." />
+          )}
+        </Col>
+      </Row>
+
+      <Modal
+        open={confirmPool !== null}
+        title="تأیید رزرو"
+        okText="پرداخت"
+        cancelText="انصراف"
+        confirmLoading={paying}
+        onOk={() => confirmPool && reserveAndPay(confirmPool)}
+        onCancel={() => (paying ? undefined : setConfirmPool(null))}
+      >
+        {confirmPool && selectedDay ? (
+          <Descriptions column={1} size="small" bordered>
+            <Descriptions.Item label="استخر">{confirmPool.name}</Descriptions.Item>
+            <Descriptions.Item label="تاریخ">{faDigits(selectedDay.apiDate)}</Descriptions.Item>
+            <Descriptions.Item label="نام و نام خانوادگی">{me.data?.fullName ?? "—"}</Descriptions.Item>
+            <Descriptions.Item label="کد ملی">{faDigits(me.data?.nationalCode ?? "—")}</Descriptions.Item>
+            <Descriptions.Item label="مبلغ">{faMoney(confirmPool.priceRials)}</Descriptions.Item>
+          </Descriptions>
+        ) : null}
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12, fontSize: 12 }}>
+          پس از تأیید به درگاه پرداخت ایران کیش منتقل می‌شوید. کد رهگیری پس از پرداخت موفق در
+          «رزروهای من» ثبت می‌شود.
+        </Typography.Paragraph>
+      </Modal>
+
+      <Button style={{ marginTop: 16 }} onClick={() => navigate("/")}>
+        بازگشت به خدمات
+      </Button>
+    </>
+  );
+}
