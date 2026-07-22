@@ -257,7 +257,12 @@ export function CrudTable<T extends object>({
         size={size}
         pagination={tablePagination}
         expandable={expandable}
-        scroll={scrollX ? { x: scrollX } : undefined}
+        // Long values (a 200-char news title) used to collapse the one flexible column to a single
+        // word per line, because the fixed-width columns ate the whole row. `fixed` layout makes
+        // every column honour its width, and the x-floor gives the table a horizontal scrollbar on
+        // narrow screens instead of crushing a column down to nothing.
+        tableLayout="fixed"
+        scroll={{ x: scrollX ?? 900 }}
         locale={{
           emptyText: (
             <EmptyState

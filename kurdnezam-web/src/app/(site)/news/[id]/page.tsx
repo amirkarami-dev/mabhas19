@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Check,
   Copy,
+  Maximize2,
   Send,
   Share2,
   UserRound,
@@ -53,8 +54,10 @@ export default function NewsDetailPage() {
     }
   }
 
+  const fullImage = item.image ? imageUrl(item.image) : "";
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-10">
       <Breadcrumb
         items={[{ title: "اخبار", href: "/news" }, { title: item.title }]}
       />
@@ -62,7 +65,10 @@ export default function NewsDetailPage() {
       <span className="rounded-full bg-copper-soft px-4 py-1.5 text-sm font-medium text-copper-dark">
         {item.categoryTitle || "اخبار سازمان"}
       </span>
-      <h1 className="mt-4 font-display text-4xl leading-snug sm:text-5xl">
+
+      {/* Titles here run to ~200 characters. At the old 4xl/5xl they filled most of a screen
+          before any content appeared, so cap the display size and let long ones wrap tightly. */}
+      <h1 className="mt-4 max-w-4xl font-display text-2xl leading-snug text-balance sm:text-3xl">
         {item.title}
       </h1>
 
@@ -77,52 +83,77 @@ export default function NewsDetailPage() {
         </span>
       </div>
 
-      <div className="relative mt-8 aspect-[16/9] overflow-hidden rounded-3xl border border-line shadow-card">
-        <Image
-          src={imageUrl(item.image)}
-          alt=""
-          fill
-          priority
-          sizes="(max-width: 896px) 100vw, 896px"
-          className="object-cover"
-        />
-      </div>
+      {/* Two columns: the article reads on the right (RTL start), while the scan/photo and the
+          share box sit in a sticky rail. Keeps the text column at a readable width instead of
+          pushing the body far below a full-bleed banner image. */}
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <div className="article-body rounded-3xl border border-line bg-white p-6 text-base leading-8 sm:p-10">
+            {item.body.split("\n\n").map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
 
-      <div className="article-body mt-8 rounded-3xl border border-line bg-white p-6 text-base leading-8 sm:p-10">
-        {item.body.split("\n\n").map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
-      </div>
-
-      {/* share */}
-      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-5">
-        <span className="inline-flex items-center gap-2 font-medium">
-          <Share2 className="size-5 text-copper" aria-hidden />
-          اشتراک‌گذاری این مطلب
-        </span>
-        <div className="ms-auto flex gap-2">
-          <a
-            href={`https://t.me/share/url?url=https://kurdnezam.ir/news/${item.id}&text=${encodeURIComponent(item.title)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-paper px-4 py-2 text-sm transition-colors hover:bg-copper hover:text-white"
-          >
-            <Send className="size-4" aria-hidden />
-            تلگرام
-          </a>
-          <button
-            type="button"
-            onClick={copyLink}
-            className="inline-flex items-center gap-2 rounded-xl bg-paper px-4 py-2 text-sm transition-colors hover:bg-copper hover:text-white"
-          >
-            {copied ? (
-              <Check className="size-4" aria-hidden />
-            ) : (
-              <Copy className="size-4" aria-hidden />
-            )}
-            {copied ? "کپی شد" : "کپی لینک"}
-          </button>
+          <div className="mt-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white p-5">
+            <span className="inline-flex items-center gap-2 font-medium">
+              <Share2 className="size-5 text-copper" aria-hidden />
+              اشتراک‌گذاری این مطلب
+            </span>
+            <div className="ms-auto flex gap-2">
+              <a
+                href={`https://t.me/share/url?url=https://kurdnezam.ir/news/${item.id}&text=${encodeURIComponent(item.title)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-paper px-4 py-2 text-sm transition-colors hover:bg-copper hover:text-white"
+              >
+                <Send className="size-4" aria-hidden />
+                تلگرام
+              </a>
+              <button
+                type="button"
+                onClick={copyLink}
+                className="inline-flex items-center gap-2 rounded-xl bg-paper px-4 py-2 text-sm transition-colors hover:bg-copper hover:text-white"
+              >
+                {copied ? (
+                  <Check className="size-4" aria-hidden />
+                ) : (
+                  <Copy className="size-4" aria-hidden />
+                )}
+                {copied ? "کپی شد" : "کپی لینک"}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <aside className="space-y-6 lg:sticky lg:top-24">
+          {fullImage ? (
+            <figure className="overflow-hidden rounded-3xl border border-line bg-paper shadow-card">
+              {/* These are usually scans of letters, so `contain` shows the WHOLE page —
+                  `cover` was cropping the text off the edges. */}
+              <div className="relative h-80 w-full sm:h-96">
+                <Image
+                  src={fullImage}
+                  alt=""
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-contain"
+                />
+              </div>
+              <figcaption className="border-t border-line p-3">
+                <a
+                  href={fullImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-steel transition-colors hover:text-copper"
+                >
+                  <Maximize2 className="size-4" aria-hidden />
+                  مشاهده تصویر در اندازه کامل
+                </a>
+              </figcaption>
+            </figure>
+          ) : null}
+        </aside>
       </div>
 
       {related.length > 0 && (

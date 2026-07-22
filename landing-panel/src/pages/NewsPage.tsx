@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Form, Input, Select, Space, Switch, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { PictureOutlined } from "@ant-design/icons";
@@ -20,6 +20,18 @@ const FEATURED_OPTIONS: { value: FeaturedFilter; label: string }[] = [
 
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 350;
+
+/**
+ * Cap a long value at N lines with an ellipsis. Titles here run to 200 characters, which used to
+ * wrap all the way down the row; the full text is still available via the cell's tooltip.
+ */
+const clampLines = (lines: number): CSSProperties => ({
+  display: "-webkit-box",
+  WebkitLineClamp: lines,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  wordBreak: "break-word",
+});
 
 /** The drawer's shape. `image` is optional here; the API wants a (possibly empty) string. */
 interface NewsFormValues {
@@ -226,11 +238,16 @@ export function NewsPage() {
       title: "عنوان",
       dataIndex: "title",
       key: "title",
+      width: 380,
       render: (_: unknown, record) => (
-        <Space direction="vertical" size={0}>
-          <Typography.Text strong>{record.title}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {truncate(record.summary, 70)}
+        <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          <Tooltip title={record.title}>
+            <Typography.Text strong style={clampLines(2)}>
+              {record.title}
+            </Typography.Text>
+          </Tooltip>
+          <Typography.Text type="secondary" style={{ fontSize: 12, ...clampLines(1) }}>
+            {record.summary}
           </Typography.Text>
         </Space>
       ),
