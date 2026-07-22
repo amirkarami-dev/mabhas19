@@ -1,5 +1,6 @@
 import { Layout, theme } from "antd";
 import { Outlet } from "react-router-dom";
+import { AmbientBackground } from "./AmbientBackground";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { useUiStore } from "../store/ui-store";
@@ -34,7 +35,9 @@ export function AppLayout() {
   );
 
   const main = (
-    <Layout>
+    // Transparent so the ambient backdrop shows through the gutters; the Content card
+    // itself stays solid (colorBgContainer) and readable.
+    <Layout style={{ background: "transparent" }}>
       <Topbar />
       <Content
         style={{
@@ -58,6 +61,9 @@ export function AppLayout() {
         flexDirection: isRtl ? "row-reverse" : "row",
       }}
     >
+      {/* Fixed + pointer-events:none → out of the flex flow, so antd's Sider detection is
+          untouched; later siblings paint above it in DOM order. */}
+      <AmbientBackground />
       {isRtl ? (
         <>
           {main}

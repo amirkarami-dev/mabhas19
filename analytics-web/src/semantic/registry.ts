@@ -3,7 +3,7 @@ import type { Dataset } from "../contracts/dataset";
 import { projectModel } from "./models/project";
 import { salesModel } from "./models/sales";
 import { financeModel } from "./models/finance";
-import { projectsModel, membersModel, legalProjectsModel } from "./models/farsnezam";
+import { ozInfoModel, engineerProjectsModel } from "./models/kurdnezam";
 import { projectData } from "./datasets/project";
 import { salesData } from "./datasets/sales";
 import { financeData } from "./datasets/finance";
@@ -11,9 +11,9 @@ import { financeData } from "./datasets/finance";
 // Named re-exports so tests and UI code can import models directly:
 // import { salesModel, projectModel } from "../semantic/registry"
 export { projectModel, salesModel, financeModel };
-export { projectsModel, membersModel, legalProjectsModel };
+export { ozInfoModel, engineerProjectsModel };
 
-/** In REAL mode the dataset picker + auto-viz use the live FarsNezam models (matching the
+/** In REAL mode the dataset picker + auto-viz use the live KurdNezam models (matching the
  *  backend store); in MOCK/dev mode they use the bundled sample models + in-browser data. */
 const USE_REAL_MODELS =
   (import.meta.env.VITE_USE_MOCK_API as string | undefined) === "false";
@@ -21,13 +21,14 @@ const USE_REAL_MODELS =
 /** All bundled semantic models, keyed by model id. */
 export const semanticModels: Record<string, SemanticModel> = USE_REAL_MODELS
   ? {
-      [projectsModel.id]: projectsModel,
-      [membersModel.id]: membersModel,
-      [legalProjectsModel.id]: legalProjectsModel,
+      [ozInfoModel.id]: ozInfoModel,
+      [engineerProjectsModel.id]: engineerProjectsModel,
     }
   : {
-      [projectModel.id]: projectModel,
+      // sales first ON PURPOSE: the Ask-AI default dataset is listSemanticModels()[0],
+      // and the sample prompts (and AskAiBuilder tests) assume model-sales is the default.
       [salesModel.id]: salesModel,
+      [projectModel.id]: projectModel,
       [financeModel.id]: financeModel,
     };
 

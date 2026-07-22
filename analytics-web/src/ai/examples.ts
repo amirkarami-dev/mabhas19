@@ -184,21 +184,45 @@ const MOCK_EXAMPLE_PROMPTS: ExamplePrompt[] = [
   },
 ];
 
-/** FarsNezam example chips (REAL mode). datasetKey = backend model id. */
+/**
+ * KurdNezam example chips (REAL mode). datasetKey = backend model id.
+ * Deliberately COMPLEX prompts — multi-dimension groupings, dictionary-coded filters
+ * (پایه/رشته/حقوقی), top-N with sorting — so they showcase what the engine can answer.
+ */
 const REAL_EXAMPLE_PROMPTS: ExamplePrompt[] = [
-  { id: "fn-projects-by-zone", label: "پروژه‌ها به تفکیک منطقه",
-    prompt: "تعداد پروژه‌ها به تفکیک منطقه", datasetKey: "model-projects" },
-  { id: "fn-top-zones", label: "۱۰ منطقه برتر",
-    prompt: "۱۰ منطقه برتر بر اساس تعداد پروژه", datasetKey: "model-projects" },
-  { id: "fn-area-by-type", label: "زیربنا به تفکیک نوع",
-    prompt: "مجموع زیربنا به تفکیک نوع پروژه", datasetKey: "model-projects" },
-  { id: "fn-members-by-field", label: "اعضا به تفکیک رشته",
-    prompt: "تعداد اعضا به تفکیک رشته", datasetKey: "model-members" },
-  { id: "fn-legal-by-year", label: "حقوقی بر اساس سال",
-    prompt: "تعداد پروژه‌های حقوقی بر اساس سال", datasetKey: "model-legal-projects" },
+  { id: "kn-members-field-entity", label: "اعضا: رشته × حقیقی/حقوقی",
+    prompt: "تعداد اعضا به تفکیک رشته و حقیقی یا حقوقی بودن، مرتب از بیشترین",
+    datasetKey: "model-oz-info" },
+  { id: "kn-design-grade1", label: "پایه یک طراحی به تفکیک رشته",
+    prompt: "تعداد مهندسان دارای پایه یک طراحی به تفکیک رشته، مرتب از بیشترین به کمترین",
+    datasetKey: "model-oz-info" },
+  { id: "kn-top-referral", label: "۱۰ عضو برتر ارجاع",
+    prompt: "۱۰ عضو برتر از نظر تعداد شرکت در ارجاع کار همراه با کد عضویت",
+    datasetKey: "model-oz-info" },
+  { id: "kn-referral-by-field", label: "ثبت‌نام ارجاع × رشته",
+    prompt: "مقایسه تعداد اعضای ثبت‌نام‌کرده و ثبت‌نام‌نکرده در ارجاع کار به تفکیک رشته",
+    datasetKey: "model-oz-info" },
+  { id: "kn-civil-supervision", label: "پایه نظارت عمرانی‌ها",
+    prompt: "توزیع پایه نظارت بین مهندسان رشته عمران به تفکیک پایه، شامل ارشد",
+    datasetKey: "model-oz-info" },
+  { id: "kn-legal-entities", label: "حقوقی‌ها به تفکیک نوع",
+    prompt: "تعداد اعضای حقوقی به تفکیک نوع شخصیت مانند دفتر طراحی، مجری و آزمایشگاه",
+    datasetKey: "model-oz-info" },
+  { id: "kn-avg-referral-by-grade", label: "میانگین ارجاع × بالاترین پایه",
+    prompt: "میانگین تعداد شرکت در ارجاع کار به تفکیک بالاترین پایه اخذشده",
+    datasetKey: "model-oz-info" },
+  { id: "kn-meter-by-city", label: "متراژ کارکرد به تفکیک شهر",
+    prompt: "مجموع متراژ کارکرد مهندسان به تفکیک شهر، مرتب از بیشترین متراژ",
+    datasetKey: "model-engineer-projects" },
+  { id: "kn-referral-vs-direct-monthly", label: "ارجاع در برابر مستقیم، ماهانه",
+    prompt: "تعداد تخصیص‌های از طریق ارجاع در مقابل خارج از ارجاع به تفکیک ماه تاریخ ثبت",
+    datasetKey: "model-engineer-projects" },
+  { id: "kn-top-engineers-by-meter", label: "۱۰ مهندس برتر متراژ",
+    prompt: "۱۰ مهندس برتر بر اساس مجموع متراژ کارکرد همراه با تعداد تخصیص هر یک",
+    datasetKey: "model-engineer-projects" },
 ];
 
-/** Active chips: FarsNezam in REAL mode, sample prompts in mock/dev mode. */
+/** Active chips: KurdNezam in REAL mode, sample prompts in mock/dev mode. */
 export const EXAMPLE_PROMPTS: ExamplePrompt[] = USE_REAL_MODELS
   ? REAL_EXAMPLE_PROMPTS
   : MOCK_EXAMPLE_PROMPTS;
