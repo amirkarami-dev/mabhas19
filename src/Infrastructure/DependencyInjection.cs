@@ -6,6 +6,7 @@ using Mabhas19.Infrastructure.Data.Interceptors;
 using Mabhas19.Infrastructure.External;
 using Mabhas19.Infrastructure.MunSanandaj;
 using Mabhas19.Infrastructure.MunSanandaj.Sql;
+using Mabhas19.Infrastructure.Payments;
 using Mabhas19.Infrastructure.Reporting;
 using Mabhas19.Infrastructure.Storage;
 using Mabhas19.Infrastructure.Subscriptions;
@@ -96,10 +97,12 @@ public static class DependencyInjection
 
         // Welfare (سامانه رفاهی مهندسین): Iran Kish gateway + the org membership directory that
         // snapshots who is reserving. The directory shares the mun-sanandaj KurdNezamDb secret.
-        services.Configure<Payments.IranKishOptions>(config.GetSection(Payments.IranKishOptions.SectionName));
-        services.AddHttpClient(nameof(Payments.IranKishGateway));
-        services.AddScoped<IPaymentGateway, Payments.IranKishGateway>();
-        services.AddScoped<IEngineerDirectory, External.KurdNezamEngineerDirectory>();
+        // NOTE: this file's namespace is Microsoft.Extensions.DependencyInjection (template
+        // convention), so relative qualifiers like Payments.X do not resolve — plain names + usings.
+        services.Configure<IranKishOptions>(config.GetSection(IranKishOptions.SectionName));
+        services.AddHttpClient(nameof(IranKishGateway));
+        services.AddScoped<IPaymentGateway, IranKishGateway>();
+        services.AddScoped<IEngineerDirectory, KurdNezamEngineerDirectory>();
 
         // External project import providers (collected as IEnumerable<IExternalProjectProvider>).
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();
