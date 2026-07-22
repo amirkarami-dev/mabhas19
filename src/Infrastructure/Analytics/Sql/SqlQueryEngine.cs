@@ -51,7 +51,7 @@ internal sealed class SqlQueryEngine : IQueryEngine
         }
 
         // 2. Resolve real table name
-        if (!FarsNezamSemanticModelStore.SourceToTable.TryGetValue(definition.Dataset, out var tableName))
+        if (!KurdNezamSemanticModelStore.SourceToTable.TryGetValue(definition.Dataset, out var tableName))
         {
             _logger.LogWarning("SqlQueryEngine: no table mapping for source '{Source}'", definition.Dataset);
             return new ReportResultDto { Columns = [], Rows = [], Total = 0 };

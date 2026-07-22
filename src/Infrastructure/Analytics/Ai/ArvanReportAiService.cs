@@ -112,7 +112,13 @@ internal sealed class ArvanReportAiService : IReportAiService
         sb.AppendLine($"Available fields for model \"{model.ModelKey}\" (source: \"{model.Source}\"):");
 
         foreach (var f in model.Fields)
-            sb.AppendLine($"  {f.Id}({f.Type},{f.Role})");
+        {
+            // The description carries the field's Persian meaning AND its code dictionary
+            // (e.g. Reshte: 1=معماری …), so "مهندسین برق" becomes `Reshte eq 5`, not a guess.
+            sb.AppendLine(string.IsNullOrWhiteSpace(f.Description)
+                ? $"  {f.Id}({f.Type},{f.Role})"
+                : $"  {f.Id}({f.Type},{f.Role}) — {f.Description}");
+        }
 
         return sb.ToString().TrimEnd();
     }

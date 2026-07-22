@@ -1,4 +1,5 @@
 using Mabhas19.Application.Analytics.Reports;
+using Mabhas19.Application.Analytics.SemanticModels;
 using Mabhas19.Infrastructure.Analytics.Sql;
 using NUnit.Framework;
 using Shouldly;
@@ -7,29 +8,29 @@ namespace Mabhas19.Application.UnitTests.Analytics;
 
 /// <summary>
 /// Unit tests for <see cref="SqlQueryEngine.BuildSql"/> (the pure SQL builder)
-/// and <see cref="FarsNezamSemanticModelStore"/> catalogue.
+/// and the <see cref="KurdNezamSemanticModelStore"/> catalogue.
 /// No database or network calls — BuildSql is tested directly.
 /// </summary>
 [TestFixture]
 public class SqlQueryEngineTests
 {
     // =========================================================================
-    // FarsNezamSemanticModelStore catalogue tests
+    // KurdNezamSemanticModelStore catalogue tests
     // =========================================================================
 
     [Test]
-    public async Task SemanticModelStore_ReturnsThreeModels()
+    public async Task SemanticModelStore_ReturnsTwoModels()
     {
-        var store = new FarsNezamSemanticModelStore();
+        var store = new KurdNezamSemanticModelStore();
         var models = await store.GetAllAsync();
 
-        models.Count.ShouldBe(3);
+        models.Count.ShouldBe(2);
     }
 
     [Test]
     public async Task SemanticModelStore_EachModelHasNonEmptyFields()
     {
-        var store = new FarsNezamSemanticModelStore();
+        var store = new KurdNezamSemanticModelStore();
         var models = await store.GetAllAsync();
 
         foreach (var model in models)
@@ -40,79 +41,82 @@ public class SqlQueryEngineTests
     }
 
     [Test]
-    public async Task SemanticModelStore_ResolvesBySource_Projects()
+    public async Task SemanticModelStore_ResolvesBySource_OzInfo()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
 
         model.ShouldNotBeNull();
-        model!.ModelKey.ShouldBe("model-projects");
+        model!.ModelKey.ShouldBe("model-oz-info");
+        model.Fields.ShouldContain(f => f.Id == "Ozviat");
+        model.Fields.ShouldContain(f => f.Id == "PayeT");
+        model.Fields.ShouldContain(f => f.Id == "Reshte");
+        model.Fields.ShouldContain(f => f.Id == "ActiveInErja");
+    }
+
+    [Test]
+    public async Task SemanticModelStore_ResolvesBySource_EngineerProjects()
+    {
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
+
+        model.ShouldNotBeNull();
+        model!.ModelKey.ShouldBe("model-engineer-projects");
         model.Fields.ShouldContain(f => f.Id == "ProjectNo");
-        model.Fields.ShouldContain(f => f.Id == "Zirbana");
-        model.Fields.ShouldContain(f => f.Id == "Mantaghe");
-    }
-
-    [Test]
-    public async Task SemanticModelStore_ResolvesBySource_Members()
-    {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("members");
-
-        model.ShouldNotBeNull();
-        model!.ModelKey.ShouldBe("model-members");
-        model.Fields.ShouldContain(f => f.Id == "OzveyatID");
-        model.Fields.ShouldContain(f => f.Id == "ReshteID");
-    }
-
-    [Test]
-    public async Task SemanticModelStore_ResolvesBySource_LegalProjects()
-    {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
-
-        model.ShouldNotBeNull();
-        model!.ModelKey.ShouldBe("model-legal-projects");
-        model.Fields.ShouldContain(f => f.Id == "FullMeter");
-        model.Fields.ShouldContain(f => f.Id == "FYear");
+        model.Fields.ShouldContain(f => f.Id == "Meter");
+        model.Fields.ShouldContain(f => f.Id == "RegDate");
     }
 
     [Test]
     public async Task SemanticModelStore_ResolvesByModelKey()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetByIdAsync("model-members");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetByIdAsync("model-oz-info");
 
         model.ShouldNotBeNull();
-        model!.Source.ShouldBe("members");
+        model!.Source.ShouldBe("oz_info");
+    }
+
+    [Test]
+    public async Task SemanticModelStore_FieldDescriptions_CarryCodeDictionaries()
+    {
+        // The dictionaries are what let the AI map "مهندسین برق" to Reshte = 5 —
+        // losing them silently degrades every prompt, so they are pinned here.
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
+
+        model!.Fields.First(f => f.Id == "Reshte").Description.ShouldNotBeNull();
+        model.Fields.First(f => f.Id == "Reshte").Description!.ShouldContain("معماری");
+        model.Fields.First(f => f.Id == "PayeT").Description!.ShouldContain("ارشد");
+        model.Fields.First(f => f.Id == "TypDftr").Description!.ShouldContain("آزمایشگاه");
     }
 
     // =========================================================================
-    // BuildSql — count projects grouped by Mantaghe, top 10
+    // BuildSql — count members grouped by Reshte, top 10
     // =========================================================================
 
     [Test]
-    public async Task BuildSql_CountByMantaghe_ContainsExpectedFragments()
+    public async Task BuildSql_CountByReshte_ContainsExpectedFragments()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            GroupBy = [new ReportGroupByDto { Field = "Mantaghe" }],
-            Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count", Alias = "project_count" }],
-            Sorting = [new ReportSortDto { Field = "project_count", Direction = "desc" }],
+            Dataset = "oz_info",
+            GroupBy = [new ReportGroupByDto { Field = "Reshte" }],
+            Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count", Alias = "member_count" }],
+            Sorting = [new ReportSortDto { Field = "member_count", Direction = "desc" }],
             Limit   = 10,
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out var parameters);
 
-        // Asserts
-        sql.ShouldContain("FROM [tblProject]");
-        sql.ShouldContain("GROUP BY [Mantaghe]");
+        sql.ShouldContain("FROM [tblDW_OzviatInfo]");
+        sql.ShouldContain("GROUP BY [Reshte]");
         sql.ShouldContain("COUNT(*)");
-        sql.ShouldContain("project_count");
+        sql.ShouldContain("member_count");
 
         // OFFSET/FETCH with parameters — no raw value interpolation
         sql.ShouldContain("OFFSET");
@@ -120,7 +124,6 @@ public class SqlQueryEngineTests
         sql.ShouldContain("@limit");
         sql.ShouldContain("@offset");
 
-        // Parameters must contain limit and offset
         parameters.ShouldContain(p => p.Name == "@limit" && (int)p.Value! == 10);
         parameters.ShouldContain(p => p.Name == "@offset" && (int)p.Value! == 0);
 
@@ -129,90 +132,88 @@ public class SqlQueryEngineTests
     }
 
     // =========================================================================
-    // BuildSql — filter Zirbana > 100 → parameterized @p0 with value 100
+    // BuildSql — filter ActiveInErja > 100 → parameterized @p0 with value 100
     // =========================================================================
 
     [Test]
-    public async Task BuildSql_FilterZirbanaGt100_IsParameterized()
+    public async Task BuildSql_FilterActiveInErjaGt100_IsParameterized()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            Filters = [new ReportFilterDto { Field = "Zirbana", Operator = "gt", Value = 100 }],
+            Dataset = "oz_info",
+            Filters = [new ReportFilterDto { Field = "ActiveInErja", Operator = "gt", Value = 100 }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out var parameters);
 
-        // WHERE clause should use @p0, not the literal 100
         sql.ShouldContain("WHERE");
-        sql.ShouldContain("[Zirbana] > @p0");
-        sql.ShouldNotContain("WHERE [Zirbana] > 100");
+        sql.ShouldContain("[ActiveInErja] > @p0");
+        sql.ShouldNotContain("WHERE [ActiveInErja] > 100");
 
-        // @p0 parameter must carry the value 100
         parameters.ShouldContain(p => p.Name == "@p0");
         var p0 = parameters.First(p => p.Name == "@p0");
         Convert.ToInt64(p0.Value).ShouldBe(100L);
     }
 
     // =========================================================================
-    // BuildSql — unknown field → throws (whitelist)
+    // BuildSql — unknown fields → throws (whitelist)
     // =========================================================================
 
     [Test]
     public async Task BuildSql_UnknownField_ThrowsInvalidOperationException()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
+            Dataset = "oz_info",
             Filters = [new ReportFilterDto { Field = "DROP_TABLE", Operator = "eq", Value = "x" }],
         };
 
         Should.Throw<InvalidOperationException>(() =>
-            SqlQueryEngine.BuildSql(def, model!, "tblProject", out _));
+            SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out _));
     }
 
     [Test]
     public async Task BuildSql_UnknownGroupByField_ThrowsInvalidOperationException()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
+            Dataset = "oz_info",
             GroupBy = [new ReportGroupByDto { Field = "NonExistentField" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
         Should.Throw<InvalidOperationException>(() =>
-            SqlQueryEngine.BuildSql(def, model!, "tblProject", out _));
+            SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out _));
     }
 
     [Test]
     public async Task BuildSql_UnknownMetricField_ThrowsInvalidOperationException()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
+            Dataset = "oz_info",
             Metrics = [new ReportMetricDto { Field = "InjectField", Aggregation = "sum" }],
         };
 
         Should.Throw<InvalidOperationException>(() =>
-            SqlQueryEngine.BuildSql(def, model!, "tblProject", out _));
+            SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out _));
     }
 
     // =========================================================================
@@ -222,25 +223,25 @@ public class SqlQueryEngineTests
     [Test]
     public async Task BuildSql_ContainsFilter_UsesLikeWithParameter()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            Filters = [new ReportFilterDto { Field = "karfarma", Operator = "contains", Value = "شرکت" }],
+            Dataset = "engineer_projects",
+            Filters = [new ReportFilterDto { Field = "ProjectNo", Operator = "contains", Value = "140" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_EngineerProjectInfo", out var parameters);
 
-        sql.ShouldContain("[karfarma] LIKE @p0");
+        sql.ShouldContain("[ProjectNo] LIKE @p0");
         // The % wrapping should be IN the parameter value, not in the SQL string
-        sql.ShouldNotContain("%شرکت%");
+        sql.ShouldNotContain("%140%");
 
         var p0 = parameters.First(p => p.Name == "@p0");
-        p0.Value.ShouldBe("%شرکت%");
+        p0.Value.ShouldBe("%140%");
     }
 
     // =========================================================================
@@ -250,128 +251,129 @@ public class SqlQueryEngineTests
     [Test]
     public async Task BuildSql_InFilter_GeneratesMultipleParameters()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
+            Dataset = "oz_info",
             Filters =
             [
                 new ReportFilterDto
                 {
-                    Field    = "Mantaghe",
+                    // Reshte codes: 1=معماری, 3=عمران, 5=برق
+                    Field    = "Reshte",
                     Operator = "in",
-                    Value    = new List<object> { 1, 2, 3 },
+                    Value    = new List<object> { "1", "3", "5" },
                 },
             ],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out var parameters);
 
-        sql.ShouldContain("[Mantaghe] IN (@p0, @p1, @p2)");
+        sql.ShouldContain("[Reshte] IN (@p0, @p1, @p2)");
         parameters.ShouldContain(p => p.Name == "@p0");
         parameters.ShouldContain(p => p.Name == "@p1");
         parameters.ShouldContain(p => p.Name == "@p2");
     }
 
     // =========================================================================
-    // BuildSql — Jalali dateBucket (year) → LEFT(col, 4)
+    // BuildSql — Jalali dateBucket (year / month) on RegDate
     // =========================================================================
 
     [Test]
     public async Task BuildSql_JalaliDateBucketYear_UsesLeft4()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            GroupBy = [new ReportGroupByDto { Field = "Tarikh", DateBucket = "year" }],
+            Dataset = "engineer_projects",
+            GroupBy = [new ReportGroupByDto { Field = "RegDate", DateBucket = "year" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_EngineerProjectInfo", out _);
 
-        sql.ShouldContain("LEFT([Tarikh], 4)");
-        sql.ShouldContain("GROUP BY LEFT([Tarikh], 4)");
+        sql.ShouldContain("LEFT([RegDate], 4)");
+        sql.ShouldContain("GROUP BY LEFT([RegDate], 4)");
     }
 
     [Test]
     public async Task BuildSql_JalaliDateBucketMonth_UsesLeft7()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            GroupBy = [new ReportGroupByDto { Field = "Tarikh", DateBucket = "month" }],
+            Dataset = "engineer_projects",
+            GroupBy = [new ReportGroupByDto { Field = "RegDate", DateBucket = "month" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_EngineerProjectInfo", out _);
 
-        sql.ShouldContain("LEFT([Tarikh], 7)");
+        sql.ShouldContain("LEFT([RegDate], 7)");
     }
 
     // =========================================================================
-    // BuildSql — members entity → COUNT(*) (no measure fields)
+    // BuildSql — oz_info grouped count (TypDftr)
     // =========================================================================
 
     [Test]
-    public async Task BuildSql_Members_CountGroupedByShobeID()
+    public async Task BuildSql_OzInfo_CountGroupedByTypDftr()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("members");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "members",
-            GroupBy = [new ReportGroupByDto { Field = "ShobeID" }],
+            Dataset = "oz_info",
+            GroupBy = [new ReportGroupByDto { Field = "TypDftr" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count", Alias = "member_count" }],
             Limit   = 50,
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblAzayeSazmanMain", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out var parameters);
 
-        sql.ShouldContain("FROM [tblAzayeSazmanMain]");
-        sql.ShouldContain("GROUP BY [ShobeID]");
+        sql.ShouldContain("FROM [tblDW_OzviatInfo]");
+        sql.ShouldContain("GROUP BY [TypDftr]");
         sql.ShouldContain("COUNT(*)");
         sql.ShouldContain("member_count");
         parameters.ShouldContain(p => p.Name == "@limit" && (int)p.Value! == 50);
     }
 
     // =========================================================================
-    // BuildSql — legal_projects SUM(FullMeter) by FYear
+    // BuildSql — engineer_projects SUM(Meter) by CityId
     // =========================================================================
 
     [Test]
-    public async Task BuildSql_LegalProjects_SumFullMeterByYear()
+    public async Task BuildSql_EngineerProjects_SumMeterByCity()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "legal_projects",
-            GroupBy = [new ReportGroupByDto { Field = "FYear" }],
-            Metrics = [new ReportMetricDto { Field = "FullMeter", Aggregation = "sum", Alias = "total_meter" }],
+            Dataset = "engineer_projects",
+            GroupBy = [new ReportGroupByDto { Field = "CityId" }],
+            Metrics = [new ReportMetricDto { Field = "Meter", Aggregation = "sum", Alias = "total_meter" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_EngineerProjectInfo", out _);
 
-        sql.ShouldContain("FROM [tblHoghoghiProjectList]");
-        sql.ShouldContain("SUM([FullMeter])");
+        sql.ShouldContain("FROM [tblDW_EngineerProjectInfo]");
+        sql.ShouldContain("SUM([Meter])");
         sql.ShouldContain("total_meter");
-        sql.ShouldContain("GROUP BY [FYear]");
+        sql.ShouldContain("GROUP BY [CityId]");
     }
 
     // =========================================================================
@@ -381,18 +383,18 @@ public class SqlQueryEngineTests
     [Test]
     public async Task BuildSql_BetweenFilter_TwoParameters()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("oz_info");
         model.ShouldNotBeNull();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
+            Dataset = "oz_info",
             Filters =
             [
                 new ReportFilterDto
                 {
-                    Field    = "TedadVahed",
+                    Field    = "ActiveInErja",
                     Operator = "between",
                     Value    = 5,
                     Value2   = 20,
@@ -401,9 +403,9 @@ public class SqlQueryEngineTests
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_OzviatInfo", out var parameters);
 
-        sql.ShouldContain("[TedadVahed] BETWEEN @p0 AND @p1");
+        sql.ShouldContain("[ActiveInErja] BETWEEN @p0 AND @p1");
         parameters.ShouldContain(p => p.Name == "@p0");
         parameters.ShouldContain(p => p.Name == "@p1");
     }
@@ -415,25 +417,25 @@ public class SqlQueryEngineTests
     [Test]
     public async Task BuildSql_EqFilter_NoValueInterpolatedInSql()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("projects");
+        var store = new KurdNezamSemanticModelStore();
+        var model = await store.GetBySourceAsync("engineer_projects");
         model.ShouldNotBeNull();
 
-        const string sensitiveValue = "'; DROP TABLE tblProject; --";
+        const string sensitiveValue = "'; DROP TABLE tblDW_EngineerProjectInfo; --";
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "projects",
-            Filters = [new ReportFilterDto { Field = "karfarma", Operator = "eq", Value = sensitiveValue }],
+            Dataset = "engineer_projects",
+            Filters = [new ReportFilterDto { Field = "ProjectNo", Operator = "eq", Value = sensitiveValue }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblProject", out var parameters);
+        var sql = SqlQueryEngine.BuildSql(def, model!, "tblDW_EngineerProjectInfo", out var parameters);
 
         // The injection string must NOT appear in the SQL
         sql.ShouldNotContain(sensitiveValue);
         // It should be a parameter
-        sql.ShouldContain("[karfarma] = @p0");
+        sql.ShouldContain("[ProjectNo] = @p0");
         parameters.First(p => p.Name == "@p0").Value.ShouldBe(sensitiveValue);
     }
 
@@ -442,50 +444,49 @@ public class SqlQueryEngineTests
     // =========================================================================
 
     [Test]
-    public void SourceToTable_ContainsThreeExpectedMappings()
+    public void SourceToTable_ContainsTwoExpectedMappings()
     {
-        FarsNezamSemanticModelStore.SourceToTable.Count.ShouldBe(3);
-        FarsNezamSemanticModelStore.SourceToTable["projects"].ShouldBe("tblProject");
-        FarsNezamSemanticModelStore.SourceToTable["members"].ShouldBe("tblAzayeSazmanMain");
-        FarsNezamSemanticModelStore.SourceToTable["legal_projects"].ShouldBe("tblHoghoghiProjectList");
+        KurdNezamSemanticModelStore.SourceToTable.Count.ShouldBe(2);
+        KurdNezamSemanticModelStore.SourceToTable["oz_info"].ShouldBe("tblDW_OzviatInfo");
+        KurdNezamSemanticModelStore.SourceToTable["engineer_projects"].ShouldBe("tblDW_EngineerProjectInfo");
     }
 
     // =========================================================================
-    // BuildSql — code → label lookup join (legal_projects.Typ → tblMap_TypMohandes)
+    // BuildSql — code → label lookup join. The live KurdNezam catalogue has no
+    // lookup fields today, so an INLINE model keeps the join generation covered.
     // =========================================================================
 
-    [Test]
-    public async Task SemanticModelStore_LegalProjectsTyp_HasLookupConfigured()
+    private static SemanticModelDto LookupModel() => new()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
-
-        var typ = model!.Fields.First(f => f.Id == "Typ");
-        typ.HasLookup.ShouldBeTrue();
-        typ.LookupTable.ShouldBe("tblMap_TypMohandes");
-        typ.LookupKeyColumn.ShouldBe("Id");
-        typ.LookupNameColumn.ShouldBe("Onvan");
-    }
+        ModelKey = "model-test-lookup",
+        Name     = "lookup-test",
+        Source   = "oz_info",
+        Fields   =
+        [
+            new SemanticFieldDto { Id = "Typ", Name = "نوع", Type = "string", Role = "dimension",
+                LookupTable = "tblMap_TypMohandes", LookupKeyColumn = "Id", LookupNameColumn = "Onvan" },
+            new SemanticFieldDto { Id = "CityId", Name = "شهر", Type = "number", Role = "dimension" },
+            new SemanticFieldDto { Id = "Meter", Name = "متراژ", Type = "number", Role = "measure" },
+        ],
+    };
 
     [Test]
-    public async Task BuildSql_GroupByLookupField_EmitsLeftJoinAndProjectsLabel()
+    public void BuildSql_GroupByLookupField_EmitsLeftJoinAndProjectsLabel()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
-        model.ShouldNotBeNull();
+        var model = LookupModel();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "legal_projects",
+            Dataset = "oz_info",
             GroupBy = [new ReportGroupByDto { Field = "Typ" }],
             Metrics = [new ReportMetricDto { Field = "*", Aggregation = "count", Alias = "c" }],
             Sorting = [new ReportSortDto { Field = "c", Direction = "desc" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model, "tblDW_OzviatInfo", out _);
 
         // LEFT JOIN the lookup keyed on the base-table code column
-        sql.ShouldContain("LEFT JOIN [tblMap_TypMohandes] AS [lk_Typ] ON [tblHoghoghiProjectList].[Typ] = [lk_Typ].[Id]");
+        sql.ShouldContain("LEFT JOIN [tblMap_TypMohandes] AS [lk_Typ] ON [tblDW_OzviatInfo].[Typ] = [lk_Typ].[Id]");
         // Project + group by the label column (not the raw code)
         sql.ShouldContain("[lk_Typ].[Onvan] AS [Typ]");
         sql.ShouldContain("GROUP BY [lk_Typ].[Onvan]");
@@ -493,45 +494,41 @@ public class SqlQueryEngineTests
     }
 
     [Test]
-    public async Task BuildSql_LookupJoin_QualifiesBaseTableMeasureColumn()
+    public void BuildSql_LookupJoin_QualifiesBaseTableMeasureColumn()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
-        model.ShouldNotBeNull();
+        var model = LookupModel();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "legal_projects",
+            Dataset = "oz_info",
             GroupBy = [new ReportGroupByDto { Field = "Typ" }],
-            Metrics = [new ReportMetricDto { Field = "FullMeter", Aggregation = "sum", Alias = "m" }],
+            Metrics = [new ReportMetricDto { Field = "Meter", Aggregation = "sum", Alias = "m" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model, "tblDW_OzviatInfo", out _);
 
         // When a join is present, base-table columns are table-qualified to avoid ambiguity.
-        sql.ShouldContain("SUM([tblHoghoghiProjectList].[FullMeter])");
+        sql.ShouldContain("SUM([tblDW_OzviatInfo].[Meter])");
         sql.ShouldContain("LEFT JOIN [tblMap_TypMohandes]");
     }
 
     [Test]
-    public async Task BuildSql_NoLookupField_KeepsColumnsUnqualified()
+    public void BuildSql_NoLookupField_KeepsColumnsUnqualified()
     {
-        var store = new FarsNezamSemanticModelStore();
-        var model = await store.GetBySourceAsync("legal_projects");
-        model.ShouldNotBeNull();
+        var model = LookupModel();
 
         var def = new ReportDefinitionDto
         {
-            Dataset = "legal_projects",
-            GroupBy = [new ReportGroupByDto { Field = "FYear" }],
-            Metrics = [new ReportMetricDto { Field = "FullMeter", Aggregation = "sum", Alias = "m" }],
+            Dataset = "oz_info",
+            GroupBy = [new ReportGroupByDto { Field = "CityId" }],
+            Metrics = [new ReportMetricDto { Field = "Meter", Aggregation = "sum", Alias = "m" }],
         };
 
-        var sql = SqlQueryEngine.BuildSql(def, model!, "tblHoghoghiProjectList", out _);
+        var sql = SqlQueryEngine.BuildSql(def, model, "tblDW_OzviatInfo", out _);
 
         // No lookup in the def → no join, columns stay bare (existing behaviour preserved).
         sql.ShouldNotContain("LEFT JOIN");
-        sql.ShouldContain("SUM([FullMeter])");
-        sql.ShouldContain("GROUP BY [FYear]");
+        sql.ShouldContain("SUM([Meter])");
+        sql.ShouldContain("GROUP BY [CityId]");
     }
 }

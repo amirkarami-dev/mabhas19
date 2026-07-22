@@ -25,6 +25,13 @@ public class SemanticFieldDto
     /// <summary>dimension | measure | date</summary>
     public string Role { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Optional meaning of the field — most importantly its CODE dictionary (e.g.
+    /// "پایه طراحی: 1=پایه یک, 2=پایه دو, 3=پایه سه, -1=ارشد, 0=ندارد"). Fed verbatim into the
+    /// AI grounding prompt so natural-language filters map to the right raw values.
+    /// </summary>
+    public string? Description { get; init; }
+
     // ── Optional code → label lookup ─────────────────────────────────────────
     // When all three are set (from the TRUSTED semantic model, never user input),
     // GROUP BY on this field LEFT JOINs the lookup table and returns the human-readable

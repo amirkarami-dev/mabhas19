@@ -31,7 +31,7 @@ internal static class AnalyticsServiceCollectionExtensions
             services.AddSingleton<IOptions<SqlAnalyticsOptions>>(
                 new Microsoft.Extensions.Options.OptionsWrapper<SqlAnalyticsOptions>(sqlOpts));
 
-            services.AddScoped<ISemanticModelStore, FarsNezamSemanticModelStore>();
+            services.AddScoped<ISemanticModelStore, KurdNezamSemanticModelStore>();
             services.AddScoped<IQueryEngine, SqlQueryEngine>();
         }
         else
