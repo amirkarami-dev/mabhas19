@@ -18,7 +18,7 @@ import {
 import type { ReportView } from "../../contracts/presentation";
 import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
-import { formatNumber, type Dir } from "../format";
+import { formatCategory, formatNumber, type Dir } from "../format";
 import { aggregateByCategory } from "./chart-utils";
 import { useUiStore } from "../../store/ui-store";
 import { chartColors } from "../../theme/tokens";
@@ -45,6 +45,33 @@ function yKeys(view: ReportView): string[] {
   if (typeof y === "string") return [y];
   if (view.mapping.measure) return [view.mapping.measure];
   return [];
+}
+
+/**
+ * Width the value axis needs for its longest formatted tick. Recharts reserves
+ * a fixed 60px by default — billion-scale labels overflow that strip and (in
+ * RTL, where anchored text runs leftward) get painted over by the bars.
+ */
+function valueAxisWidth(
+  data: ResultRow[],
+  ys: string[],
+  numFmt: (v: number) => string,
+): number {
+  let maxLen = 1;
+  for (const r of data) {
+    for (const k of ys) {
+      const v = r[k];
+      if (typeof v === "number") maxLen = Math.max(maxLen, numFmt(v).length);
+    }
+  }
+  // +1: axis ticks round up past the max data value ("5.9B" → "6,000,000,000").
+  return Math.min(120, (maxLen + 1) * 7 + 12);
+}
+
+/** Display copy of aggregated rows: date-like category values become Persian
+ *  (Jalali) labels in RTL; axis, legend, and tooltip then all stay consistent. */
+function withCategoryLabels(data: ResultRow[], key: string, dir: Dir): ResultRow[] {
+  return data.map((r) => ({ ...r, [key]: formatCategory(r[key], dir) }));
 }
 
 export default function RechartsRenderer({ view, result, onDrill }: RendererProps) {
@@ -81,7 +108,11 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   if (kind === "PieChart" || kind === "pie") {
     const category = view.mapping.category ?? x;
     const measure = view.mapping.measure ?? ys[0] ?? "";
-    const data = aggregateByCategory(rawRows, category, measure ? [measure] : []);
+    const data = withCategoryLabels(
+      aggregateByCategory(rawRows, category, measure ? [measure] : []),
+      category,
+      dir,
+    );
     return (
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
@@ -105,13 +136,14 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   if (kind === "LineChart" || kind === "line") {
-    const data = aggregateByCategory(rawRows, x, ys);
+    const data = withCategoryLabels(aggregateByCategory(rawRows, x, ys), x, dir);
+    const yw = valueAxisWidth(data, ys, numFmt);
     return (
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
           <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
-          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <YAxis orientation={dir === "rtl" ? "right" : "left"} width={yw} tickFormatter={numFmt} tick={{ fill: colors.axis, style: { direction: "ltr" } }} stroke={colors.axis} />
           <Tooltip {...tooltipProps} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
@@ -129,13 +161,14 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   if (kind === "AreaChart" || kind === "area") {
-    const data = aggregateByCategory(rawRows, x, ys);
+    const data = withCategoryLabels(aggregateByCategory(rawRows, x, ys), x, dir);
+    const yw = valueAxisWidth(data, ys, numFmt);
     return (
       <ResponsiveContainer width="100%" height={320}>
         <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
           <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
-          <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+          <YAxis orientation={dir === "rtl" ? "right" : "left"} width={yw} tickFormatter={numFmt} tick={{ fill: colors.axis, style: { direction: "ltr" } }} stroke={colors.axis} />
           <Tooltip {...tooltipProps} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
@@ -154,7 +187,8 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   }
 
   // default: BarChart
-  const data = aggregateByCategory(rawRows, x, ys);
+  const data = withCategoryLabels(aggregateByCategory(rawRows, x, ys), x, dir);
+  const yw = valueAxisWidth(data, ys, numFmt);
   return (
     <ResponsiveContainer width="100%" height={320}>
       <BarChart
@@ -165,7 +199,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
       >
         <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
         <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
-        <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
+        <YAxis orientation={dir === "rtl" ? "right" : "left"} width={yw} tickFormatter={numFmt} tick={{ fill: colors.axis, style: { direction: "ltr" } }} stroke={colors.axis} />
         <Tooltip {...tooltipProps} />
         <Legend align={legendAlign} />
         {ys.map((yk, si) => (

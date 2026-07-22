@@ -2,7 +2,7 @@ import ReactECharts from "echarts-for-react";
 import type { ReportView } from "../../contracts/presentation";
 import type { ReportDefinition } from "../../contracts/report-definition";
 import type { QueryResult, ResultRow, GroupNode } from "../../contracts/dataset";
-import { formatNumber, type Dir } from "../format";
+import { formatCategory, formatNumber, type Dir } from "../format";
 import { useUiStore } from "../../store/ui-store";
 import { chartColors } from "../../theme/tokens";
 
@@ -70,6 +70,9 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
   };
 
   const xCats = uniq(rows.map((r) => r[x]));
+  // Raw values are kept for row matching; the axis shows localized labels
+  // (date-like categories become Persian/Jalali in RTL).
+  const xCatLabels = xCats.map((c) => formatCategory(c, dir));
 
   // 2 dimensions x 1 measure -> heatmap matrix (the ECharts trigger from 8.6).
   if (seriesField && view.component === "heatmap") {
@@ -87,8 +90,8 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
       backgroundColor: "transparent",
       tooltip: { ...tooltip, position: "top" },
       legend,
-      xAxis: { type: "category", data: xCats.map(String), inverse: dir === "rtl", ...axisStyle },
-      yAxis: { type: "category", data: yCats.map(String), ...axisStyle },
+      xAxis: { type: "category", data: xCatLabels, inverse: dir === "rtl", ...axisStyle },
+      yAxis: { type: "category", data: yCats.map((c) => formatCategory(c, dir)), ...axisStyle },
       visualMap: {
         min: 0,
         max: maxVal,
@@ -143,10 +146,12 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
     color: colors.series,
     tooltip: { ...tooltip, trigger: "axis" },
     legend,
-    grid: { left: 48, right: 48, bottom: 64, top: 32, borderColor: colors.grid },
+    // containLabel keeps billion-scale value labels inside the canvas instead
+    // of clipping them at the fixed margins.
+    grid: { left: 48, right: 48, bottom: 64, top: 32, containLabel: true, borderColor: colors.grid },
     xAxis: {
       type: "category",
-      data: xCats.map(String),
+      data: xCatLabels,
       inverse: dir === "rtl",
       axisLine: { lineStyle: { color: colors.axis } },
       axisLabel: { interval: 0, rotate: xCats.length > 8 ? 30 : 0, color: colors.axis },

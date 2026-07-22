@@ -110,7 +110,7 @@ describe("i18n key resolution", () => {
 
   it("resolves nav.ask in fa", async () => {
     await i18n.changeLanguage("fa");
-    expect(i18n.t("nav.ask")).toBe("پرسش از هوش مصنوعی");
+    expect(i18n.t("nav.ask")).toBe("سامانه هوشمند گزارشات");
   });
 
   it("resolves nav.ask in en", async () => {
