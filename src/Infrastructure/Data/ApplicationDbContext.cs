@@ -45,6 +45,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public DbSet<KurdnezamNews> KurdnezamNews => Set<KurdnezamNews>();
 
+    public DbSet<KurdnezamNewsAttachment> KurdnezamNewsAttachments => Set<KurdnezamNewsAttachment>();
+
     public DbSet<KurdnezamSlide> KurdnezamSlides => Set<KurdnezamSlide>();
 
     public DbSet<KurdnezamQuickLink> KurdnezamQuickLinks => Set<KurdnezamQuickLink>();

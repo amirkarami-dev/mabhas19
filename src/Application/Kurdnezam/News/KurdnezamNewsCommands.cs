@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Mabhas19.Application.Kurdnezam.News;
 
 /// <summary>Fields an administrator may set on an article. Shared by create and update.</summary>
+/// <remarks>
+/// <paramref name="Attachments"/> is the COMPLETE list: update replaces the article's files with
+/// exactly what is sent, so removing one client-side removes it here too. Order follows the array.
+/// </remarks>
 public sealed record KurdnezamNewsInput(
     string Title,
     string Summary,
@@ -18,7 +22,15 @@ public sealed record KurdnezamNewsInput(
     string Image,
     bool Featured,
     int? UnitId = null,
-    DateTimeOffset? PublishedAt = null);
+    DateTimeOffset? PublishedAt = null,
+    IReadOnlyList<KurdnezamNewsAttachmentInput>? Attachments = null);
+
+/// <summary>One file to attach. The bytes are already in storage via /api/kurdnezam/media.</summary>
+public sealed record KurdnezamNewsAttachmentInput(
+    string Url,
+    string FileName,
+    string ContentType,
+    long SizeBytes);
 
 // ── create ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +58,9 @@ public class CreateKurdnezamNewsCommandHandler(IApplicationDbContext context)
             Featured = i.Featured
         };
 
+        foreach (var attachment in KurdnezamNewsAttachments.Map(i.Attachments))
+            entity.Attachments.Add(attachment);
+
         context.KurdnezamNews.Add(entity);
         await context.SaveChangesAsync(cancellationToken);
 
@@ -72,6 +87,7 @@ public class UpdateKurdnezamNewsCommandHandler(IApplicationDbContext context)
     public async Task Handle(UpdateKurdnezamNewsCommand request, CancellationToken cancellationToken)
     {
         var entity = await context.KurdnezamNews
+            .Include(n => n.Attachments)
             .FirstOrDefaultAsync(n => n.Id == request.Id, cancellationToken);
 
         Guard.Against.NotFound(request.Id, entity);
@@ -90,6 +106,12 @@ public class UpdateKurdnezamNewsCommandHandler(IApplicationDbContext context)
 
         if (i.PublishedAt is { } publishedAt)
             entity.PublishedAt = publishedAt;
+
+        // The input carries the COMPLETE list, so clearing and re-adding is what "removed in the
+        // panel" means. The FK is required + cascade, so the cleared rows are deleted, not orphaned.
+        entity.Attachments.Clear();
+        foreach (var attachment in KurdnezamNewsAttachments.Map(i.Attachments))
+            entity.Attachments.Add(attachment);
 
         await context.SaveChangesAsync(cancellationToken);
     }
@@ -123,6 +145,23 @@ public class DeleteKurdnezamNewsCommandHandler(IApplicationDbContext context)
     }
 }
 
+// ── shared attachment mapping ────────────────────────────────────────────────
+
+/// <summary>Turns the request's file list into entities, numbering them by array position.</summary>
+internal static class KurdnezamNewsAttachments
+{
+    public static IEnumerable<KurdnezamNewsAttachment> Map(
+        IReadOnlyList<KurdnezamNewsAttachmentInput>? input) =>
+        (input ?? []).Select((a, index) => new KurdnezamNewsAttachment
+        {
+            Url = a.Url.Trim(),
+            FileName = a.FileName.Trim(),
+            ContentType = a.ContentType.Trim(),
+            SizeBytes = a.SizeBytes,
+            SortOrder = index
+        });
+}
+
 // ── shared input validation ──────────────────────────────────────────────────
 
 public class KurdnezamNewsInputValidator : AbstractValidator<KurdnezamNewsInput>
@@ -143,5 +182,13 @@ public class KurdnezamNewsInputValidator : AbstractValidator<KurdnezamNewsInput>
         RuleFor(x => x.UnitId)
             .MustAsync(async (id, ct) => id is null || await context.KurdnezamUnits.AnyAsync(u => u.Id == id, ct))
             .WithMessage("The selected unit does not exist.");
+
+        RuleForEach(x => x.Attachments).ChildRules(a =>
+        {
+            a.RuleFor(x => x.Url).NotEmpty().MaximumLength(1000);
+            a.RuleFor(x => x.FileName).NotEmpty().MaximumLength(300);
+            a.RuleFor(x => x.ContentType).NotEmpty().MaximumLength(150);
+            a.RuleFor(x => x.SizeBytes).GreaterThan(0);
+        });
     }
 }

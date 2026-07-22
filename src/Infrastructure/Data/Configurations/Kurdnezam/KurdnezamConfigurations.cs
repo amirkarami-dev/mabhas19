@@ -79,6 +79,26 @@ public class KurdnezamNewsConfiguration : IEntityTypeConfiguration<KurdnezamNews
     }
 }
 
+public class KurdnezamNewsAttachmentConfiguration : IEntityTypeConfiguration<KurdnezamNewsAttachment>
+{
+    public void Configure(EntityTypeBuilder<KurdnezamNewsAttachment> b)
+    {
+        b.ToTable("KurdnezamNewsAttachments");
+
+        b.Property(x => x.Url).HasMaxLength(1000).IsRequired();
+        b.Property(x => x.FileName).HasMaxLength(300).IsRequired();
+        b.Property(x => x.ContentType).HasMaxLength(150).IsRequired();
+
+        // Attachments belong to their article: removing the article removes its files' rows.
+        b.HasOne(x => x.News)
+            .WithMany(n => n.Attachments)
+            .HasForeignKey(x => x.NewsId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.HasIndex(x => new { x.NewsId, x.SortOrder });
+    }
+}
+
 public class KurdnezamSlideConfiguration : IEntityTypeConfiguration<KurdnezamSlide>
 {
     public void Configure(EntityTypeBuilder<KurdnezamSlide> b)

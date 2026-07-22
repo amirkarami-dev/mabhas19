@@ -40,6 +40,8 @@ public interface IApplicationDbContext
 
     DbSet<KurdnezamNews> KurdnezamNews { get; }
 
+    DbSet<KurdnezamNewsAttachment> KurdnezamNewsAttachments { get; }
+
     DbSet<KurdnezamSlide> KurdnezamSlides { get; }
 
     DbSet<KurdnezamQuickLink> KurdnezamQuickLinks { get; }

@@ -45,4 +45,7 @@ public class KurdnezamNews : BaseAuditableEntity
 
     /// <summary>Highlights the article; queryable via <c>?featured=true</c>.</summary>
     public bool Featured { get; set; }
+
+    /// <summary>Downloadable files (بخشنامه / فرم / اطلاعیه). Deleted with the article.</summary>
+    public ICollection<KurdnezamNewsAttachment> Attachments { get; set; } = new List<KurdnezamNewsAttachment>();
 }

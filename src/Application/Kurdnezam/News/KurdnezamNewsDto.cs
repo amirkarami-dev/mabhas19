@@ -28,4 +28,25 @@ public sealed class KurdnezamNewsDto
     public string Image { get; init; } = string.Empty;
 
     public bool Featured { get; init; }
+
+    /// <summary>Downloadable files, already ordered by <c>SortOrder</c>.</summary>
+    public IReadOnlyList<KurdnezamNewsAttachmentDto> Attachments { get; init; } = [];
+}
+
+/// <summary>One downloadable file on an article.</summary>
+public sealed class KurdnezamNewsAttachmentDto
+{
+    public int Id { get; init; }
+
+    /// <summary>Stored reference, e.g. <c>/api/kurdnezam/media/{32-hex}.pdf</c>.</summary>
+    public string Url { get; init; } = string.Empty;
+
+    /// <summary>Original name, used as the download file name.</summary>
+    public string FileName { get; init; } = string.Empty;
+
+    public string ContentType { get; init; } = string.Empty;
+
+    public long SizeBytes { get; init; }
+
+    public int SortOrder { get; init; }
 }

@@ -62,7 +62,19 @@ public class GetKurdnezamNewsQueryHandler(IApplicationDbContext context)
                 CategoryTitle = n.Category!.Title,
                 UnitId = n.UnitId,
                 Image = n.Image,
-                Featured = n.Featured
+                Featured = n.Featured,
+                Attachments = n.Attachments
+                    .OrderBy(a => a.SortOrder)
+                    .Select(a => new KurdnezamNewsAttachmentDto
+                    {
+                        Id = a.Id,
+                        Url = a.Url,
+                        FileName = a.FileName,
+                        ContentType = a.ContentType,
+                        SizeBytes = a.SizeBytes,
+                        SortOrder = a.SortOrder
+                    })
+                    .ToList()
             })
             .ToListAsync(cancellationToken);
 
@@ -100,7 +112,19 @@ public class GetKurdnezamNewsByIdQueryHandler(IApplicationDbContext context)
                 CategoryTitle = n.Category!.Title,
                 UnitId = n.UnitId,
                 Image = n.Image,
-                Featured = n.Featured
+                Featured = n.Featured,
+                Attachments = n.Attachments
+                    .OrderBy(a => a.SortOrder)
+                    .Select(a => new KurdnezamNewsAttachmentDto
+                    {
+                        Id = a.Id,
+                        Url = a.Url,
+                        FileName = a.FileName,
+                        ContentType = a.ContentType,
+                        SizeBytes = a.SizeBytes,
+                        SortOrder = a.SortOrder
+                    })
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
