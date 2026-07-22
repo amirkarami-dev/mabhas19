@@ -20,6 +20,7 @@ import {
   FileCog,
   Flame,
   HardHat,
+  HeartHandshake,
   KeyRound,
   Zap,
   type LucideIcon,
@@ -377,6 +378,8 @@ function Slider() {
 const portalIcons: Record<string, LucideIcon> = {
   engineer: HardHat,
   owner: KeyRound,
+  // سامانه رفاهی مهندسین (refahi.kurdnezam.ir) — the welfare dashboard's quick-link.
+  welfare: HeartHandshake,
   badge: BadgeCheck,
   membership: ClipboardList,
   automation: FileCog,
