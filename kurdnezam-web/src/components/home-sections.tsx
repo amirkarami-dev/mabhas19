@@ -102,34 +102,26 @@ function NewsReader({
         </motion.button>
 
         <div className="h-full overflow-y-auto">
-          <motion.div layoutId={`news-image-${item.id}`} className="relative h-56 sm:h-72">
-            <Image
-              src={imageUrl(item.image)}
-              alt=""
-              fill
-              sizes="(max-width: 1024px) 100vw, 60vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-deeper/90 via-deeper/25 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-4 p-5 text-white sm:p-7">
-              <span className="rounded-full bg-copper px-3 py-1 text-xs font-semibold">
+          {/* No cover image in the quick-view on purpose: this dialog is for READING the
+              announcement, and the picture is usually a scan of the same letter. It pushed the
+              text below the fold. The image stays on the full article page. */}
+          <div className="p-5 sm:p-8">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="rounded-full bg-copper-soft px-3 py-1 text-xs font-semibold text-copper-dark">
                 {item.categoryTitle}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-mist">
+              <span className="inline-flex items-center gap-1.5 text-xs text-steel">
                 <CalendarDays className="size-3.5" aria-hidden />
                 {item.date}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-mist">
+              <span className="inline-flex items-center gap-1.5 text-xs text-steel">
                 <UserRound className="size-3.5" aria-hidden />
                 {item.author}
               </span>
             </div>
-          </motion.div>
-
-          <div className="p-5 sm:p-8">
             <motion.h2
               layoutId={`news-title-${item.id}`}
-              className="font-display text-2xl leading-snug sm:text-3xl"
+              className="mt-4 font-display text-2xl leading-snug sm:text-3xl"
             >
               {item.title}
             </motion.h2>
