@@ -2,6 +2,7 @@
 using Mabhas19.Domain.Entities;
 using Mabhas19.Domain.Kurdnezam;
 using Mabhas19.Domain.MunSanandaj;
+using Mabhas19.Domain.Walfare;
 
 namespace Mabhas19.Application.Common.Interfaces;
 
@@ -41,6 +42,14 @@ public interface IApplicationDbContext
     DbSet<KurdnezamNews> KurdnezamNews { get; }
 
     DbSet<KurdnezamNewsAttachment> KurdnezamNewsAttachments { get; }
+
+    DbSet<WelfareService> WelfareServices { get; }
+
+    DbSet<WelfarePool> WelfarePools { get; }
+
+    DbSet<WelfarePoolReservation> WelfarePoolReservations { get; }
+
+    DbSet<PaymentTransaction> PaymentTransactions { get; }
 
     DbSet<KurdnezamSlide> KurdnezamSlides { get; }
 

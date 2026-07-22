@@ -94,6 +94,13 @@ public static class DependencyInjection
         // Subscriptions.
         services.AddScoped<ISubscriptionService, SubscriptionService>();
 
+        // Welfare (سامانه رفاهی مهندسین): Iran Kish gateway + the org membership directory that
+        // snapshots who is reserving. The directory shares the mun-sanandaj KurdNezamDb secret.
+        services.Configure<Payments.IranKishOptions>(config.GetSection(Payments.IranKishOptions.SectionName));
+        services.AddHttpClient(nameof(Payments.IranKishGateway));
+        services.AddScoped<IPaymentGateway, Payments.IranKishGateway>();
+        services.AddScoped<IEngineerDirectory, External.KurdNezamEngineerDirectory>();
+
         // External project import providers (collected as IEnumerable<IExternalProjectProvider>).
         services.AddHttpClient<IExternalProjectProvider, NezamMohandesiProjectProvider>();
         services.AddScoped<IExternalProjectProvider, FarsNezamProjectProvider>();

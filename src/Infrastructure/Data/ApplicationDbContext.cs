@@ -4,6 +4,7 @@ using Mabhas19.Domain.Analytics;
 using Mabhas19.Domain.Entities;
 using Mabhas19.Domain.Kurdnezam;
 using Mabhas19.Domain.MunSanandaj;
+using Mabhas19.Domain.Walfare;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mabhas19.Infrastructure.Data;
@@ -46,6 +47,14 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<KurdnezamNews> KurdnezamNews => Set<KurdnezamNews>();
 
     public DbSet<KurdnezamNewsAttachment> KurdnezamNewsAttachments => Set<KurdnezamNewsAttachment>();
+
+    public DbSet<WelfareService> WelfareServices => Set<WelfareService>();
+
+    public DbSet<WelfarePool> WelfarePools => Set<WelfarePool>();
+
+    public DbSet<WelfarePoolReservation> WelfarePoolReservations => Set<WelfarePoolReservation>();
+
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
     public DbSet<KurdnezamSlide> KurdnezamSlides => Set<KurdnezamSlide>();
 
