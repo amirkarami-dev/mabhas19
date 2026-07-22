@@ -187,9 +187,16 @@ services:
       Cors__AllowedOrigins__5: "https://${KURDNEZAM_ROOT_DOMAIN}"
       # admin-web SPA (admin.myceo.ir) calls the admin API (api/admin) from the browser.
       Cors__AllowedOrigins__6: "https://${ADMIN_DOMAIN}"
+      # walfare-web SPA (refahi.kurdnezam.ir) calls /api/walfare from the browser.
+      Cors__AllowedOrigins__7: "https://${WALFARE_DOMAIN}"
       # MunSanandaj: KurdNezam read-only SQL + mahyapardaz REST bearer token (empty = feature disabled).
       ConnectionStrings__KurdNezamDb: "${KURDNEZAM_DB_CONN:-}"
       MunSanandaj__ApiToken: "${MUN_SANANDAJ_API_TOKEN:-}"
+      # Iran Kish gateway for the welfare module. Terminal/acceptor ids + the RSA PUBLIC key are
+      # public values shipped in appsettings.json; only the pass phrase is a secret (deploy/.env).
+      IranKish__PassPhrase: "${IRK_PASSPHRASE:-}"
+      IranKish__CallbackUrl: "https://${API_DOMAIN}/api/walfare/payments/irk-return"
+      Walfare__FrontBaseUrl: "https://${WALFARE_DOMAIN}"
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
