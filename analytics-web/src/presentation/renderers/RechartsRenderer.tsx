@@ -58,6 +58,20 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
   const kind = view.component || view.type;
   const numFmt = (v: number) => formatNumber(v, dir);
   const legendAlign: "left" | "right" = dir === "rtl" ? "right" : "left";
+  // Recharts' default tooltip surface is white — with our light text colour that made
+  // dark-mode tooltips white-on-white. Theme the surface AND both text layers (the header
+  // uses labelStyle, the value rows use itemStyle; contentStyle.color alone covers neither).
+  const tooltipProps = {
+    formatter: (v: number) => numFmt(v),
+    contentStyle: {
+      backgroundColor: colors.tooltipBg,
+      border: `1px solid ${colors.tooltipBorder}`,
+      borderRadius: 8,
+      color: colors.text,
+    },
+    labelStyle: { color: colors.text },
+    itemStyle: { color: colors.text },
+  } as const;
   // Map a clicked datum back to its engine group node (drill source); no-op without onDrill or groups.
   const handleClick = (index: number) => {
     const node = result.groups?.[index];
@@ -71,7 +85,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
     return (
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
-          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
+          <Tooltip {...tooltipProps} />
           <Legend align={legendAlign} />
           <Pie
             data={data}
@@ -98,7 +112,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
           <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
           <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
-          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
+          <Tooltip {...tooltipProps} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
             <Line
@@ -122,7 +136,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
           <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
           <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
-          <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
+          <Tooltip {...tooltipProps} />
           <Legend align={legendAlign} />
           {ys.map((yk, i) => (
             <Area
@@ -152,7 +166,7 @@ export default function RechartsRenderer({ view, result, onDrill }: RendererProp
         <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
         <XAxis dataKey={x} reversed={dir === "rtl"} tick={{ fill: colors.axis }} stroke={colors.axis} />
         <YAxis orientation={dir === "rtl" ? "right" : "left"} tickFormatter={numFmt} tick={{ fill: colors.axis }} stroke={colors.axis} />
-        <Tooltip formatter={(v: number) => numFmt(v)} contentStyle={{ color: colors.text }} />
+        <Tooltip {...tooltipProps} />
         <Legend align={legendAlign} />
         {ys.map((yk, si) => (
           <Bar key={yk} dataKey={yk} fill={palette[si % palette.length]}>

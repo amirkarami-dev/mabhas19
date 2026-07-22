@@ -32,7 +32,16 @@ export function buildTheme(mode: "light" | "dark"): ThemeConfig {
 const SERIES = ["#0f6e56", "#1d9e75", "#5dcaa5", "#185fa5", "#ef9f27", "#d4537e", "#7f77dd"];
 
 export function chartColors(mode: "light" | "dark") {
+  // tooltipBg/tooltipBorder exist because both chart libraries default the hover
+  // tooltip to a WHITE box — pairing that with our light `text` colour made dark-mode
+  // tooltips white-on-white. The tooltip must carry its own themed surface.
   return mode === "dark"
-    ? { text: "#e6efe9", axis: "#8aa39a", grid: "#1d2a26", series: SERIES }
-    : { text: "#1c1c1a", axis: "#6b6b66", grid: "#ebece9", series: SERIES };
+    ? {
+        text: "#e6efe9", axis: "#8aa39a", grid: "#1d2a26", series: SERIES,
+        tooltipBg: "#1a2420", tooltipBorder: "#2c3a34",
+      }
+    : {
+        text: "#1c1c1a", axis: "#6b6b66", grid: "#ebece9", series: SERIES,
+        tooltipBg: "#ffffff", tooltipBorder: "#ebece9",
+      };
 }

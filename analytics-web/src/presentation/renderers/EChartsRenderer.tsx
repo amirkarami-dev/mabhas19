@@ -61,6 +61,10 @@ export default function EChartsRenderer({ view, result, onDrill }: RendererProps
   const legend: Record<string, unknown> = dir === "rtl" ? { right: 8 } : { left: 8 };
   const tooltip: Record<string, unknown> = {
     trigger: "item",
+    // ECharts' default tooltip surface is white; give it the themed surface or the
+    // light `text` colour becomes white-on-white in dark mode.
+    backgroundColor: colors.tooltipBg,
+    borderColor: colors.tooltipBorder,
     textStyle: { align: dir === "rtl" ? "right" : "left", color: colors.text },
     valueFormatter,
   };
