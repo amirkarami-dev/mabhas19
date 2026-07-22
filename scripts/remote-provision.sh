@@ -112,6 +112,10 @@ ensure_env KURDNEZAM_ROOT_DOMAIN kurdnezam.ir
 # admin.myceo.ir — central user-management SPA. Backfilled for .env files created before it existed.
 ensure_env ADMIN_DOMAIN admin.myceo.ir
 
+# refahi.kurdnezam.ir — the engineers' welfare dashboard (سامانه رفاهی مهندسین). An unset domain
+# would make the IdP seeder parse "https:///auth/callback" and abort, so it is always present.
+ensure_env WALFARE_DOMAIN refahi.kurdnezam.ir
+
 # msgway direct SMS — backfill the new keys for .env files created before direct sending existed.
 # (SMS_MSGWAY_APIKEY stays empty here — the real key is a secret set out-of-band; ensure_env never
 # overwrites a live value, so an already-configured key is preserved.)

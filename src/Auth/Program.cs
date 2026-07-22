@@ -66,6 +66,7 @@ else
     builder.Services.AddHttpClient<ISmsSender, SmsSender>();
 builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddScoped<IFarsNezamDirectory, FarsNezamDirectory>();
+builder.Services.AddScoped<IKurdNezamDirectory, KurdNezamDirectory>();
 
 // Per-user product-service grants (read at authorize to emit the 'svc' claim + enforce access).
 builder.Services.AddScoped<IServiceAccessStore, ServiceAccessStore>();

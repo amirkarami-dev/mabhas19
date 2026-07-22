@@ -43,6 +43,13 @@ public class AuthorizationController(
                 return RedirectToFarsLogin(farsCo, returnUrl);
             }
 
+            // The welfare app signs engineers in by کد ملی + OTP, not username/password — its
+            // unauthenticated authorize goes to the engineer login instead of the default page.
+            if (string.Equals(request.ClientId, "walfare-web", StringComparison.OrdinalIgnoreCase))
+            {
+                return Redirect($"/Account/EngineerLogin?returnUrl={Uri.EscapeDataString(returnUrl)}");
+            }
+
             return Challenge(
                 authenticationSchemes: IdentityConstants.ApplicationScheme,
                 properties: new AuthenticationProperties { RedirectUri = returnUrl });

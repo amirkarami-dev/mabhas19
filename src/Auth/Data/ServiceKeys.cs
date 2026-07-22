@@ -20,6 +20,7 @@ public static class ServiceKeys
     public const string MunSanandaj  = "mun-sanandaj";
     public const string LandingPanel = "landing-panel";
     public const string Plan         = "plan";
+    public const string Walfare      = "walfare";
 
     /// <summary>The grantable services, in display order, with Persian + English names.</summary>
     public static readonly IReadOnlyList<ServiceKey> All =
@@ -29,6 +30,7 @@ public static class ServiceKeys
         new(MunSanandaj,  "شهرداری سنندج",      "Sanandaj Municipality"),
         new(LandingPanel, "پنل مدیریت لندینگ",  "Landing Panel"),
         new(Plan,         "پلن",                "Plan"),
+        new(Walfare,      "سامانه رفاهی مهندسین", "Engineers' Welfare"),
     ];
 
     // Maps an OIDC client_id -> the product service key it belongs to. admin-web is absent on
@@ -42,6 +44,7 @@ public static class ServiceKeys
             ["mun-sanandaj-web"] = MunSanandaj,
             ["landing-panel"]    = LandingPanel,
             ["plan-web"]         = Plan,
+            ["walfare-web"]      = Walfare,
         };
 
     /// <summary>

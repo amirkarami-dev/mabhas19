@@ -342,6 +342,45 @@ public class AuthDbInitialiser(
 
             await EnsureClientAsync(adminWebClient);
         }
+
+        // walfare-web — Public, Authorization Code + PKCE, for refahi.kurdnezam.ir (the engineers'
+        // welfare dashboard, سامانه رفاهی مهندسین). Its unauthenticated authorize is routed to the
+        // کد ملی + OTP page (see AuthorizationController), and provisioning grants ONLY the
+        // "walfare" service. Optional: only seeded when its redirect URI is configured.
+        var walfareRedirect   = configuration["Clients:WalfareWeb:Redirect"]   ?? string.Empty;
+        var walfareSilent     = configuration["Clients:WalfareWeb:Silent"]     ?? string.Empty;
+        var walfarePostLogout = configuration["Clients:WalfareWeb:PostLogout"] ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(walfareRedirect))
+        {
+            var walfareClient = new OpenIddictApplicationDescriptor
+            {
+                ClientId    = "walfare-web",
+                ClientType  = ClientTypes.Public,
+                DisplayName = "Engineers' Welfare",
+                Permissions =
+                {
+                    Permissions.Endpoints.Authorization,
+                    Permissions.Endpoints.Token,
+                    Permissions.Endpoints.EndSession,
+                    Permissions.GrantTypes.AuthorizationCode,
+                    Permissions.GrantTypes.RefreshToken,
+                    Permissions.ResponseTypes.Code,
+                    Permissions.Scopes.Email,
+                    Permissions.Scopes.Profile,
+                    Permissions.Scopes.Roles,
+                    Permissions.Prefixes.Scope + "mabhas19.api"
+                },
+                Requirements = { Requirements.Features.ProofKeyForCodeExchange }
+            };
+            walfareClient.RedirectUris.Add(new Uri(walfareRedirect));
+            if (!string.IsNullOrWhiteSpace(walfareSilent))
+                walfareClient.RedirectUris.Add(new Uri(walfareSilent));
+            if (!string.IsNullOrWhiteSpace(walfarePostLogout))
+                walfareClient.PostLogoutRedirectUris.Add(new Uri(walfarePostLogout));
+
+            await EnsureClientAsync(walfareClient);
+        }
     }
 
     private async Task EnsureClientAsync(OpenIddictApplicationDescriptor descriptor)
