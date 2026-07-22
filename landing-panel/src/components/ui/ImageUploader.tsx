@@ -16,13 +16,17 @@ export interface ImageUploaderProps {
   disabled?: boolean;
   /** Preview height in px. */
   height?: number;
-  /** Show the manual path input (default true) — lets an editor paste "/images/news/news-1.png". */
+  /**
+   * Show the raw path box. OFF by default: uploads now land in object storage under an opaque
+   * key like "/api/kurdnezam/media/8675a2b0….jpg", which means nothing to an editor and breaks
+   * the image if hand-edited. Turn it on only where someone must paste a legacy "/images/…" path.
+   */
   allowPath?: boolean;
   placeholder?: string;
 }
 
 /**
- * Upload (POST /api/kurdnezam/media, field "file") or type a path by hand.
+ * Upload (POST /api/kurdnezam/media, field "file") and preview.
  * Value semantics are a plain string, so it drops straight into a `<Form.Item name="image">`.
  */
 export function ImageUploader({
@@ -30,7 +34,7 @@ export function ImageUploader({
   onChange,
   disabled,
   height = 140,
-  allowPath = true,
+  allowPath = false,
   placeholder = "/images/news/news-1.png",
 }: ImageUploaderProps) {
   const { message } = App.useApp();
@@ -120,8 +124,17 @@ export function ImageUploader({
               حذف تصویر
             </Button>
           ) : null}
+          {/* The raw value is an opaque storage key, so say WHAT is set rather than showing it.
+              Matters for legacy "/images/…" images, which this panel cannot preview at all. */}
+          {value ? (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {value.startsWith("/api/")
+                ? "✓ تصویر بارگذاری شده است"
+                : `فایل سایت: ${value.split("/").pop()}`}
+            </Typography.Text>
+          ) : null}
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            PNG / JPG / WebP / GIF — حداکثر ۵ مگابایت
+            PNG / JPG / WebP / GIF — حداکثر ۲۰ مگابایت
           </Typography.Text>
         </Space>
       </Flex>
