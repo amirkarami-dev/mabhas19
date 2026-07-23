@@ -11,7 +11,8 @@ namespace Mabhas19.Application.Analytics.Dashboards.Commands.SaveDashboard;
 public record SaveDashboardCommand(
     string Name,
     JsonArray Widgets,
-    JsonObject Layout) : IRequest<int>;
+    JsonArray Layout,
+    int? Id = null) : IRequest<int>;
 
 public class SaveDashboardCommandHandler : IRequestHandler<SaveDashboardCommand, int>
 {
@@ -28,9 +29,26 @@ public class SaveDashboardCommandHandler : IRequestHandler<SaveDashboardCommand,
 
     public async Task<int> Handle(SaveDashboardCommand request, CancellationToken cancellationToken)
     {
+        var tenantId = _tenant.TenantId ?? "default";
+
+        // Upsert: with an Id this is a save from the builder — update in place
+        // (the old always-Add duplicated the dashboard on every save).
+        if (request.Id is int id)
+        {
+            var existing = await _context.AnalyticsDashboards
+                .FirstOrDefaultAsync(d => d.TenantId == tenantId && d.Id == id, cancellationToken);
+            Ardalis.GuardClauses.Guard.Against.NotFound(id, existing);
+
+            existing.Name        = request.Name;
+            existing.WidgetsJson = request.Widgets.ToJsonString();
+            existing.LayoutJson  = request.Layout.ToJsonString();
+            await _context.SaveChangesAsync(cancellationToken);
+            return existing.Id;
+        }
+
         var dashboard = new Dashboard
         {
-            TenantId    = _tenant.TenantId ?? "default",
+            TenantId    = tenantId,
             Name        = request.Name,
             WidgetsJson = request.Widgets.ToJsonString(),
             LayoutJson  = request.Layout.ToJsonString(),

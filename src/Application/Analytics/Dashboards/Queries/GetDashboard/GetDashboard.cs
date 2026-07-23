@@ -37,7 +37,7 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
             Id        = d.Id,
             Name      = d.Name,
             Widgets   = JsonNode.Parse(d.WidgetsJson)?.AsArray()  ?? [],
-            Layout    = JsonNode.Parse(d.LayoutJson)?.AsObject()  ?? [],
+            Layout    = JsonNode.Parse(d.LayoutJson)?.AsArray()   ?? [],
             OwnerName = d.OwnerName,
             UpdatedAt = d.LastModified
         };

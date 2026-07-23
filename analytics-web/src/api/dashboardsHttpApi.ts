@@ -84,7 +84,10 @@ export const dashboardsHttpApi = {
    * The backend treats this as an upsert keyed on the dashboard id when present.
    */
   async save(d: DashboardRecord): Promise<DashboardRecord> {
+    const numericId = Number(d.id);
     const resp = await httpClient.post<BackendCreateResponse>("/api/Dashboards", {
+      // With an id the backend updates in place; without it, it creates.
+      id: Number.isInteger(numericId) && numericId > 0 ? numericId : undefined,
       name: d.name,
       widgets: d.widgets,
       layout: d.layout,

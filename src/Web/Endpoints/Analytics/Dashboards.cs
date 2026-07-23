@@ -39,7 +39,7 @@ public class Dashboards : Mabhas19.Web.Infrastructure.IEndpointGroup
     }
 
     public static async Task<Ok<int>> SaveDashboard(ISender sender, SaveDashboardRequest request)
-        => TypedResults.Ok(await sender.Send(new SaveDashboardCommand(request.Name, request.Widgets, request.Layout)));
+        => TypedResults.Ok(await sender.Send(new SaveDashboardCommand(request.Name, request.Widgets, request.Layout, request.Id)));
 
     public static async Task<Results<NoContent, NotFound>> DeleteDashboard(ISender sender, int id)
     {
@@ -55,5 +55,7 @@ public class Dashboards : Mabhas19.Web.Infrastructure.IEndpointGroup
     }
 }
 
-/// <summary>Request body for POST /api/Dashboards.</summary>
-public sealed record SaveDashboardRequest(string Name, JsonArray Widgets, JsonObject Layout);
+/// <summary>Request body for POST /api/Dashboards. The SPA sends layout as an
+/// ARRAY of grid items (react-grid-layout shape) — a JsonObject here made model
+/// binding reject every create/save with 400. Id present = update in place.</summary>
+public sealed record SaveDashboardRequest(string Name, JsonArray Widgets, JsonArray Layout, int? Id = null);

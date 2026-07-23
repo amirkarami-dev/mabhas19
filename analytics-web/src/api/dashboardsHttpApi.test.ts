@@ -130,6 +130,26 @@ describe("dashboardsHttpApi.save()", () => {
       layout: dashboard.layout,
     });
   });
+
+  it("sends the numeric id so the backend updates instead of duplicating", async () => {
+    const dashboard = {
+      id: "7",
+      tenantId: "t1",
+      name: "Updated",
+      widgets: [],
+      layout: [],
+      ownerName: "Alice",
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    await dashboardsHttpApi.save(dashboard);
+    expect(mockPost).toHaveBeenCalledWith("/api/Dashboards", {
+      id: 7,
+      name: "Updated",
+      widgets: [],
+      layout: [],
+    });
+  });
 });
 
 describe("dashboardsHttpApi.remove()", () => {
