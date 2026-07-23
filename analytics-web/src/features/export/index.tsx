@@ -3,10 +3,14 @@ import type { QueryResult, ReportDefinition } from "@/contracts";
 import { toCsv } from "./csv";
 import { toJson } from "./json";
 import { downloadBlob } from "./download";
+import { exportXlsx } from "./xlsx";
+import { exportPdf } from "./pdf";
 
 export { toCsv } from "./csv";
 export { toJson } from "./json";
 export { downloadBlob } from "./download";
+export { exportXlsx, resultToAoa } from "./xlsx";
+export { exportPdf, chartSnapshot } from "./pdf";
 
 function baseName(def: ReportDefinition): string {
   return (
@@ -25,34 +29,24 @@ export function exportJson(def: ReportDefinition, result: QueryResult): void {
   downloadBlob(toJson(def, result), `${baseName(def)}.json`, "application/json");
 }
 
-/** antd Dropdown items for the export menu.
- *  v1: CSV + JSON real; PDF + Excel disabled with a "v2" tag. */
+/** antd Dropdown items for the export menu — CSV, JSON, Excel, and PDF. */
 export function buildExportMenuItems(
   def: ReportDefinition,
   result: QueryResult,
 ): NonNullable<MenuProps["items"]> {
-  const v2 = { fontSize: 10, opacity: 0.7, marginInlineStart: 8 };
   return [
     { key: "csv", label: "CSV", onClick: () => exportCsv(def, result) },
     { key: "json", label: "JSON", onClick: () => exportJson(def, result) },
     { type: "divider" },
     {
-      key: "pdf",
-      disabled: true,
-      label: (
-        <span>
-          PDF<span style={v2}>v2</span>
-        </span>
-      ),
+      key: "excel",
+      label: "Excel",
+      onClick: () => void exportXlsx(baseName(def), result),
     },
     {
-      key: "excel",
-      disabled: true,
-      label: (
-        <span>
-          Excel<span style={v2}>v2</span>
-        </span>
-      ),
+      key: "pdf",
+      label: "PDF",
+      onClick: () => exportPdf(def.name ?? baseName(def), result),
     },
   ];
 }

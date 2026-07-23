@@ -1,20 +1,32 @@
-import { Button, Dropdown, Input, Space } from "antd";
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Dropdown, Input, Space, Tag } from "antd";
+import {
+  AppstoreOutlined,
+  ClockCircleOutlined,
+  DashboardOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useCreateDashboard, useDashboards, useDeleteDashboard } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
-import { EmptyState, PageContainer, PageHeader, SectionCard, Loading } from "@/components/ui";
+import { formatCategory, toPersianDigits } from "@/presentation/format";
+import { EmptyState, PageContainer, Loading } from "@/components/ui";
+import "./dashboards.css";
 
 export function DashboardList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { roles } = useAuth();
   const { data, isLoading } = useDashboards();
   const create = useCreateDashboard();
   const del = useDeleteDashboard();
   const [q, setQ] = useState("");
+
+  const rtl = i18n.dir() === "rtl";
+  const num = (n: number) => (rtl ? toPersianDigits(n) : String(n));
 
   const canCreate =
     roles.includes("DashboardDesigner") ||
@@ -29,6 +41,11 @@ export function DashboardList() {
     [data, q],
   );
 
+  const widgetTotal = useMemo(
+    () => (data ?? []).reduce((a, d) => a + d.widgets.length, 0),
+    [data],
+  );
+
   const onNew = async () => {
     const d = await create.mutateAsync({ name: t("dash.untitled") });
     void navigate(`/dashboards/${d.id}/edit`);
@@ -38,28 +55,43 @@ export function DashboardList() {
 
   return (
     <PageContainer>
-      <PageHeader
-        title={t("dashboards.title")}
-        actions={
-          <Space wrap>
-            <Input.Search
-              placeholder={t("dash.search")}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ width: 240 }}
-            />
-            {canCreate && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                loading={create.isPending}
-                onClick={() => void onNew()}
-              >
-                {t("dash.new")}
-              </Button>
-            )}
-          </Space>
-        }
-      />
+      {/* Hero */}
+      <div className="dash-hero">
+        <div className="dash-hero__glow" aria-hidden />
+        <div className="dash-hero__text">
+          <h1 className="dash-hero__title">
+            <DashboardOutlined /> {t("dashboards.title")}
+          </h1>
+          <p className="dash-hero__subtitle">{t("dash.heroSubtitle")}</p>
+          <div className="dash-hero__stats">
+            <span className="dash-hero__stat">
+              <AppstoreOutlined /> {t("dash.boardCount", { count: (data ?? []).length })}
+            </span>
+            <span className="dash-hero__stat">
+              <BarStat /> {t("dash.widgetCount", { count: widgetTotal })}
+            </span>
+          </div>
+        </div>
+        <div className="dash-hero__actions">
+          <Input.Search
+            placeholder={t("dash.search")}
+            onChange={(e) => setQ(e.target.value)}
+            style={{ width: 240 }}
+            allowClear
+          />
+          {canCreate && (
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              loading={create.isPending}
+              onClick={() => void onNew()}
+            >
+              {t("dash.new")}
+            </Button>
+          )}
+        </div>
+      </div>
 
       {boards.length === 0 ? (
         <EmptyState
@@ -73,22 +105,22 @@ export function DashboardList() {
           }
         />
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div className="dash-list__grid">
           {boards.map((d) => (
-            <SectionCard
+            <div
               key={d.id}
               data-testid="dashboard-card"
-              hoverable
-              title={d.name}
-              style={{ cursor: "pointer", borderRadius: 12 }}
+              className="dash-card"
+              role="button"
+              tabIndex={0}
               onClick={() => void navigate(`/dashboards/${d.id}/edit`)}
-              extra={
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void navigate(`/dashboards/${d.id}/edit`);
+              }}
+            >
+              <div className="dash-card__accent" aria-hidden />
+              <div className="dash-card__head">
+                <span className="dash-card__name">{d.name}</span>
                 <Dropdown
                   trigger={["click"]}
                   menu={{
@@ -110,28 +142,41 @@ export function DashboardList() {
                 >
                   <Button
                     type="text"
+                    size="small"
                     icon={<MoreOutlined />}
                     aria-label={t("dash.cardMenu")}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </Dropdown>
-              }
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span style={{ fontSize: 13, color: "var(--ant-color-text-secondary)" }}>
-                  {t("dash.widgetCount", { count: d.widgets.length })}
-                </span>
-                <span style={{ fontSize: 13, color: "var(--ant-color-text-secondary)" }}>
-                  {d.ownerName}
-                </span>
-                <span style={{ fontSize: 12, color: "var(--ant-color-text-tertiary)" }}>
-                  {d.updatedAt}
-                </span>
               </div>
-            </SectionCard>
+              <Space size={6} wrap className="dash-card__meta">
+                <Tag bordered={false} icon={<AppstoreOutlined />}>
+                  {num(d.widgets.length)} {t("dash.widget")}
+                </Tag>
+                {d.ownerName && (
+                  <Tag bordered={false} icon={<UserOutlined />}>
+                    {d.ownerName}
+                  </Tag>
+                )}
+                <Tag bordered={false} icon={<ClockCircleOutlined />}>
+                  {formatCategory(d.updatedAt.slice(0, 10), rtl ? "rtl" : "ltr")}
+                </Tag>
+              </Space>
+            </div>
           ))}
         </div>
       )}
     </PageContainer>
+  );
+}
+
+/** Tiny inline bar glyph for the hero stats (no extra icon dependency). */
+function BarStat() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden style={{ verticalAlign: -2 }}>
+      <rect x="1" y="7" width="3" height="6" rx="1" fill="currentColor" />
+      <rect x="5.5" y="4" width="3" height="9" rx="1" fill="currentColor" />
+      <rect x="10" y="1" width="3" height="12" rx="1" fill="currentColor" />
+    </svg>
   );
 }

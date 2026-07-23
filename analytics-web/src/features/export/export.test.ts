@@ -61,7 +61,7 @@ describe("toJson", () => {
 });
 
 describe("buildExportMenuItems", () => {
-  it("offers CSV + JSON enabled and PDF + Excel disabled with a v2 tag", () => {
+  it("offers CSV, JSON, Excel, and PDF — all enabled", () => {
     const items = buildExportMenuItems(def, result) as Array<{
       key: string;
       disabled?: boolean;
@@ -69,8 +69,8 @@ describe("buildExportMenuItems", () => {
     const byKey = Object.fromEntries(items.filter((i) => i && i.key).map((i) => [i.key, i]));
     expect(byKey.csv.disabled).toBeFalsy();
     expect(byKey.json.disabled).toBeFalsy();
-    expect(byKey.pdf.disabled).toBe(true);
-    expect(byKey.excel.disabled).toBe(true);
+    expect(byKey.pdf.disabled).toBeFalsy();
+    expect(byKey.excel.disabled).toBeFalsy();
   });
 
   it("CSV/JSON click handlers trigger a download (Blob + anchor)", () => {

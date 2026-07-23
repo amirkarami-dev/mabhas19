@@ -72,6 +72,10 @@ export function DashboardBuilder() {
     setLayout((l) => l.filter((x) => x.i !== i));
   };
 
+  const changeWidget = (next: DashboardWidget) => {
+    setWidgets((w) => w.map((x) => (x.i === next.i ? next : x)));
+  };
+
   const onSave = async () => {
     try {
       await save.mutateAsync({ ...data, widgets, layout });
@@ -133,7 +137,12 @@ export function DashboardBuilder() {
         <DashboardCanvas layout={layout} editing={editing} onLayoutChange={setLayout}>
           {widgets.map((wd) => (
             <div key={wd.i} data-testid="dashboard-widget">
-              <WidgetFrame widget={wd} editing={editing} onRemove={() => removeWidget(wd.i)} />
+              <WidgetFrame
+                widget={wd}
+                editing={editing}
+                onRemove={() => removeWidget(wd.i)}
+                onChange={changeWidget}
+              />
             </div>
           ))}
         </DashboardCanvas>

@@ -1,3 +1,10 @@
+// react-draggable (via react-grid-layout) reads `process.env` at runtime; the
+// browser has no `process`, so every widget drag threw "process is not defined".
+// Shim it before any dependency code runs (covers dev pre-bundled deps too).
+if (typeof (globalThis as { process?: unknown }).process === "undefined") {
+  (globalThis as { process?: { env: Record<string, string> } }).process = { env: {} };
+}
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./theme/global.css";

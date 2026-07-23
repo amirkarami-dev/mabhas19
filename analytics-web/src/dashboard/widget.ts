@@ -6,6 +6,8 @@ export interface DashboardWidget {
   reportId: string;
   viewIndex?: number;
   title?: string;
+  /** Per-widget display override: "chart" | "table"; undefined = report default. */
+  viewMode?: "chart" | "table";
 }
 
 export interface GridLayoutItem {

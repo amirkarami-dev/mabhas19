@@ -147,7 +147,11 @@
     "open": "Open",
     "delete": "Delete",
     "cardMenu": "Card menu",
-    "widgetCount": "{{count}} widget(s)"
+    "widgetCount": "{{count}} widget(s)",
+    "boardCount": "{{count}} dashboard(s)",
+    "heroSubtitle": "Drag, resize, and arrange your reports side by side as tables or charts.",
+    "viewChart": "Chart view",
+    "viewTable": "Table view"
   },
   "tenant": {
     "switcher": "Select tenant",
