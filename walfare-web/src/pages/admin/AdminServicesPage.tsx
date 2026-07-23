@@ -3,7 +3,7 @@ import { Button, Form, Input, Switch, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { walfareApi, type WelfareService, type WelfareServiceInput } from "@/api/walfareApi";
 import { queryKeys, useCrud } from "@/query";
-import { CrudTable, FormDrawer, PageHeader } from "@/components/ui";
+import { CrudTable, FormDrawer, JalaliDateField, PageHeader } from "@/components/ui";
 import { faDigits } from "@/lib/jalali";
 
 interface ServiceFormValues {
@@ -13,11 +13,6 @@ interface ServiceFormValues {
   activationDate: string;
   isAccessible: boolean;
 }
-
-const JALALI_RULE = {
-  pattern: /^[۰-۹0-9]{4}\/[۰-۹0-9]{1,2}\/[۰-۹0-9]{1,2}$/,
-  message: "قالب تاریخ: ۱۴۰۵/۰۵/۰۱",
-};
 
 /** خدمات رفاهی — the offering + its window. Only pool tickets exist today (type = 1). */
 export function AdminServicesPage() {
@@ -134,24 +129,24 @@ export function AdminServicesPage() {
         <Form.Item
           name="startDate"
           label="تاریخ شروع (شمسی)"
-          rules={[{ required: true, message: "تاریخ شروع الزامی است" }, JALALI_RULE]}
+          rules={[{ required: true, message: "تاریخ شروع الزامی است" }]}
         >
-          <Input placeholder="۱۴۰۵/۰۵/۰۱" />
+          <JalaliDateField />
         </Form.Item>
         <Form.Item
           name="endDate"
           label="تاریخ پایان (شمسی)"
-          rules={[{ required: true, message: "تاریخ پایان الزامی است" }, JALALI_RULE]}
+          rules={[{ required: true, message: "تاریخ پایان الزامی است" }]}
         >
-          <Input placeholder="۱۴۰۵/۰۶/۳۱" />
+          <JalaliDateField />
         </Form.Item>
         <Form.Item
           name="activationDate"
           label="تاریخ فعال‌سازی (شمسی)"
-          rules={[{ required: true, message: "تاریخ فعال‌سازی الزامی است" }, JALALI_RULE]}
+          rules={[{ required: true, message: "تاریخ فعال‌سازی الزامی است" }]}
           extra="از این تاریخ، خدمت در داشبورد مهندسین دیده می‌شود."
         >
-          <Input placeholder="۱۴۰۵/۰۵/۰۱" />
+          <JalaliDateField />
         </Form.Item>
         <Form.Item name="isAccessible" label="قابل دسترس برای مهندسین" valuePropName="checked">
           <Switch checkedChildren="بله" unCheckedChildren="خیر" />

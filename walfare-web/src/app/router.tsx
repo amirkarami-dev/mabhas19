@@ -20,6 +20,18 @@ import { AdminReservationsPage } from "@/pages/admin/AdminReservationsPage";
 import { AdminPaymentsPage } from "@/pages/admin/AdminPaymentsPage";
 
 export const router = createBrowserRouter([
+  // Dev-only picker harness (never bundled in production builds).
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: "/dev/pickers",
+          lazy: async () => ({
+            Component: (await import("@/pages/dev/PickerHarness")).PickerHarness,
+          }),
+        },
+      ]
+    : []),
+
   // Public auth surface.
   { path: "/login", element: <LoginScreen /> },
   { path: "/auth/callback", element: <OidcCallback /> },

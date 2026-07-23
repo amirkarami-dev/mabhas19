@@ -37,6 +37,13 @@
       "autoPort": false
     },
     {
+      "name": "walfare-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "walfare-web", "run", "dev", "--", "--port", "5275", "--strictPort"],
+      "port": 5275,
+      "autoPort": false
+    },
+    {
       "name": "mun-sanandaj-web",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "mun-sanandaj-web", "run", "dev", "--", "--port", "5274", "--strictPort"],

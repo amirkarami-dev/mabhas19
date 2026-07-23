@@ -8,7 +8,7 @@ import {
   type WelfareService,
 } from "@/api/walfareApi";
 import { queryKeys, useApiMutation, useApiQuery } from "@/query";
-import { CrudTable, FormDrawer, PageHeader } from "@/components/ui";
+import { CrudTable, FormDrawer, PageHeader, TimeField } from "@/components/ui";
 import { faDigits, faMoney, JALALI_WEEKDAYS } from "@/lib/jalali";
 
 const DAY_OPTIONS = [
@@ -253,14 +253,14 @@ export function AdminPoolsPage() {
           label="ساعت شروع رزرو"
           rules={[{ required: true, message: "ساعت شروع الزامی است" }]}
         >
-          <Input placeholder="08:00" maxLength={10} />
+          <TimeField placeholder="۰۸:۰۰" />
         </Form.Item>
         <Form.Item
           name="reserveEndTime"
           label="ساعت پایان رزرو"
           rules={[{ required: true, message: "ساعت پایان الزامی است" }]}
         >
-          <Input placeholder="22:00" maxLength={10} />
+          <TimeField placeholder="۲۲:۰۰" />
         </Form.Item>
         <Form.Item
           name="capacity"
