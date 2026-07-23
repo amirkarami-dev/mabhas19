@@ -257,7 +257,9 @@ export function CrudTable<T extends object>({
         size={size}
         pagination={tablePagination}
         expandable={expandable}
-        scroll={scrollX ? { x: scrollX } : undefined}
+        // Default to scrolling rather than squeezing: on a phone a 6-column table would
+        // otherwise crush every cell to a couple of characters per line.
+        scroll={{ x: scrollX ?? "max-content" }}
         locale={{
           emptyText: (
             <EmptyState

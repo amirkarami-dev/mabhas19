@@ -60,15 +60,18 @@ export function ServicesPage() {
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : services.data && services.data.length > 0 ? (
         <Row gutter={[16, 16]}>
+          {/* AntD breakpoints read the WINDOW, not this column's box — the sider takes ~232px
+              of it, so halving at `sm` left ~250px and the title broke one letter per line.
+              Stay full width until md, and only go to thirds on a genuinely wide screen. */}
           {services.data.map((s) => (
-            <Col key={s.id} xs={24} sm={12} lg={8}>
+            <Col key={s.id} xs={24} sm={24} md={12} xl={8}>
               <Card
                 hoverable
                 onClick={() => navigate(`/book/${s.id}`)}
-                styles={{ body: { display: "flex", gap: 16, alignItems: "center" } }}
+                styles={{ body: { display: "flex", gap: 12, alignItems: "center" } }}
               >
                 <PoolBadge />
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere" }}>
                   <Typography.Text strong style={{ fontSize: 16, display: "block" }}>
                     {s.title}
                   </Typography.Text>

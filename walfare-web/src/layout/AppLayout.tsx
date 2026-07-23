@@ -1,4 +1,5 @@
-import { Avatar, Button, Dropdown, Layout, Menu, Space, Tooltip, Typography, theme } from "antd";
+import { useState } from "react";
+import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Space, Tooltip, Typography, theme } from "antd";
 import {
   BulbFilled,
   BulbOutlined,
@@ -22,8 +23,30 @@ export function AppLayout() {
   const { user, logout, isAdmin } = useAuth();
   const { themeMode, toggleTheme, sidebarCollapsed, toggleSidebar } = useUiStore();
 
+  // On phones/small tablets a 232px column would eat the screen, so the nav becomes a drawer.
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const selected = selectedNavKey(location.pathname);
   const themeLabel = themeMode === "dark" ? "حالت روشن" : "حالت تیره";
+
+  const menu = (
+    <Menu
+      mode="inline"
+      selectedKeys={[selected]}
+      items={NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin).map((i) => ({
+        key: i.key,
+        label: i.label,
+        icon: i.icon,
+      }))}
+      onClick={({ key }) => {
+        navigate(key);
+        setDrawerOpen(false);
+      }}
+      style={{ borderInlineEnd: "none", paddingBlock: 8 }}
+    />
+  );
 
   const sider = (
     <Sider
@@ -73,18 +96,29 @@ export function AppLayout() {
           </Typography.Text>
         ) : null}
       </div>
-      <Menu
-        mode="inline"
-        selectedKeys={[selected]}
-        items={NAV_ITEMS.filter((i) => !i.adminOnly || isAdmin).map((i) => ({
-          key: i.key,
-          label: i.label,
-          icon: i.icon,
-        }))}
-        onClick={({ key }) => navigate(key)}
-        style={{ borderInlineEnd: "none", paddingBlock: 8 }}
-      />
+      {menu}
     </Sider>
+  );
+
+  const brand = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          flex: "none",
+          background: token.colorPrimary,
+          color: "#fff",
+          display: "grid",
+          placeItems: "center",
+          fontWeight: 700,
+        }}
+      >
+        ر
+      </div>
+      <Typography.Text strong>سامانه رفاهی مهندسین</Typography.Text>
+    </div>
   );
 
   const main = (
@@ -103,10 +137,16 @@ export function AppLayout() {
       >
         <Button
           type="text"
-          aria-label={sidebarCollapsed ? "باز کردن منو" : "بستن منو"}
-          icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={toggleSidebar}
+          aria-label={
+            isMobile ? "منو" : sidebarCollapsed ? "باز کردن منو" : "بستن منو"
+          }
+          icon={
+            isMobile || sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+          }
+          onClick={() => (isMobile ? setDrawerOpen(true) : toggleSidebar())}
         />
+        {/* The sider carries the brand on desktop; on mobile it lives in the header. */}
+        {isMobile ? brand : null}
         <div style={{ flex: 1 }} />
         <AppSwitcher currentKey="walfare" />
         <Tooltip title={themeLabel}>
@@ -139,19 +179,25 @@ export function AppLayout() {
         >
           <Space style={{ cursor: "pointer", paddingInline: 8 }}>
             <Avatar size="small" icon={<UserOutlined />} />
-            <Typography.Text style={{ maxWidth: 160 }} ellipsis>
-              {user?.name ?? "کاربر"}
-            </Typography.Text>
+            {/* The name is the first thing to drop on a narrow header. */}
+            {isMobile ? null : (
+              <Typography.Text style={{ maxWidth: 160 }} ellipsis>
+                {user?.name ?? "کاربر"}
+              </Typography.Text>
+            )}
           </Space>
         </Dropdown>
       </Header>
       <Content
         style={{
-          margin: 16,
-          padding: 20,
+          // Tighter frame on phones — 16+20 each side wastes a third of a 360px screen.
+          margin: isMobile ? 8 : 16,
+          padding: isMobile ? 12 : 20,
           background: token.colorBgContainer,
           borderRadius: token.borderRadiusLG,
           minHeight: 280,
+          // Long words / wide tables must not push the page sideways.
+          overflowX: "auto",
         }}
       >
         <Outlet />
@@ -169,7 +215,20 @@ export function AppLayout() {
       }}
     >
       {main}
-      {sider}
+      {isMobile ? (
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          placement="right"
+          width={260}
+          title={brand}
+          styles={{ body: { padding: 0 } }}
+        >
+          {menu}
+        </Drawer>
+      ) : (
+        sider
+      )}
     </Layout>
   );
 }

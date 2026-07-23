@@ -52,8 +52,11 @@ export function MyReservationsPage() {
             <List.Item>
               <Card>
                 <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                  <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                    <Typography.Text strong>{r.poolName}</Typography.Text>
+                  {/* A long pool name plus its status must wrap, not overflow the card. */}
+                  <Space wrap style={{ width: "100%", justifyContent: "space-between" }}>
+                    <Typography.Text strong style={{ overflowWrap: "anywhere" }}>
+                      {r.poolName}
+                    </Typography.Text>
                     <StatusTag status={r.status} />
                   </Space>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>

@@ -261,8 +261,9 @@ export function BookingPage() {
                   <Col key={p.id} xs={24} md={12}>
                     <Card>
                       <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                          <Typography.Text strong style={{ fontSize: 15 }}>
+                        {/* Pool names are long ("استخر ۲۲ گولان-آقایان- 19:30تا 21") — wrap. */}
+                        <Space wrap style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Typography.Text strong style={{ fontSize: 15, overflowWrap: "anywhere" }}>
                             {p.name}
                           </Typography.Text>
                           {full ? (
@@ -279,7 +280,7 @@ export function BookingPage() {
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                           <ClockCircleOutlined /> ساعت {faDigits(p.reserveStartTime)} تا {faDigits(p.reserveEndTime)}
                         </Typography.Text>
-                        <Space style={{ width: "100%", justifyContent: "space-between", marginTop: 4 }}>
+                        <Space wrap style={{ width: "100%", justifyContent: "space-between", marginTop: 4 }}>
                           <Typography.Text strong>{faMoney(p.priceRials)}</Typography.Text>
                           <Button type="primary" disabled={full || paying} onClick={() => setConfirmPool(p)}>
                             رزرو و پرداخت
