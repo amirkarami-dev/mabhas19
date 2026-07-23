@@ -228,9 +228,12 @@ public class ConfirmPaymentCommandHandler(
 
         if (!verify.Success)
         {
+            // Return the UPDATED row (don't throw): the caller invalidates on success, so the row
+            // refreshes in place and the bank's reason shows under the status without a manual
+            // reload. Status stays as-is; the description carries the bank's message.
             tx.Description = verify.Description ?? "بانک این تراکنش را تأیید نکرد.";
             await context.SaveChangesAsync(cancellationToken);
-            throw Fail.With("Id", tx.Description);
+            return ToDto(tx);
         }
 
         await PaymentCompletion.ApplyVerifiedAsync(context, tx, verify.Description, cancellationToken);

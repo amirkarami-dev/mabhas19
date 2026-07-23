@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Popconfirm, Select, Tag, Typography } from "antd";
+import { App, Button, Popconfirm, Select, Tag, Typography } from "antd";
 import { SafetyCertificateOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -54,11 +54,22 @@ export function AdminPaymentsPage() {
     walfareApi.adminPayments(params),
   );
 
-  // Manual verify for a payment the automatic bank callback left unverified.
+  const { message } = App.useApp();
+
+  // Manual verify for a payment the automatic bank callback left unverified. The endpoint always
+  // returns the updated row (even when the bank declines), so invalidate always runs and the
+  // row refreshes in place — success or not — and we pick the toast from the resulting status.
   const confirm = useApiMutation<number, PaymentTransaction>({
     mutationFn: (id) => walfareApi.confirmPayment(id),
     invalidate: [queryKeys.payments.all()],
-    success: "تراکنش با موفقیت تأیید شد",
+    success: null,
+    onSuccess: (tx) => {
+      if (tx.status === PaymentStatus.Succeeded) {
+        void message.success("تراکنش نزد بانک تأیید شد");
+      } else {
+        void message.warning(tx.description ?? "بانک این تراکنش را تأیید نکرد");
+      }
+    },
   });
 
   const previous = useRef<Paged<PaymentTransaction> | undefined>(undefined);
@@ -119,15 +130,23 @@ export function AdminPaymentsPage() {
       title: "وضعیت",
       dataIndex: "status",
       key: "status",
-      width: 180,
+      width: 220,
       render: (v: PaymentStatus, t) => (
-        <div>
+        <div style={{ maxWidth: 200 }}>
           <StatusTag status={v} />
           {t.description ? (
-            // Keep the bank's own message (e.g. verify result) visible, not just on hover.
+            // Keep the bank's own message (verify result) visible, not just on hover. Wrap at
+            // word boundaries with normal white-space so long Persian text reads correctly.
             <Typography.Text
               type="secondary"
-              style={{ display: "block", fontSize: 11, marginTop: 4, overflowWrap: "anywhere" }}
+              style={{
+                display: "block",
+                fontSize: 11,
+                marginTop: 4,
+                whiteSpace: "normal",
+                wordBreak: "break-word",
+                lineHeight: 1.6,
+              }}
             >
               {t.description}
             </Typography.Text>
@@ -138,13 +157,17 @@ export function AdminPaymentsPage() {
     {
       title: "عملیات",
       key: "actions",
-      width: 130,
-      fixed: "right",
-      render: (_, t) =>
-        // Already-verified rows need nothing; others can be verified manually against the bank.
-        t.status === PaymentStatus.Succeeded ? (
-          <Typography.Text type="secondary">—</Typography.Text>
-        ) : (
+      width: 120,
+      render: (_, t) => {
+        // Verify is only meaningful for a captured-but-unverified payment — i.e. one that came
+        // back with a bank reference. Rows that never reached the bank (init failed, or the bank
+        // declined before capture) have no RRN/STAN and nothing to confirm.
+        const canConfirm =
+          t.status !== PaymentStatus.Succeeded &&
+          !!t.retrievalReferenceNumber &&
+          !!t.systemTraceAuditNumber;
+        if (!canConfirm) return <Typography.Text type="secondary">—</Typography.Text>;
+        return (
           <Popconfirm
             title="تأیید تراکنش نزد بانک؟"
             description="پرداخت با شماره ارجاع و پیگیری این تراکنش نزد ایران کیش تأیید می‌شود."
@@ -162,7 +185,8 @@ export function AdminPaymentsPage() {
               تأیید
             </Button>
           </Popconfirm>
-        ),
+        );
+      },
     },
   ];
 
