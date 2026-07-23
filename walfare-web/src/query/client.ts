@@ -11,7 +11,9 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       refetchOnWindowFocus: false,
       retry: (failureCount, error) => {
-        if (error instanceof ApiError && (error.isUnauthorized || error.status === 404)) return false;
+        // Auth, not-found, and validation failures never fix themselves on a retry.
+        if (error instanceof ApiError &&
+            (error.isUnauthorized || error.status === 404 || error.isValidation)) return false;
         return failureCount < 1;
       },
     },

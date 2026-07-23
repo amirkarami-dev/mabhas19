@@ -27,7 +27,8 @@ public class GetWalfareEngineerMeQueryHandler(IEngineerDirectory directory, IUse
         // Engineer accounts use the کد ملی as the username (see the IdP's EngineerLogin).
         var nationalCode = user.Name ?? string.Empty;
         var info = await directory.GetByNationalCodeAsync(nationalCode, cancellationToken)
-            ?? throw Fail.With("NationalCode", "اطلاعات مهندسی برای حساب شما یافت نشد.");
+            ?? throw Fail.With("NationalCode",
+                "برای این حساب پرونده مهندسی یافت نشد؛ خدمات رفاهی فقط با ورود مهندس (کد ملی و کد پیامکی) در دسترس است.");
 
         return new WalfareEngineerDto
         {
@@ -88,7 +89,8 @@ public class CreateReservationCommandHandler(
         // Snapshot the engineer from the org DB — the ticket keeps saying who bought it even if
         // the membership record changes later.
         var info = await directory.GetByNationalCodeAsync(nationalCode, cancellationToken)
-            ?? throw Fail.With("NationalCode", "اطلاعات مهندسی برای حساب شما یافت نشد.");
+            ?? throw Fail.With("NationalCode",
+                "برای این حساب پرونده مهندسی یافت نشد؛ خدمات رفاهی فقط با ورود مهندس (کد ملی و کد پیامکی) در دسترس است.");
 
         var entity = new WelfarePoolReservation
         {

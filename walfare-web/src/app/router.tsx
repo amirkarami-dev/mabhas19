@@ -9,6 +9,7 @@ import {
   RequireAdmin,
   RequireAuth,
 } from "@/auth/routes";
+import { EngineerGate } from "@/auth/EngineerGate";
 import { AppLayout } from "@/layout/AppLayout";
 import { ServicesPage } from "@/pages/ServicesPage";
 import { BookingPage } from "@/pages/BookingPage";
@@ -45,9 +46,17 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <ServicesPage /> },
-          { path: "book/:serviceId", element: <BookingPage /> },
-          { path: "reservations", element: <MyReservationsPage /> },
+          // Booking needs an engineer membership record (looked up by کد ملی); a staff
+          // account gets a plain explanation here instead of a 400 at reserve time.
+          // The payment return page stays outside the gate — the bank must always land.
+          {
+            element: <EngineerGate />,
+            children: [
+              { index: true, element: <ServicesPage /> },
+              { path: "book/:serviceId", element: <BookingPage /> },
+              { path: "reservations", element: <MyReservationsPage /> },
+            ],
+          },
           { path: "pay/result", element: <PayResultPage /> },
 
           // Admin section — Administrator role only.
