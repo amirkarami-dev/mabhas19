@@ -56,7 +56,13 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
         if (problemDetails is null) return false;
 
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        // Serialize by RUNTIME type. The tuple types this as ProblemDetails, and the generic
+        // overload would then write only the base properties — dropping ValidationProblemDetails'
+        // `errors` dictionary, so every 400 arrived as a bare "One or more validation errors
+        // occurred." and the caller never saw which field failed or why.
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails, problemDetails.GetType(), options: null,
+            contentType: "application/problem+json", cancellationToken);
         return true;
     }
 }

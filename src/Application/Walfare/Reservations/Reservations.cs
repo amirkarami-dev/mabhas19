@@ -72,13 +72,21 @@ public class CreateReservationCommandHandler(
         var nationalCode = user.Name ?? string.Empty;
 
         // One live reservation per engineer per pool per day — pressing "reserve" twice must not
-        // double-bill. Cancelled rows don't block a retry.
-        var duplicate = await context.WelfarePoolReservations.AnyAsync(
+        // double-bill. Cancelled rows don't block a new booking.
+        var existing = await context.WelfarePoolReservations.FirstOrDefaultAsync(
             r => r.PoolId == pool.Id && r.Date == date && r.UserId == userId &&
                  r.Status != ReservationStatus.Cancelled,
             cancellationToken);
-        if (duplicate)
-            throw Fail.With("Date", "برای این روز قبلاً رزرو ثبت کرده‌اید (بخش «رزروهای من»).");
+        if (existing is not null)
+        {
+            if (existing.Status == ReservationStatus.Paid)
+                throw Fail.With("Date", "برای این روز قبلاً بلیط تهیه کرده‌اید (بخش «رزروهای من»).");
+
+            // Still awaiting payment (an abandoned or failed attempt): hand back the SAME
+            // reservation so the payment can be retried. Refusing here left the engineer stuck —
+            // the booking page could not proceed and only «رزروهای من» offered a way on.
+            return existing.Id;
+        }
 
         var taken = await context.WelfarePoolReservations.CountAsync(
             r => r.PoolId == pool.Id && r.Date == date && r.Status != ReservationStatus.Cancelled,
