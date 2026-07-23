@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Select, Tag, Tooltip, Typography } from "antd";
+import { Button, Popconfirm, Select, Tag, Typography } from "antd";
+import { SafetyCertificateOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   walfareApi,
@@ -7,7 +8,7 @@ import {
   type Paged,
   type PaymentTransaction,
 } from "@/api/walfareApi";
-import { queryKeys, useApiQuery } from "@/query";
+import { queryKeys, useApiMutation, useApiQuery } from "@/query";
 import { CrudTable, PageHeader } from "@/components/ui";
 import { faDigits, faMoney } from "@/lib/jalali";
 
@@ -52,6 +53,13 @@ export function AdminPaymentsPage() {
   const query = useApiQuery<Paged<PaymentTransaction>>(queryKeys.payments.admin(params), () =>
     walfareApi.adminPayments(params),
   );
+
+  // Manual verify for a payment the automatic bank callback left unverified.
+  const confirm = useApiMutation<number, PaymentTransaction>({
+    mutationFn: (id) => walfareApi.confirmPayment(id),
+    invalidate: [queryKeys.payments.all()],
+    success: "تراکنش با موفقیت تأیید شد",
+  });
 
   const previous = useRef<Paged<PaymentTransaction> | undefined>(undefined);
   useEffect(() => {
@@ -111,14 +119,50 @@ export function AdminPaymentsPage() {
       title: "وضعیت",
       dataIndex: "status",
       key: "status",
-      width: 110,
+      width: 180,
       render: (v: PaymentStatus, t) => (
-        <Tooltip title={t.description ?? undefined}>
-          <span>
-            <StatusTag status={v} />
-          </span>
-        </Tooltip>
+        <div>
+          <StatusTag status={v} />
+          {t.description ? (
+            // Keep the bank's own message (e.g. verify result) visible, not just on hover.
+            <Typography.Text
+              type="secondary"
+              style={{ display: "block", fontSize: 11, marginTop: 4, overflowWrap: "anywhere" }}
+            >
+              {t.description}
+            </Typography.Text>
+          ) : null}
+        </div>
       ),
+    },
+    {
+      title: "عملیات",
+      key: "actions",
+      width: 130,
+      fixed: "right",
+      render: (_, t) =>
+        // Already-verified rows need nothing; others can be verified manually against the bank.
+        t.status === PaymentStatus.Succeeded ? (
+          <Typography.Text type="secondary">—</Typography.Text>
+        ) : (
+          <Popconfirm
+            title="تأیید تراکنش نزد بانک؟"
+            description="پرداخت با شماره ارجاع و پیگیری این تراکنش نزد ایران کیش تأیید می‌شود."
+            okText="تأیید"
+            cancelText="انصراف"
+            onConfirm={() => confirm.mutate(t.id)}
+          >
+            <Button
+              size="small"
+              type="primary"
+              ghost
+              icon={<SafetyCertificateOutlined />}
+              loading={confirm.isPending && confirm.variables === t.id}
+            >
+              تأیید
+            </Button>
+          </Popconfirm>
+        ),
     },
   ];
 

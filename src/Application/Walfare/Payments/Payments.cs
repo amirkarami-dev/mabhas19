@@ -15,6 +15,35 @@ file static class Fail
         new([new FluentValidation.Results.ValidationFailure(property, message)]);
 }
 
+file static class PaymentCompletion
+{
+    /// <summary>
+    /// Mark a transaction verified and, for a pool ticket, flip its reservation to Paid with the
+    /// tracking code. Shared by the automatic bank callback and the admin manual «تأیید» so both
+    /// paths leave the DB in exactly the same state.
+    /// </summary>
+    public static async Task ApplyVerifiedAsync(
+        IApplicationDbContext context, PaymentTransaction tx, string? description, CancellationToken ct)
+    {
+        tx.Status = PaymentStatus.Succeeded;
+        // Keep the bank's own verify description (e.g. «موفق»), per the merchant's convention.
+        tx.Description = description;
+        tx.VerifiedAt = DateTimeOffset.UtcNow;
+
+        if (tx.TargetType == InitPoolPaymentCommandHandler.TargetType)
+        {
+            var reservation = await context.WelfarePoolReservations
+                .FirstOrDefaultAsync(r => r.Id == tx.TargetId, ct);
+            if (reservation is not null)
+            {
+                reservation.Status = ReservationStatus.Paid;
+                reservation.PaymentTransactionId = tx.Id;
+                reservation.TrackingCode = tx.SystemTraceAuditNumber;
+            }
+        }
+    }
+}
+
 /// <summary>What the SPA needs to push the payer into the gateway.</summary>
 public sealed record PaymentRedirectDto(int TransactionId, string RedirectUrl);
 
@@ -121,10 +150,17 @@ public class HandleIrkCallbackCommandHandler(
         if (tx.Status == PaymentStatus.Succeeded)
             return Result("ok", tx.SystemTraceAuditNumber);
 
+        // Persist what the bank posted BEFORE deciding — the masked card is worth keeping either
+        // way, and a later admin «تأیید» needs the RRN/STAN even if the auto-verify below fails.
         tx.ResponseCode = request.ResponseCode;
-        tx.MaskedPan = request.MaskedPan;
+        tx.MaskedPan = request.MaskedPan ?? tx.MaskedPan;
+        tx.RetrievalReferenceNumber = request.RetrievalReferenceNumber ?? tx.RetrievalReferenceNumber;
+        tx.SystemTraceAuditNumber = request.SystemTraceAuditNumber ?? tx.SystemTraceAuditNumber;
 
-        if (request.ResponseCode?.Trim() != "0")
+        // Iran Kish approves with "0" / "00" / "000". The old check compared against the literal
+        // string "0", so a real success ("00") was recorded as FAILED and verify never ran —
+        // leaving the payment «موفق تایید نشده» at the bank, which then auto-reverses it.
+        if (!IsApprovedCode(request.ResponseCode))
         {
             tx.Status = PaymentStatus.Failed;
             tx.Description = $"بانک پرداخت را نپذیرفت (کد {request.ResponseCode}).";
@@ -140,34 +176,76 @@ public class HandleIrkCallbackCommandHandler(
 
         if (!verify.Success)
         {
-            tx.Status = PaymentStatus.Failed;
-            tx.Description = verify.Description ?? "تأیید پرداخت ناموفق بود.";
+            // Card was captured but verify failed — keep it PENDING-style (Initiated) so the admin
+            // «تأیید» can retry; store the bank's reason so they see why.
+            tx.Status = PaymentStatus.Initiated;
+            tx.Description = verify.Description ?? "پرداخت انجام شد اما تأیید نشد؛ نیازمند تأیید دستی.";
             await context.SaveChangesAsync(cancellationToken);
             return Result("failed");
         }
 
-        tx.Status = PaymentStatus.Succeeded;
-        tx.RetrievalReferenceNumber = request.RetrievalReferenceNumber;
-        tx.SystemTraceAuditNumber = request.SystemTraceAuditNumber;
-        tx.Description = verify.Description;
-        tx.VerifiedAt = DateTimeOffset.UtcNow;
+        await PaymentCompletion.ApplyVerifiedAsync(context, tx, verify.Description, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        return Result("ok", tx.SystemTraceAuditNumber);
+    }
 
-        if (tx.TargetType == InitPoolPaymentCommandHandler.TargetType)
+    /// <summary>Iran Kish sends the approval code as "0" / "00" / "000" — compare numerically.</summary>
+    private static bool IsApprovedCode(string? code) =>
+        int.TryParse((code ?? string.Empty).Trim(), out var n) && n == 0;
+}
+
+// ── admin: manually verify a payment the callback couldn't (missed/failed verify) ────
+
+/// <summary>
+/// Re-runs the bank verify for a transaction the automatic callback left unverified, using the
+/// stored Token + RRN + STAN. On success the ticket is marked Paid, exactly like the callback.
+/// </summary>
+[Authorize(Roles = Roles.Administrator)]
+public record ConfirmPaymentCommand(int Id) : IRequest<PaymentTransactionDto>;
+
+public class ConfirmPaymentCommandHandler(
+    IApplicationDbContext context,
+    IPaymentGateway gateway) : IRequestHandler<ConfirmPaymentCommand, PaymentTransactionDto>
+{
+    public async Task<PaymentTransactionDto> Handle(ConfirmPaymentCommand request, CancellationToken cancellationToken)
+    {
+        var tx = await context.PaymentTransactions
+            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken)
+            ?? throw Fail.With("Id", "تراکنش یافت نشد.");
+
+        if (tx.Status == PaymentStatus.Succeeded) return ToDto(tx); // idempotent
+
+        if (string.IsNullOrWhiteSpace(tx.Token) ||
+            string.IsNullOrWhiteSpace(tx.RetrievalReferenceNumber) ||
+            string.IsNullOrWhiteSpace(tx.SystemTraceAuditNumber))
         {
-            var reservation = await context.WelfarePoolReservations
-                .FirstOrDefaultAsync(r => r.Id == tx.TargetId, cancellationToken);
-            if (reservation is not null)
-            {
-                reservation.Status = ReservationStatus.Paid;
-                reservation.PaymentTransactionId = tx.Id;
-                // کد رهگیری = the bank's trace number, exactly what the spec asks to store.
-                reservation.TrackingCode = request.SystemTraceAuditNumber;
-            }
+            throw Fail.With("Id",
+                "این تراکنش اطلاعات ارجاع بانکی (شماره ارجاع/پیگیری) ندارد و قابل تأیید دستی نیست.");
         }
 
+        var verify = await gateway.VerifyAsync(
+            tx.RetrievalReferenceNumber!, tx.SystemTraceAuditNumber!, tx.Token!, cancellationToken);
+
+        if (!verify.Success)
+        {
+            tx.Description = verify.Description ?? "بانک این تراکنش را تأیید نکرد.";
+            await context.SaveChangesAsync(cancellationToken);
+            throw Fail.With("Id", tx.Description);
+        }
+
+        await PaymentCompletion.ApplyVerifiedAsync(context, tx, verify.Description, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
-        return Result("ok", request.SystemTraceAuditNumber);
+        return ToDto(tx);
     }
+
+    private static PaymentTransactionDto ToDto(PaymentTransaction t) => new()
+    {
+        Id = t.Id, Gateway = t.Gateway, AmountRials = t.AmountRials, PaymentId = t.PaymentId,
+        Status = t.Status, TargetType = t.TargetType, TargetId = t.TargetId,
+        PayerName = t.PayerName, PayerNationalCode = t.PayerNationalCode, MaskedPan = t.MaskedPan,
+        RetrievalReferenceNumber = t.RetrievalReferenceNumber, SystemTraceAuditNumber = t.SystemTraceAuditNumber,
+        Description = t.Description, Created = t.Created, VerifiedAt = t.VerifiedAt
+    };
 }
 
 // ── admin: the payment ledger ────────────────────────────────────────────────

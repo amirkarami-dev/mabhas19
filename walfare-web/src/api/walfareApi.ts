@@ -187,4 +187,8 @@ export const walfareApi = {
     page?: number;
     pageSize?: number;
   }): Promise<Paged<PaymentTransaction>> => api.get(`${P}/payments/admin${qs(params)}`),
+
+  /** Admin manual verify for a transaction the bank callback left unverified. */
+  confirmPayment: (id: number): Promise<PaymentTransaction> =>
+    api.post(`${P}/payments/${id}/confirm`),
 };

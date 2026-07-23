@@ -153,6 +153,7 @@ public class WalfarePayments : Mabhas19.Web.Infrastructure.IEndpointGroup
         // The BANK posts the payer's browser here — no token, no antiforgery cookie.
         groupBuilder.MapPost(WalfareIrkReturn, "irk-return").AllowAnonymous().DisableAntiforgery();
         groupBuilder.MapGet(GetWalfarePaymentsAdmin, "admin").RequireAdmin();
+        groupBuilder.MapPost(ConfirmWalfarePayment, "{id:int}/confirm").RequireAdmin();
     }
 
     public static async Task<Ok<PaymentRedirectDto>> InitWalfarePayment(
@@ -183,4 +184,8 @@ public class WalfarePayments : Mabhas19.Web.Infrastructure.IEndpointGroup
     public static async Task<Ok<WalfarePagedResult<PaymentTransactionDto>>> GetWalfarePaymentsAdmin(
         ISender sender, PaymentStatus? status = null, string? q = null, int page = 1, int pageSize = 20)
         => TypedResults.Ok(await sender.Send(new GetPaymentsAdminQuery(status, q, page, pageSize)));
+
+    /// <summary>Admin manual verify for a payment the automatic callback left unverified.</summary>
+    public static async Task<Ok<PaymentTransactionDto>> ConfirmWalfarePayment(ISender sender, int id)
+        => TypedResults.Ok(await sender.Send(new ConfirmPaymentCommand(id)));
 }
