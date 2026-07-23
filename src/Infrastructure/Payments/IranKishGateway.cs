@@ -161,8 +161,12 @@ public sealed class IranKishGateway(
             RequestId = "10" + paymentId,
             RequestTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             RevertUri = _o.CallbackUrl,
-            TerminalId = _o.TerminalId,
-            AdditionalParameters = [new KeyValuePair<string, string>("nationalId", "")]
+            TerminalId = _o.TerminalId
+            // additionalParameters is deliberately NOT sent. The gateway's own deserializer
+            // rejects a KeyValuePair entry in any casing ("The JSON value could not be
+            // converted to List<KeyValuePair<string,string>>" → HTTP 400), and the only entry
+            // the legacy client sent was an EMPTY nationalId. Verified live: omitted / null /
+            // empty array all return a token; sending the entry always fails.
         };
 
         var payload = new TokenRequestEnvelope(BuildEnvelope(amountRials), request);
@@ -194,7 +198,9 @@ public sealed class IranKishGateway(
             }
 
             var token = parsed.Result.Token!;
-            return new PaymentInitResult(true, token, $"{_o.PaymentPageUrl.TrimEnd('/')}/{token}", null);
+            // The IPG page takes the token as a QUERY parameter (…/IPG/Index?token=…), which is
+            // what the legacy merchant used; a path segment (…/Index/{token}) is not accepted.
+            return new PaymentInitResult(true, token, $"{_o.PaymentPageUrl.TrimEnd('/')}?token={token}", null);
         }
         catch (Exception ex)
         {
