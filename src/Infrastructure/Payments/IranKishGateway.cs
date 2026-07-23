@@ -83,7 +83,9 @@ public sealed class IranKishGateway(
     {
         [JsonPropertyName("responseCode")] public string? ResponseCode { get; set; }
         [JsonPropertyName("description")] public JsonElement Description { get; set; }
-        [JsonPropertyName("status")] public bool Status { get; set; }
+        [JsonPropertyName("status")]
+        [JsonConverter(typeof(LooseBooleanConverter))]
+        public bool Status { get; set; }
         [JsonPropertyName("result")] public TokenResult? Result { get; set; }
     }
 
@@ -102,7 +104,9 @@ public sealed class IranKishGateway(
     {
         [JsonPropertyName("responseCode")] public string? ResponseCode { get; set; }
         [JsonPropertyName("description")] public string? Description { get; set; }
-        [JsonPropertyName("status")] public bool Status { get; set; }
+        [JsonPropertyName("status")]
+        [JsonConverter(typeof(LooseBooleanConverter))]
+        public bool Status { get; set; }
         [JsonPropertyName("result")] public VerifyResult? Result { get; set; }
     }
 
@@ -110,6 +114,34 @@ public sealed class IranKishGateway(
     {
         [JsonPropertyName("amount")] public string? Amount { get; set; }
     }
+
+    /// <summary>
+    /// Reads `status` whether the gateway sends a boolean, a number (1/0) or a quoted one.
+    /// Iran Kish sends a NUMBER; System.Text.Json is strict where the legacy Newtonsoft client
+    /// coerced silently, so a plain `bool` threw and every token request looked like a network
+    /// failure instead of a real answer.
+    /// </summary>
+    private sealed class LooseBooleanConverter : JsonConverter<bool>
+    {
+        public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            reader.TokenType switch
+            {
+                JsonTokenType.True => true,
+                JsonTokenType.False => false,
+                JsonTokenType.Number => reader.TryGetInt64(out var n) ? n != 0 : reader.GetDouble() != 0,
+                JsonTokenType.String => bool.TryParse(reader.GetString(), out var b)
+                    ? b
+                    : long.TryParse(reader.GetString(), out var s) && s != 0,
+                _ => false
+            };
+
+        public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options)
+            => writer.WriteBooleanValue(value);
+    }
+
+    /// <summary>Cap a gateway reply before it reaches the log.</summary>
+    private static string Trim(string? body) =>
+        string.IsNullOrEmpty(body) ? "" : body.Length <= 500 ? body : body[..500] + "…";
 
     public async Task<PaymentInitResult> InitAsync(long amountRials, string paymentId, CancellationToken ct = default)
     {
@@ -141,10 +173,22 @@ public sealed class IranKishGateway(
             using var response = await http.PostAsJsonAsync(_o.TokenUrl, payload, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
 
-            var parsed = JsonSerializer.Deserialize<TokenResponse>(body);
+            TokenResponse? parsed;
+            try
+            {
+                parsed = JsonSerializer.Deserialize<TokenResponse>(body);
+            }
+            catch (JsonException ex)
+            {
+                // The gateway answered but in a shape we don't model — say so, and keep the reply
+                // in the log. Reporting this as "connection failed" hides a real answer.
+                logger.LogError(ex, "IranKish token reply unreadable for {PaymentId}: {Body}", paymentId, Trim(body));
+                return new PaymentInitResult(false, null, null, "پاسخ درگاه پرداخت قابل خواندن نبود.");
+            }
+
             if (parsed is not { Status: true } || string.IsNullOrWhiteSpace(parsed.Result?.Token))
             {
-                logger.LogWarning("IranKish token refused for {PaymentId}: {Body}", paymentId, body);
+                logger.LogWarning("IranKish token refused for {PaymentId}: {Body}", paymentId, Trim(body));
                 return new PaymentInitResult(false, null, null,
                     $"درگاه پرداخت درخواست را نپذیرفت (کد {parsed?.ResponseCode ?? "?"}).");
             }
@@ -169,10 +213,22 @@ public sealed class IranKishGateway(
                 new VerifyRequest(_o.TerminalId, retrievalReferenceNumber, systemTraceAuditNumber, token), ct);
             var body = await response.Content.ReadAsStringAsync(ct);
 
-            var parsed = JsonSerializer.Deserialize<VerifyResponse>(body);
+            VerifyResponse? parsed;
+            try
+            {
+                parsed = JsonSerializer.Deserialize<VerifyResponse>(body);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "IranKish verify reply unreadable (rrn {Rrn}): {Body}",
+                    retrievalReferenceNumber, Trim(body));
+                return new PaymentVerifyResult(false, null, "پاسخ درگاه پرداخت قابل خواندن نبود.");
+            }
+
             if (parsed is not { Status: true })
             {
-                logger.LogWarning("IranKish verify refused (rrn {Rrn}): {Body}", retrievalReferenceNumber, body);
+                logger.LogWarning("IranKish verify refused (rrn {Rrn}): {Body}",
+                    retrievalReferenceNumber, Trim(body));
                 return new PaymentVerifyResult(false, null, parsed?.Description);
             }
 
