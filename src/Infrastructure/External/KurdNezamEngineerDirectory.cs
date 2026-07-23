@@ -35,8 +35,14 @@ public sealed class KurdNezamEngineerDirectory(
             await using var cmd = conn.CreateCommand();
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.CommandText = "dbo.WebS_GetEngineerInfo";
-            cmd.Parameters.Add(new SqlParameter("@Code", 0));
-            cmd.Parameters.Add(new SqlParameter("@NationalCode", code));
+            // @Code MUST be 0 (not null) for a national-code lookup — that is how the SP
+            // switches to searching by CodeMeli.
+            // NOTE: never write `new SqlParameter("@Code", 0)`. The literal 0 binds to the
+            // (string, SqlDbType) overload instead of (string, object), so the parameter is
+            // declared with NO value and SQL Server answers "expects parameter '@Code',
+            // which was not supplied" — every lookup then silently returned "not found".
+            cmd.Parameters.Add(new SqlParameter("@Code", SqlDbType.Int) { Value = 0 });
+            cmd.Parameters.Add(new SqlParameter("@NationalCode", SqlDbType.NVarChar, 20) { Value = code });
 
             await using var r = await cmd.ExecuteReaderAsync(ct);
             if (!await r.ReadAsync(ct)) return null;
