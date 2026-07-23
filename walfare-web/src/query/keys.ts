@@ -17,6 +17,7 @@ export const queryKeys = {
     all: () => ["pools"] as const,
     admin: (serviceId?: number) => ["pools", "admin", serviceId ?? 0] as const,
     forDate: (serviceId: number, date: string) => ["pools", "for-date", serviceId, date] as const,
+    calendar: (serviceId: number) => ["pools", "calendar", serviceId] as const,
   },
   reservations: {
     all: () => ["reservations"] as const,

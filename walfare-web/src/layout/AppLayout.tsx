@@ -108,7 +108,7 @@ export function AppLayout() {
           onClick={toggleSidebar}
         />
         <div style={{ flex: 1 }} />
-        <AppSwitcher currentKey="admin" />
+        <AppSwitcher currentKey="walfare" />
         <Tooltip title={themeLabel}>
           <Button
             type="text"

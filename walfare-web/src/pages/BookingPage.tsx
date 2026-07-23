@@ -17,7 +17,7 @@ import {
 import { ClockCircleOutlined, RightOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { walfareApi, type PoolAvailability } from "@/api/walfareApi";
+import { walfareApi, type PoolAvailability, type ServiceCalendar } from "@/api/walfareApi";
 import { errorMessage } from "@/api/client";
 import { queryKeys, useApiQuery } from "@/query";
 import { EmptyState, PageHeader } from "@/components/ui";
@@ -34,17 +34,31 @@ import {
   type CalendarDay,
 } from "@/lib/jalali";
 
-/** A month of Jalali days, Saturday-first grid, past days disabled. */
+/**
+ * True when the service actually runs on that day: inside its window AND one of its active
+ * pools covers that weekday. Jalali strings are zero-padded YYYY/MM/DD, so plain string
+ * comparison orders them correctly.
+ */
+function isServiceDay(day: CalendarDay, cal: ServiceCalendar | undefined): boolean {
+  if (!cal || !cal.isAccessible) return false;
+  if (day.apiDate < cal.startDate || day.apiDate > cal.endDate) return false;
+  return (cal.activeDays & (1 << day.weekdayBit)) !== 0;
+}
+
+/** A month of Jalali days, Saturday-first grid, past days disabled. Days that carry the
+ *  service are tinted and dotted so the engineer sees them before clicking. */
 function JalaliCalendar({
   anchor,
   onShift,
   selected,
   onSelect,
+  calendar,
 }: {
   anchor: Date;
   onShift: (delta: number) => void;
   selected: Date | null;
   onSelect: (day: CalendarDay) => void;
+  calendar?: ServiceCalendar;
 }) {
   const { token } = theme.useToken();
   const days = useMemo(() => jalaliMonthDays(anchor), [anchor]);
@@ -81,36 +95,83 @@ function JalaliCalendar({
           <div key={`blank-${i}`} />
         ))}
         {days.map((d) => {
-          const disabled = d.date < today;
+          const past = d.date < today;
           const isSelected = selected !== null && isSameDay(d.date, selected);
           const isToday = isSameDay(d.date, today);
+          const hasService = !past && isServiceDay(d, calendar);
           return (
             <button
               key={d.apiDate}
               type="button"
-              disabled={disabled}
+              disabled={past}
               onClick={() => onSelect(d)}
               aria-pressed={isSelected}
+              aria-label={
+                hasService && calendar
+                  ? `${faDigits(d.apiDate)} — ${calendar.title}`
+                  : faDigits(d.apiDate)
+              }
+              title={hasService && calendar ? calendar.title : undefined}
               style={{
+                position: "relative",
                 height: 42,
                 borderRadius: 10,
                 border: isToday && !isSelected ? `1px dashed ${token.colorPrimary}` : "1px solid transparent",
-                cursor: disabled ? "not-allowed" : "pointer",
-                background: isSelected ? token.colorPrimary : "transparent",
-                color: disabled
+                cursor: past ? "not-allowed" : "pointer",
+                background: isSelected
+                  ? token.colorPrimary
+                  : hasService
+                    ? token.colorPrimaryBg
+                    : "transparent",
+                color: past
                   ? token.colorTextQuaternary
                   : isSelected
                     ? "#fff"
-                    : token.colorText,
-                fontWeight: isSelected ? 700 : 400,
+                    : hasService
+                      ? token.colorPrimaryText
+                      : token.colorText,
+                fontWeight: isSelected || hasService ? 700 : 400,
                 fontSize: 14,
               }}
             >
               {faDigits(d.jalali.jd)}
+              {hasService ? (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    bottom: 5,
+                    insetInlineStart: "50%",
+                    transform: "translateX(50%)",
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: isSelected ? "#fff" : token.colorPrimary,
+                  }}
+                />
+              ) : null}
             </button>
           );
         })}
       </div>
+
+      {calendar && calendar.activeDays !== 0 ? (
+        <Space size={6} style={{ marginTop: 12, fontSize: 12 }}>
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: token.colorPrimary,
+            }}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            روزهای دارای «{calendar.title}»
+          </Typography.Text>
+        </Space>
+      ) : null}
     </Card>
   );
 }
@@ -135,6 +196,13 @@ export function BookingPage() {
     queryKeys.pools.forDate(serviceId, selectedDay?.apiDate ?? ""),
     () => walfareApi.poolsForDate(serviceId, selectedDay!.apiDate),
     { enabled: !!selectedDay && Number.isFinite(serviceId) },
+  );
+
+  // One call feeds the day badges for every month the user browses.
+  const calendar = useApiQuery(
+    queryKeys.pools.calendar(serviceId),
+    () => walfareApi.serviceCalendar(serviceId),
+    { enabled: Number.isFinite(serviceId) },
   );
 
   /** Reserve, then push straight into the bank. One click = one ticket + one payment attempt. */
@@ -174,6 +242,7 @@ export function BookingPage() {
             onShift={(delta) => setAnchor((a) => shiftJalaliMonth(a, delta))}
             selected={selectedDay?.date ?? null}
             onSelect={setSelectedDay}
+            calendar={calendar.data}
           />
         </Col>
 

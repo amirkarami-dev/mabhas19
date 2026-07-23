@@ -98,6 +98,18 @@ const SERVICES: Svc[] = [
     ),
   },
   {
+    key: "walfare",
+    nameFa: "سامانه رفاهی",
+    nameEn: "Welfare",
+    href: "https://refahi.kurdnezam.ir",
+    color: "#db2777",
+    icon: (
+      <svg {...ic}>
+        <path d="M12 20s-6.5-4.2-8.4-7.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.4 5.4C18.5 15.8 12 20 12 20z" />
+      </svg>
+    ),
+  },
+  {
     key: "admin",
     nameFa: "مدیریت کاربران",
     nameEn: "User Admin",

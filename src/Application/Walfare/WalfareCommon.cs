@@ -109,6 +109,24 @@ public sealed class PoolAvailabilityDto
     public int Remaining { get; init; }
 }
 
+/// <summary>
+/// What the booking calendar needs to mark days BEFORE a day is picked: the service window plus
+/// the union of its active pools' weekday masks. One call covers every month the user browses —
+/// the per-day pool list (with live capacity) still comes from <c>pools/for-date</c>.
+/// </summary>
+public sealed class ServiceCalendarDto
+{
+    public int ServiceId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string StartDate { get; init; } = string.Empty;
+    public string EndDate { get; init; } = string.Empty;
+    public bool IsAccessible { get; init; }
+    /// <summary>Union of every ACTIVE pool's ActiveDays bitmask; bit 0 = شنبه … bit 6 = جمعه.</summary>
+    public int ActiveDays { get; init; }
+    public int PoolCount { get; init; }
+    public long? MinPriceRials { get; init; }
+}
+
 /// <summary>The signed-in engineer as the org's membership DB knows them.</summary>
 public sealed class WalfareEngineerDto
 {

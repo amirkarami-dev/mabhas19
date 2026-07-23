@@ -66,6 +66,19 @@ export interface PoolAvailability {
   remaining: number;
 }
 
+/** Service window + the weekdays it runs on — what the booking calendar badges its days with. */
+export interface ServiceCalendar {
+  serviceId: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  isAccessible: boolean;
+  /** Bitmask, bit 0 = شنبه … bit 6 = جمعه (union over active pools). */
+  activeDays: number;
+  poolCount: number;
+  minPriceRials: number | null;
+}
+
 export interface WalfareEngineer {
   fullName: string;
   nationalCode: string;
@@ -138,6 +151,8 @@ export const walfareApi = {
   activeServices: (): Promise<WelfareService[]> => api.get(`${P}/services`),
   poolsForDate: (serviceId: number, date: string): Promise<PoolAvailability[]> =>
     api.get(`${P}/pools/for-date${qs({ serviceId, date })}`),
+  serviceCalendar: (serviceId: number): Promise<ServiceCalendar> =>
+    api.get(`${P}/pools/calendar${qs({ serviceId })}`),
   createReservation: (poolId: number, date: string): Promise<number> =>
     api.post(`${P}/reservations`, { poolId, date }),
   myReservations: (): Promise<Reservation[]> => api.get(`${P}/reservations/me`),

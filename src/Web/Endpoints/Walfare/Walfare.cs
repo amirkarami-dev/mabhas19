@@ -59,6 +59,7 @@ public class WalfarePools : Mabhas19.Web.Infrastructure.IEndpointGroup
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.MapGet(GetWalfarePoolsForDate, "for-date").RequireAuthorization();
+        groupBuilder.MapGet(GetWalfareServiceCalendar, "calendar").RequireAuthorization();
         groupBuilder.MapGet(GetWalfarePoolsAdmin, "admin").RequireAdmin();
         groupBuilder.MapPost(CreateWalfarePool, string.Empty).RequireAdmin();
         groupBuilder.MapPut(UpdateWalfarePool, "{id:int}").RequireAdmin();
@@ -69,6 +70,10 @@ public class WalfarePools : Mabhas19.Web.Infrastructure.IEndpointGroup
     public static async Task<Ok<IReadOnlyList<PoolAvailabilityDto>>> GetWalfarePoolsForDate(
         ISender sender, int serviceId, string date)
         => TypedResults.Ok(await sender.Send(new GetPoolsForDateQuery(serviceId, date)));
+
+    /// <summary>Service window + active weekdays, so the booking calendar can badge its days.</summary>
+    public static async Task<Ok<ServiceCalendarDto>> GetWalfareServiceCalendar(ISender sender, int serviceId)
+        => TypedResults.Ok(await sender.Send(new GetServiceCalendarQuery(serviceId)));
 
     public static async Task<Ok<IReadOnlyList<WelfarePoolDto>>> GetWalfarePoolsAdmin(
         ISender sender, int? serviceId = null)

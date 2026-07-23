@@ -74,6 +74,49 @@ public class GetPoolsForDateQueryHandler(IApplicationDbContext context)
     }
 }
 
+// ── engineer: which days of the month carry the service ──────────────────────
+
+/// <summary>
+/// Feeds the booking calendar's day badges. Returns the service window and the union of its
+/// active pools' weekday masks, so the calendar can mark every month it shows without one
+/// request per day.
+/// </summary>
+[Authorize]
+public record GetServiceCalendarQuery(int ServiceId) : IRequest<ServiceCalendarDto>;
+
+public class GetServiceCalendarQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<GetServiceCalendarQuery, ServiceCalendarDto>
+{
+    public async Task<ServiceCalendarDto> Handle(
+        GetServiceCalendarQuery request, CancellationToken cancellationToken)
+    {
+        var service = await context.WelfareServices.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
+        Guard.Against.NotFound(request.ServiceId, service);
+
+        var pools = await context.WelfarePools.AsNoTracking()
+            .Where(p => p.ServiceId == request.ServiceId && p.IsActive)
+            .Select(p => new { p.ActiveDays, p.PriceRials })
+            .ToListAsync(cancellationToken);
+
+        var mask = 0;
+        foreach (var p in pools) mask |= p.ActiveDays;
+
+        return new ServiceCalendarDto
+        {
+            ServiceId = service.Id,
+            Title = service.Title,
+            StartDate = JalaliDate.Format(service.StartDate),
+            EndDate = JalaliDate.Format(service.EndDate),
+            IsAccessible = service.IsAccessible,
+            // An inaccessible service offers nothing — the calendar must not badge its days.
+            ActiveDays = service.IsAccessible ? mask : 0,
+            PoolCount = pools.Count,
+            MinPriceRials = pools.Count == 0 ? null : pools.Min(p => p.PriceRials)
+        };
+    }
+}
+
 // ── admin CRUD ───────────────────────────────────────────────────────────────
 
 [Authorize(Roles = Roles.Administrator)]
